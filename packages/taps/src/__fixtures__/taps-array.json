@@ -1,0 +1,4 @@
+[
+  { "host": "one.example", "item": ".post", "title": "h2", "link": "a" },
+  { "host": "two.example", "item": ".post", "title": "h2", "link": "a" }
+]

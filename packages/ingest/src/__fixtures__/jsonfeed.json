@@ -1,0 +1,24 @@
+{
+  "version": "https://jsonfeed.org/version/1.1",
+  "title": "Example JSON Feed",
+  "home_page_url": "https://blog.example.com/",
+  "feed_url": "https://blog.example.com/feed.json",
+  "authors": [{ "name": "Ada Lovelace", "url": "https://ada.example.com" }],
+  "items": [
+    {
+      "id": "https://blog.example.com/posts/json-one",
+      "url": "https://blog.example.com/posts/json-one",
+      "title": "JSON Post One",
+      "summary": "The first json post.",
+      "date_published": "2024-03-09T08:30:00Z",
+      "tags": ["typescript", "feeds"]
+    },
+    {
+      "id": "https://blog.example.com/posts/json-two",
+      "url": "https://blog.example.com/posts/json-two",
+      "title": "JSON Post Two",
+      "content_html": "<p>The second json post.</p>",
+      "date_published": "2024-03-10T11:00:00Z"
+    }
+  ]
+}

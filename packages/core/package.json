@@ -1,0 +1,56 @@
+{
+  "name": "@neurowire/core",
+  "version": "0.1.0",
+  "description": "Canonical feed model and serializers (Atom, JSON Feed 1.1, Markdown, nwf) for Neurowire.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": ["dist", "CHANGELOG.md"],
+  "keywords": [
+    "neurowire",
+    "feed",
+    "atom",
+    "json-feed",
+    "jsonfeed",
+    "rss",
+    "markdown",
+    "nwf",
+    "serializer"
+  ],
+  "author": "Médéric Burlet <mederic.burlet@gmail.com>",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/starside-io/neurowire.git",
+    "directory": "packages/core"
+  },
+  "homepage": "https://github.com/starside-io/neurowire#readme",
+  "bugs": {
+    "url": "https://github.com/starside-io/neurowire/issues"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "typecheck": "tsc --noEmit",
+    "prepack": "tsup"
+  },
+  "dependencies": {
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "tsup": "^8.3.5",
+    "typescript": "^5.7.3"
+  }
+}

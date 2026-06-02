@@ -1,0 +1,17 @@
+{
+  "name": "AI News",
+  "sources": [
+    {
+      "name": "Claude Code Releases",
+      "url": "https://github.com/anthropics/claude-code/releases.atom"
+    },
+    {
+      "name": "Claude Blog",
+      "url": "https://claude.com/blog"
+    },
+    {
+      "name": "Simon Willison",
+      "url": "https://simonwillison.net/atom/everything/"
+    }
+  ]
+}

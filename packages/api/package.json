@@ -1,0 +1,59 @@
+{
+  "name": "@neurowire/api",
+  "version": "0.1.0",
+  "description": "Self-hostable Hono HTTP service that serves Neurowire feeds and meshes as an API.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "bin": {
+    "neurowire-api": "./dist/index.js"
+  },
+  "files": ["dist", "CHANGELOG.md"],
+  "keywords": [
+    "neurowire",
+    "api",
+    "server",
+    "hono",
+    "feed",
+    "atom",
+    "json-feed",
+    "mesh",
+    "self-hosted"
+  ],
+  "author": "Médéric Burlet <mederic.burlet@gmail.com>",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/starside-io/neurowire.git",
+    "directory": "packages/api"
+  },
+  "homepage": "https://github.com/starside-io/neurowire#readme",
+  "bugs": {
+    "url": "https://github.com/starside-io/neurowire/issues"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsx watch src/index.ts",
+    "start": "node dist/index.js",
+    "typecheck": "tsc --noEmit",
+    "prepack": "tsup"
+  },
+  "dependencies": {
+    "@hono/node-server": "^1.13.7",
+    "@neurowire/core": "workspace:*",
+    "@neurowire/ingest": "workspace:*",
+    "@neurowire/taps": "workspace:*",
+    "hono": "^4.6.14"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.5",
+    "tsup": "^8.3.5",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3"
+  }
+}

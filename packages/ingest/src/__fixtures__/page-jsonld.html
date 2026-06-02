@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <title>JSON-LD Blog</title>
+    <meta property="og:site_name" content="JSON-LD Blog" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "Blog",
+        "blogPost": [
+          {
+            "@type": "BlogPosting",
+            "headline": "LD Post One",
+            "url": "https://blog.example.com/ld/one",
+            "datePublished": "2024-03-09T08:30:00Z",
+            "author": { "@type": "Person", "name": "Ada Lovelace" },
+            "keywords": "typescript, feeds"
+          },
+          {
+            "@type": "BlogPosting",
+            "headline": "LD Post Two",
+            "url": "https://blog.example.com/ld/two",
+            "datePublished": "2024-03-10T11:00:00Z"
+          }
+        ]
+      }
+    </script>
+  </head>
+  <body></body>
+</html>

@@ -1,0 +1,17 @@
+node_modules
+dist
+coverage
+*.log
+.DS_Store
+.env
+.env.*
+
+# Local agent / editor config
+.claude/
+
+# Packed npm tarballs
+*.tgz
+
+# Generated output (the news page is built in CI and deployed, not committed)
+/public/
+feed.html
