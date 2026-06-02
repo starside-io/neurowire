@@ -10,8 +10,12 @@
       "url": "https://claude.com/blog"
     },
     {
-      "name": "Simon Willison",
-      "url": "https://simonwillison.net/atom/everything/"
+      "name": "OpenAI News",
+      "url": "https://openai.com/news/rss.xml"
+    },
+    {
+      "name": "Cursor Blog",
+      "url": "https://cursor.com/blog"
     }
   ]
 }
