@@ -82,22 +82,18 @@ const STYLE = `
   .head { position: relative; margin-bottom: clamp(30px, 5vw, 50px); }
   .topline { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
   .brand {
-    display: inline-flex; align-items: center; gap: 9px; font-family: var(--mono); font-size: 11px;
+    display: inline-flex; align-items: center; gap: 10px; font-family: var(--mono); font-size: 12.5px;
     letter-spacing: 0.34em; text-transform: uppercase; color: var(--ink-faint);
-    padding: 6px 13px 6px 11px; border: 1px solid var(--line); border-radius: 999px;
-    background: rgba(12, 19, 34, 0.5); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
   }
   .brand .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--cyan); box-shadow: 0 0 10px 1px var(--glow-cyan); animation: pulse 2.6s ease-in-out infinite; }
   .brand b { color: var(--ink-soft); font-weight: 600; letter-spacing: 0.28em; }
-  .status { display: inline-flex; align-items: center; gap: 8px; font-family: var(--mono); font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink-faint); white-space: nowrap; }
-  .status .live { width: 7px; height: 7px; border-radius: 50%; background: var(--cyan); box-shadow: 0 0 9px 1px var(--glow-cyan); animation: pulse 2.4s ease-in-out infinite; }
-  .status b { color: var(--cyan-deep); font-weight: 600; }
   @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(0.78); } }
-  .wire { display: block; width: 100%; height: 30px; margin: 22px 0; overflow: visible; }
-  .wire .track { stroke: var(--line-strong); stroke-width: 1.2; fill: none; }
-  .wire .pulse-line { stroke: url(#wireGrad); stroke-width: 2; fill: none; stroke-linecap: round; stroke-dasharray: 150 1000; stroke-dashoffset: 1150; filter: drop-shadow(0 0 4px var(--glow-cyan)); animation: dash 5.5s linear infinite; }
-  .wire .node { fill: var(--bg-2); stroke: var(--cyan); stroke-width: 1.4; filter: drop-shadow(0 0 5px var(--glow-cyan)); }
-  @keyframes dash { to { stroke-dashoffset: -150; } }
+  .wire { display: block; width: 100%; height: 44px; margin: 18px 0 26px; overflow: visible; }
+  .wire .track { stroke: var(--line-strong); stroke-width: 1.1; fill: none; }
+  .wire .flow { stroke: url(#wireGrad); stroke-width: 2; fill: none; stroke-linecap: round; stroke-dasharray: 10 94; filter: drop-shadow(0 0 5px var(--glow-cyan)); animation: flow 1.9s linear infinite; }
+  .wire .node { fill: var(--bg-2); stroke: var(--cyan); stroke-width: 1.5; filter: drop-shadow(0 0 6px var(--glow-cyan)); animation: nodepulse 1.9s ease-in-out infinite; }
+  @keyframes flow { to { stroke-dashoffset: -104; } }
+  @keyframes nodepulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.55; } }
   .title {
     margin: 0; font-size: clamp(2.6rem, 9vw, 4.1rem); line-height: 1.0; font-weight: 800; letter-spacing: -0.026em;
     background: linear-gradient(100deg, #ffffff 0%, #cfe6ff 38%, var(--cyan) 80%, var(--magenta) 124%);
@@ -173,23 +169,34 @@ const STYLE = `
   .foot .gen { display: inline-flex; align-items: center; gap: 9px; }
   .foot .gen .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--magenta); box-shadow: 0 0 9px 0 var(--glow-magenta); }
   .foot b { color: var(--ink-soft); font-weight: 600; }
-  @media (max-width: 560px) { .status { display: none; } .foot { justify-content: flex-start; } }
+  @media (max-width: 560px) { .foot { justify-content: flex-start; } }
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { animation: none !important; transition: none !important; }
     .card { opacity: 1; transform: none; }
   }
 `
 
-const WIRE = `<svg class="wire" viewBox="0 0 760 30" preserveAspectRatio="none" aria-hidden="true" focusable="false">
-        <defs><linearGradient id="wireGrad" x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0" stop-color="#45e6ff" stop-opacity="0"/>
-          <stop offset="0.5" stop-color="#45e6ff"/>
-          <stop offset="1" stop-color="#ff5cc8" stop-opacity="0"/>
+// One trunk that splits into parallel branches and merges back into one,
+// mirroring how a mesh fans out to many sources and converges into one feed.
+const WIRE_LANES: readonly number[] = [6, 14, 26, 34]
+const branchPath = (y: number): string =>
+  `M220 20 C 260 20 290 ${y} 320 ${y} H 450 C 480 ${y} 510 20 540 20`
+const WIRE_PATHS: readonly string[] = [
+  'M0 20 H 220',
+  ...WIRE_LANES.map(branchPath),
+  'M540 20 H 760',
+]
+
+const WIRE = `<svg class="wire" viewBox="0 0 760 40" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+        <defs><linearGradient id="wireGrad" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="760" y2="0">
+          <stop offset="0" stop-color="#45e6ff"/>
+          <stop offset="0.5" stop-color="#b59bff"/>
+          <stop offset="1" stop-color="#ff5cc8"/>
         </linearGradient></defs>
-        <path class="track" d="M0 15 H 250 C 300 15 320 4 360 4 H 400 C 440 4 460 15 510 15 H 760"/>
-        <path class="pulse-line" d="M0 15 H 250 C 300 15 320 4 360 4 H 400 C 440 4 460 15 510 15 H 760"/>
-        <circle class="node" cx="250" cy="15" r="3.4"/>
-        <circle class="node" cx="510" cy="15" r="3.4"/>
+        ${WIRE_PATHS.map((d) => `<path class="track" d="${d}"/>`).join('\n        ')}
+        ${WIRE_PATHS.map((d) => `<path class="flow" d="${d}"/>`).join('\n        ')}
+        <circle class="node" cx="220" cy="20" r="3.6"/>
+        <circle class="node" cx="540" cy="20" r="3.6"/>
       </svg>`
 
 const SCRIPT = `(function () {
@@ -269,7 +276,6 @@ export function toHtml(feed: NeurowireFeed): string {
     <header class="head">
       <div class="topline">
         <span class="brand"><span class="dot" aria-hidden="true"></span>NEURO<b>WIRE</b></span>
-        <span class="status"><span class="live" aria-hidden="true"></span>stream&nbsp;<b>live</b></span>
       </div>
       ${WIRE}
       <h1 class="title">${escapeText(feed.title)}</h1>
