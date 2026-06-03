@@ -6,7 +6,7 @@ name: Publish news page
 
 on:
   schedule:
-    - cron: '0 7 * * *' # daily at 07:00 UTC
+    - cron: '0 0 * * *' # daily at 00:00 UTC (08:00 in UTC+8)
   workflow_dispatch: {}
   push:
     branches: [main]
@@ -38,10 +38,12 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm build
       - name: Generate the page
+        # --since 24h keeps only entries from the last 24 hours (since 08:00 the day before).
         run: |
           mkdir -p public
           node packages/web/dist/cli.js \
             --mesh examples/ai-news.mesh.json \
+            --since 24h \
             --out public/index.html
       - uses: actions/upload-pages-artifact@v3
         with:
