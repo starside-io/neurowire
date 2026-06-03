@@ -35,7 +35,7 @@ const html = toHtml(feed) // self-contained HTML string
 
 ## Scheduling
 
-Drive the bin from any cron or CI routine to republish on a schedule. The repository ships [`.github/workflows/news.yml`](https://github.com/starside-io/neurowire/blob/main/.github/workflows/news.yml) as one example: it regenerates the page and deploys to GitHub Pages.
+Drive the bin from any cron or CI routine to republish on a schedule. The repository ships [`.github/workflows/pages.yml`](https://github.com/starside-io/neurowire/blob/main/.github/workflows/pages.yml) as one example: it builds the docs and the AI news example and deploys them to GitHub Pages.
 
 ## License
 

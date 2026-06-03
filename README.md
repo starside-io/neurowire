@@ -70,7 +70,7 @@ neurowire-web --mesh ai-news.json --out public/index.html              # built b
 pnpm page -- --mesh examples/ai-news.mesh.json --out public/index.html # in dev
 ```
 
-Drive it from any scheduler. [.github/workflows/news.yml](.github/workflows/news.yml) is one example: it regenerates the page (daily and on demand) and deploys to GitHub Pages (enable Pages with Source: GitHub Actions).
+Drive it from any scheduler. [`.github/workflows/pages.yml`](.github/workflows/pages.yml) builds the live site: the [docs](https://starside-io.github.io/neurowire/) at the root and the AI news [example](https://starside-io.github.io/neurowire/example/) (filtered to the last 24 hours) under `/example`. It deploys to GitHub Pages on every push to main and daily (enable Pages with Source: GitHub Actions).
 
 ## Develop
 

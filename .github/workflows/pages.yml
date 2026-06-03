@@ -1,19 +1,21 @@
-name: Publish news page
+name: Publish site
 
-# Regenerate the Neurowire news page on a schedule and publish it to GitHub Pages.
-# Enable Pages for the repo (Settings -> Pages -> Source: GitHub Actions) before the
-# first run. Trigger manually from the Actions tab via "Run workflow" any time.
+# Build the docs page (site root) and the AI news example (/example), and deploy
+# both to GitHub Pages in one deployment. Runs on every push to main, daily to keep
+# the news example fresh, and on demand. Enable Pages once for the repo
+# (Settings -> Pages -> Source: GitHub Actions) before the first run.
 
 on:
   schedule:
-    - cron: '0 0 * * *' # daily at 00:00 UTC (08:00 in UTC+8)
+    - cron: '0 0 * * *' # daily at 00:00 UTC (08:00 in UTC+8), refreshes the news example
   workflow_dispatch: {}
   push:
     branches: [main]
     paths:
       - 'examples/ai-news.mesh.json'
       - 'packages/**'
-      - '.github/workflows/news.yml'
+      - 'scripts/**'
+      - '.github/workflows/pages.yml'
 
 permissions:
   contents: read
@@ -37,14 +39,15 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm build
-      - name: Generate the page
-        # --since 24h keeps only entries from the last 24 hours (since 08:00 the day before).
+      - name: Build the site
+        # Docs at the root; the AI news example (last 24h only) under /example.
         run: |
-          mkdir -p public
+          mkdir -p public/example
+          pnpm exec tsx scripts/build-docs.ts public/index.html
           node packages/web/dist/cli.js \
             --mesh examples/ai-news.mesh.json \
             --since 24h \
-            --out public/index.html
+            --out public/example/index.html
       - uses: actions/upload-pages-artifact@v3
         with:
           path: public
