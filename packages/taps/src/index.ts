@@ -4,6 +4,8 @@ import { join } from 'node:path'
 import { type FeedTemplate, FeedTemplateSchema, registerTemplate } from '@neurowire/ingest'
 import { claudeBlog } from './sites/claude'
 import { cursorBlog } from './sites/cursor'
+import { deepmindBlog } from './sites/deepmind'
+import { mistralNews } from './sites/mistral'
 
 /**
  * A "tap": a per-host {@link FeedTemplate} of CSS selectors that wiretaps a site
@@ -12,7 +14,7 @@ import { cursorBlog } from './sites/cursor'
 export type Tap = FeedTemplate
 
 /** Taps bundled with Neurowire by default. */
-export const taps: Tap[] = [claudeBlog, cursorBlog]
+export const taps: Tap[] = [claudeBlog, cursorBlog, deepmindBlog, mistralNews]
 
 /** Register the bundled taps with the ingest registry. Safe to call repeatedly. */
 export function registerTaps(): void {
@@ -77,3 +79,5 @@ export function registerAllTaps(extraPaths: string[] = []): { user: Tap[] } {
 
 export { claudeBlog } from './sites/claude'
 export { cursorBlog } from './sites/cursor'
+export { deepmindBlog } from './sites/deepmind'
+export { mistralNews } from './sites/mistral'

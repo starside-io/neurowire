@@ -16,6 +16,38 @@
     {
       "name": "Cursor Blog",
       "url": "https://cursor.com/blog"
+    },
+    {
+      "name": "Hugging Face Blog",
+      "url": "https://huggingface.co/blog/feed.xml"
+    },
+    {
+      "name": "Google Research",
+      "url": "https://research.google/blog/rss/"
+    },
+    {
+      "name": "Google DeepMind",
+      "url": "https://deepmind.google/discover/blog/"
+    },
+    {
+      "name": "Mistral AI",
+      "url": "https://mistral.ai/news"
+    },
+    {
+      "name": "The Verge AI",
+      "url": "https://www.theverge.com/rss/ai-artificial-intelligence/index.xml"
+    },
+    {
+      "name": "TechCrunch AI",
+      "url": "https://techcrunch.com/category/artificial-intelligence/feed/"
+    },
+    {
+      "name": "Ars Technica AI",
+      "url": "https://arstechnica.com/ai/feed/"
+    },
+    {
+      "name": "VentureBeat AI",
+      "url": "https://venturebeat.com/category/ai/feed/"
     }
   ]
 }
