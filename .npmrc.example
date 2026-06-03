@@ -1,0 +1,8 @@
+# Copy to .npmrc (gitignored) only if you want to publish with the token from
+# .env instead of the one in your ~/.npmrc. The token itself is read from the
+# NPM_TOKEN environment variable at runtime and is never written into this file.
+#
+#   cp .npmrc.example .npmrc
+#   set -a; . ./.env; set +a     # load NPM_TOKEN into the environment
+#   pnpm release
+//registry.npmjs.org/:_authToken=${NPM_TOKEN}

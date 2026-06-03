@@ -5,6 +5,8 @@ coverage
 .DS_Store
 .env
 .env.*
+!.env.example
+.npmrc
 
 # Local agent / editor config
 .claude/
