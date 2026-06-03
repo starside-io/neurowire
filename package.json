@@ -20,6 +20,7 @@
     "cli": "tsx packages/cli/src/index.ts",
     "validate": "tsx packages/cli/src/index.ts validate",
     "page": "tsx packages/web/src/cli.ts",
+    "docs": "tsx scripts/build-docs.ts",
     "api": "pnpm --filter @neurowire/api dev",
     "changeset": "changeset",
     "version-packages": "changeset version",
@@ -28,6 +29,7 @@
   "devDependencies": {
     "@biomejs/biome": "1.9.4",
     "@changesets/cli": "^2.27.0",
+    "@neurowire/web": "workspace:*",
     "@types/node": "^22.10.5",
     "@vitest/coverage-v8": "3.2.6",
     "tsup": "^8.3.5",

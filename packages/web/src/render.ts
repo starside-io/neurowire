@@ -27,7 +27,7 @@ const ACCENTS: ReadonlyArray<readonly [string, string]> = [
   ['#ff8f5c', '#d6622b'],
 ]
 
-const STYLE = `
+export const STYLE = `
   :root {
     --bg: #070b14;
     --bg-2: #0a1120;
@@ -187,7 +187,7 @@ const WIRE_PATHS: readonly string[] = [
   'M540 20 H 760',
 ]
 
-const WIRE = `<svg class="wire" viewBox="0 0 760 40" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+export const WIRE = `<svg class="wire" viewBox="0 0 760 40" preserveAspectRatio="none" aria-hidden="true" focusable="false">
         <defs><linearGradient id="wireGrad" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="760" y2="0">
           <stop offset="0" stop-color="#45e6ff"/>
           <stop offset="0.5" stop-color="#b59bff"/>

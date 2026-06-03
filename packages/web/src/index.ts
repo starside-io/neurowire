@@ -1,1 +1,1 @@
-export { toHtml } from './render'
+export { toHtml, STYLE, WIRE } from './render'
