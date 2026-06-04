@@ -1,6 +1,6 @@
 {
   "name": "@neurowire/core",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Canonical feed model and serializers (Atom, JSON Feed 1.1, Markdown, nwf) for Neurowire.",
   "type": "module",
   "main": "./dist/index.js",
@@ -35,7 +35,7 @@
     "url": "https://github.com/starside-io/neurowire/issues"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=24"
   },
   "publishConfig": {
     "access": "public"

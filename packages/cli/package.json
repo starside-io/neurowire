@@ -1,6 +1,6 @@
 {
   "name": "@neurowire/cli",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Neurowire command-line tool: turn any blog, feed, or mesh into Atom, JSON Feed, Markdown, or nwf.",
   "type": "module",
   "bin": {
@@ -30,7 +30,7 @@
     "url": "https://github.com/starside-io/neurowire/issues"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=24"
   },
   "publishConfig": {
     "access": "public"

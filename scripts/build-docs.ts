@@ -314,7 +314,7 @@ const homeBody = `      <div class="links">
       </div>
       <section class="section" id="start">
         <h2>Quick start</h2>
-        <p>Install a package, or run the CLI with <code>npx</code>. Requires Node 20+.</p>
+        <p>Install a package, or run the CLI with <code>npx</code>. Requires Node 24+.</p>
 ${codeShell(`# print a feed in your terminal
 npx @neurowire/cli https://example.com/blog
 

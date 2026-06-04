@@ -3,7 +3,7 @@ import { defineConfig } from 'tsup'
 export default defineConfig((options) => ({
   entry: ['src/index.ts'],
   format: ['esm'],
-  target: 'node20',
+  target: 'node24',
   clean: true,
   // Shebang so the published `neurowire-api` bin is runnable. Node strips it on import.
   banner: { js: '#!/usr/bin/env node' },

@@ -1,6 +1,6 @@
 {
   "name": "@neurowire/ingest",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Fetch, detect, and parse RSS/Atom/RDF/JSON feeds and HTML pages into the Neurowire model.",
   "type": "module",
   "main": "./dist/index.js",
@@ -36,7 +36,7 @@
     "url": "https://github.com/starside-io/neurowire/issues"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=24"
   },
   "publishConfig": {
     "access": "public"

@@ -4,7 +4,7 @@ export default defineConfig((options) => [
   {
     entry: ['src/index.ts'],
     format: ['esm'],
-    target: 'node20',
+    target: 'node24',
     dts: true,
     clean: true,
     // Sourcemaps in dev (watch) only, never in the published build.
@@ -13,7 +13,7 @@ export default defineConfig((options) => [
   {
     entry: ['src/cli.ts'],
     format: ['esm'],
-    target: 'node20',
+    target: 'node24',
     clean: false,
     banner: { js: '#!/usr/bin/env node' },
   },
