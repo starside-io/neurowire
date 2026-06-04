@@ -4,14 +4,24 @@ import {
   FORMATS,
   MeshSchema,
   type NeurowireFeed,
+  type SelectOptions,
+  type SortKey,
+  type SortOrder,
+  type WindowSpec,
   isFormat,
+  parseDuration,
+  resolveWindow,
+  selectEntries,
   serialize,
   validateNwf,
 } from '@neurowire/core'
 import { type FeedTemplate, FeedTemplateSchema, fetchFeed, fetchMesh } from '@neurowire/ingest'
 import { registerAllTaps } from '@neurowire/taps'
 
-const VERSION = '0.1.0'
+const VERSION = '0.3.0'
+
+const SORT_KEYS: readonly SortKey[] = ['date', 'title', 'source']
+const SORT_ORDERS: readonly SortOrder[] = ['asc', 'desc']
 
 const HELP = `Neurowire ${VERSION} - turn any blog or feed into Atom and friends.
 
@@ -29,6 +39,16 @@ Options:
   -h, --help             Show this help.
   -v, --version          Show the version.
 
+Shape the output (applied before --format):
+      --sort <key>       Sort by date, title, or source.
+      --order <dir>      asc or desc (default: newest-first for date, A-Z otherwise).
+  -n, --limit <n>        Keep at most n entries. Handy for integrations: --limit 10.
+      --since <age>      Keep entries within this window, e.g. 24h, 90m, 7d.
+      --max-age <age>    Drop entries older than this (same window as --since).
+      --today            Keep entries since midnight UTC today.
+      --this-week        Keep entries since Monday midnight UTC.
+      --between <a>..<b> Keep entries between two dates, e.g. 2026-01-01..2026-02-01.
+
 Commands:
   validate <file-or-url> Check that an nwf document is well-formed (exits non-zero if not).
 
@@ -42,7 +62,8 @@ Taps teach Neurowire to read sites with no RSS/Atom feed. Add your own with
 Examples:
   neurowire https://example.com/blog
   neurowire https://example.com/feed.xml --format atom > feed.xml
-  neurowire --mesh ai-news.json --format atom
+  neurowire --mesh ai-news.json --format json --limit 10
+  neurowire --mesh ai-news.json --since 24h --sort date --format atom
   neurowire validate feed.nwf
 `
 
@@ -104,6 +125,80 @@ async function runValidate(input: string | undefined): Promise<void> {
   }
 }
 
+type CliValues = Record<string, string | string[] | boolean | undefined>
+
+/**
+ * Apply the --sort/--order/--limit and time-window flags to a feed. Returns the
+ * refined feed, or undefined after writing an error and setting a non-zero exit
+ * code when a flag value is invalid.
+ */
+function refineFeed(feed: NeurowireFeed, values: CliValues): NeurowireFeed | undefined {
+  const fail = (message: string): undefined => {
+    process.stderr.write(`error: ${message}\n`)
+    process.exitCode = 1
+    return undefined
+  }
+
+  const sort = values.sort as string | undefined
+  if (sort !== undefined && !SORT_KEYS.includes(sort as SortKey)) {
+    return fail(`unknown --sort "${sort}". Use one of: ${SORT_KEYS.join(', ')}`)
+  }
+  const order = values.order as string | undefined
+  if (order !== undefined && !SORT_ORDERS.includes(order as SortOrder)) {
+    return fail(`unknown --order "${order}". Use asc or desc`)
+  }
+
+  let limit: number | undefined
+  if (values.limit !== undefined) {
+    limit = Number(values.limit)
+    if (!Number.isInteger(limit) || limit < 0) {
+      return fail(`--limit must be a non-negative integer (got "${values.limit as string}")`)
+    }
+  }
+
+  const spec: WindowSpec = {}
+  if (typeof values.since === 'string') spec.since = values.since
+  if (typeof values['max-age'] === 'string') spec.maxAge = values['max-age']
+  if (values.today) spec.today = true
+  if (values['this-week']) spec.thisWeek = true
+  if (typeof values.between === 'string') {
+    const parts = values.between.split('..')
+    if (parts.length !== 2 || !parts[0] || !parts[1]) {
+      return fail('--between expects <start>..<end>, e.g. 2026-01-01..2026-02-01')
+    }
+    spec.between = [parts[0], parts[1]]
+  }
+
+  for (const [flag, value] of [
+    ['--since', spec.since],
+    ['--max-age', spec.maxAge],
+  ] as const) {
+    if (value !== undefined && parseDuration(value) === undefined) {
+      return fail(`invalid ${flag} "${value}" (use e.g. 24h, 90m, 7d)`)
+    }
+  }
+  if (spec.between) {
+    const [a, b] = spec.between
+    if (Number.isNaN(Date.parse(a)) || Number.isNaN(Date.parse(b))) {
+      return fail('--between needs two parseable dates, e.g. 2026-01-01..2026-02-01')
+    }
+  }
+
+  const window = resolveWindow(spec, Date.now())
+  const opts: SelectOptions = {
+    ...window,
+    sort: sort as SortKey | undefined,
+    order: order as SortOrder | undefined,
+    limit,
+  }
+  const before = feed.entries.length
+  const refined = selectEntries(feed, opts)
+  if (refined.entries.length !== before) {
+    process.stderr.write(`Refined to ${refined.entries.length} of ${before} entries\n`)
+  }
+  return refined
+}
+
 function renderTerminal(feed: NeurowireFeed): void {
   const out: string[] = [bold(cyan(feed.title))]
   const sub = [feed.home, `${feed.entries.length} entries`, `updated ${day(feed.updated)}`].filter(
@@ -143,6 +238,14 @@ async function main(): Promise<void> {
       template: { type: 'string', short: 't' },
       mesh: { type: 'string', short: 'm' },
       taps: { type: 'string', multiple: true },
+      sort: { type: 'string' },
+      order: { type: 'string' },
+      limit: { type: 'string', short: 'n' },
+      since: { type: 'string' },
+      'max-age': { type: 'string' },
+      today: { type: 'boolean' },
+      'this-week': { type: 'boolean' },
+      between: { type: 'string' },
       help: { type: 'boolean', short: 'h' },
       version: { type: 'boolean', short: 'v' },
     },
@@ -184,6 +287,10 @@ async function main(): Promise<void> {
     }
     feed = await fetchFeed(url, { template })
   }
+
+  const refined = refineFeed(feed, values)
+  if (!refined) return
+  feed = refined
 
   if (values.format) {
     if (!isFormat(values.format)) {

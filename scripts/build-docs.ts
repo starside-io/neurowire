@@ -329,6 +329,21 @@ npx @neurowire/cli https://example.com/feed.xml --format atom > feed.xml
 # bundle many sources into one mesh
 npx @neurowire/cli --mesh ai-news.json --format atom`)}
       </section>
+      <section class="section" id="shape">
+        <h2>Shape the output</h2>
+        <p>Sort, cap, and date-filter a feed or mesh before it is serialized. <code>--limit</code> keeps payloads small for integrations, and the time-window flags scope a feed to a period without any date math on your side.</p>
+${codeShell(`# the 10 newest entries as JSON, ideal for piping into another system
+neurowire --mesh ai-news.json --format json --limit 10
+
+# sort by date, title, or source (--order asc|desc to flip)
+neurowire https://example.com/feed.xml --sort title --format md
+
+# time windows: --since / --max-age, --today, --this-week, --between
+neurowire --mesh ai-news.json --since 24h --format atom
+neurowire --mesh ai-news.json --today --limit 20
+neurowire --mesh ai-news.json --between 2026-01-01..2026-02-01 --format json`)}
+        <p style="margin-top:14px">Windows are evaluated in UTC. Entries without a date are dropped when a window is set, and <code>--limit</code> applies after sorting, so <code>--sort date --limit 10</code> is the ten newest.</p>
+      </section>
       <section class="section" id="nwf">
         <h2>The nwf format</h2>
         <p>nwf (Neurowire Feed) is a compact, line-oriented format. It interns authors, tags, and sources into dictionaries referenced by index, stores each link relative to a shared prefix, and stores each date as a delta in seconds before the feed's timestamp. It round-trips back to the canonical model via <code>fromNwf</code>.</p>
