@@ -1,6 +1,6 @@
 {
   "name": "@neurowire/web",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Render a Neurowire feed or mesh into a self-contained HTML news page.",
   "type": "module",
   "main": "./dist/index.js",

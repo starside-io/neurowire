@@ -71,6 +71,11 @@ const DOCS_STYLE = `
   .nav a.active { color: var(--ink); border-color: color-mix(in srgb, var(--cyan) 45%, transparent); box-shadow: 0 0 8px -2px color-mix(in srgb, var(--cyan) 55%, transparent); }
   .nav a.example { color: #06121b; background: linear-gradient(100deg, var(--cyan), var(--violet)); font-weight: 700; animation: examplepulse 2.6s ease-in-out infinite; }
   .nav a.example:hover { color: #06121b; }
+  @media (max-width: 620px) {
+    .topline { flex-direction: column; align-items: stretch; }
+    .nav { flex-direction: column; align-items: stretch; width: 100%; gap: 8px; }
+    .nav a { text-align: center; border-radius: 12px; border: 1px solid var(--line); padding: 12px 16px; }
+  }
   @keyframes examplepulse { 0%, 100% { box-shadow: 0 0 11px -3px var(--glow-cyan); } 50% { box-shadow: 0 0 22px -2px var(--glow-cyan); } }
   .lead { margin: 18px 0 0; font-size: clamp(1.05rem, 2.4vw, 1.3rem); line-height: 1.5; color: var(--ink-soft); max-width: 64ch; }
   .links { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 24px; }
@@ -106,20 +111,19 @@ const DOCS_STYLE = `
   .pkg-grid .card { display: flex; flex-direction: column; }
   .pkg-grid .card .run { margin-top: auto; padding-top: 4px; }
   @media (max-width: 620px) { .pkg-grid { grid-template-columns: 1fr; } }
-  .taps-explorer { display: grid; grid-template-columns: 232px 1fr; gap: 16px; margin-top: 20px; align-items: start; }
-  .taps-list { display: flex; flex-direction: column; gap: 8px; }
-  .tap-item { display: flex; flex-direction: column; gap: 2px; text-align: left; cursor: pointer; font-family: var(--mono); padding: 11px 14px; border-radius: 12px; border: 1px solid var(--line); background: rgba(8, 14, 26, 0.5); color: var(--ink-soft); transition: border-color .2s ease, box-shadow .2s ease; }
+  .taps-explorer { display: grid; grid-template-columns: 232px 1fr; column-gap: 16px; row-gap: 0; margin-top: 20px; align-items: start; }
+  .tap-item { grid-column: 1; margin-bottom: 8px; display: flex; flex-direction: column; gap: 2px; text-align: left; cursor: pointer; font-family: var(--mono); padding: 11px 14px; border-radius: 12px; border: 1px solid var(--line); background: rgba(8, 14, 26, 0.5); color: var(--ink-soft); transition: border-color .2s ease, box-shadow .2s ease; }
   .tap-item .th { font-size: 13px; color: var(--ink); letter-spacing: 0.02em; }
   .tap-item .ts { font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-faint); }
   .tap-item:hover { border-color: var(--line-strong); }
   .tap-item.active { border-color: var(--cyan); box-shadow: 0 0 0 1px color-mix(in srgb, var(--cyan) 50%, transparent), 0 0 11px -3px var(--glow-cyan); }
   .tap-item.active .ts { color: var(--cyan-deep); }
-  .tap-detail { display: none; }
+  .tap-detail { grid-column: 2; grid-row: 1 / span 99; display: none; }
   .tap-detail.active { display: block; animation: fadein .3s ease; }
   @keyframes fadein { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
   .td-title { margin: 0 0 6px; font-size: 1.1rem; font-weight: 700; color: var(--ink); }
   .td-note { margin: 0 0 14px; max-width: 64ch; color: var(--ink-soft); font-size: 0.95rem; }
-  @media (max-width: 620px) { .taps-explorer { grid-template-columns: 1fr; } .taps-list { flex-direction: row; flex-wrap: wrap; } .tap-item { flex: 1 1 140px; } }
+  @media (max-width: 620px) { .taps-explorer { grid-template-columns: 1fr; } .tap-detail { grid-column: 1; grid-row: auto; margin-bottom: 8px; } }
 `
 
 const SCRIPT = `(function () {
@@ -383,19 +387,20 @@ const tapItem = (tap: Tap, i: number): string =>
           </button>`
 
 const tapDetail = (tap: Tap, i: number): string =>
-  `<div class="tap-detail${i === 0 ? ' active' : ''}" data-tap="${esc(tap.host ?? '')}">
+  `<div class="tap-detail${i === 0 ? ' active' : ''}" data-tap="${esc(tap.host ?? '')}" role="tabpanel">
             <h3 class="td-title">${esc(tap.feedTitle ?? tap.host ?? '')}</h3>
             <p class="td-note">${esc(TAP_NOTES[tap.host ?? ''] ?? '')}</p>
             ${codeJson(JSON.stringify(tap, null, 2))}
           </div>`
 
-const tapsExplorer = `<div class="taps-explorer">
-          <div class="taps-list" role="tablist" aria-label="Bundled taps">
-            ${taps.map(tapItem).join('\n            ')}
-          </div>
-          <div class="taps-panes">
-            ${taps.map(tapDetail).join('\n            ')}
-          </div>
+// Buttons and their detail panes are interleaved as direct grid children. On
+// desktop the grid keeps buttons in column 1 and the active detail in column 2;
+// on mobile it collapses to one column so each detail renders inline under its
+// own button, with no horizontal overflow.
+const tapsExplorer = `<div class="taps-explorer" aria-label="Bundled taps">
+          ${taps
+            .map((tap, i) => `${tapItem(tap, i)}\n          ${tapDetail(tap, i)}`)
+            .join('\n          ')}
         </div>`
 
 const tapsBody = `      <section class="section" id="what">
