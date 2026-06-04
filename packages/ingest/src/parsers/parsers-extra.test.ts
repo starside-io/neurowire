@@ -13,6 +13,13 @@ describe('parsers extras', () => {
     expect(feed.entries[0]?.authors?.[0]?.name).toBe('Ada')
   })
 
+  it('decodes numeric HTML entities in titles', () => {
+    const rss =
+      '<?xml version="1.0"?><rss version="2.0"><channel><title>T</title><link>https://b.example/</link><item><title>Alphabet&#8217;s &amp; Google&#x2019;s news</title><link>https://b.example/1</link></item></channel></rss>'
+    const feed = parseFeedString(rss, ctx)
+    expect(feed.entries[0]?.title).toBe('Alphabet’s & Google’s news')
+  })
+
   it('throws on unrecognized content', () => {
     expect(() => parseFeedString('<html><body>not a feed</body></html>', ctx)).toThrow(
       /Unrecognized/,

@@ -49,7 +49,9 @@ export const STYLE = `
     --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   }
   *, *::before, *::after { box-sizing: border-box; }
-  html { -webkit-text-size-adjust: 100%; }
+  /* Reserve the scrollbar gutter so content does not shift sideways between
+     pages that do and do not need a vertical scrollbar. */
+  html { -webkit-text-size-adjust: 100%; scrollbar-gutter: stable; }
   body {
     margin: 0; font-family: var(--sans); color: var(--ink); background: var(--bg);
     line-height: 1.6; -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility;
@@ -109,29 +111,32 @@ export const STYLE = `
   .feed { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 16px; }
   .card {
     position: relative; padding: clamp(18px, 4vw, 24px) clamp(18px, 4vw, 26px); border-radius: var(--radius);
-    background: var(--panel); border: 1px solid var(--line);
+    background: var(--panel);
+    border: 1px solid color-mix(in srgb, var(--rail, var(--cyan)) 50%, transparent);
     backdrop-filter: blur(13px) saturate(120%); -webkit-backdrop-filter: blur(13px) saturate(120%);
     transition: transform .28s cubic-bezier(.2,.7,.3,1), border-color .28s ease, box-shadow .28s ease;
-    overflow: hidden; opacity: 0; transform: translateY(14px);
+    opacity: 0; transform: translateY(14px);
     animation: rise .6s cubic-bezier(.2,.8,.25,1) forwards; animation-delay: var(--d, 0ms);
   }
   @keyframes rise { to { opacity: 1; transform: none; } }
+  /* A bright segment that travels around the border, like the dots on the wire. */
+  @property --bd-angle { syntax: "<angle>"; inherits: false; initial-value: 0deg; }
   .card::before {
-    content: ""; position: absolute; left: 0; top: 14px; bottom: 14px; width: 2px; border-radius: 2px;
-    background: linear-gradient(180deg, var(--rail, var(--cyan)), var(--rail2, var(--magenta)));
-    opacity: 0.55; transition: opacity .28s ease, box-shadow .28s ease;
+    content: ""; position: absolute; inset: 0; border-radius: inherit; padding: 1.4px; pointer-events: none;
+    background: conic-gradient(from var(--bd-angle), transparent 0deg 248deg, var(--rail, var(--cyan)) 300deg, #ffffff 330deg, var(--rail, var(--cyan)) 354deg, transparent 360deg);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    mask-composite: exclude;
+    filter: drop-shadow(0 0 4px var(--rail, var(--cyan)));
+    animation: bd-travel 4.6s linear infinite;
   }
-  .card::after {
-    content: ""; position: absolute; inset: 0; pointer-events: none;
-    background: radial-gradient(420px 220px at var(--mx, 30%) -40%, rgba(69, 230, 255, 0.12), transparent 70%);
-    opacity: 0; transition: opacity .3s ease;
-  }
+  @keyframes bd-travel { to { --bd-angle: 360deg; } }
   .card:hover, .card:focus-within {
-    transform: translateY(-3px); border-color: var(--line-strong);
-    box-shadow: 0 0 0 1px rgba(69, 230, 255, 0.12), 0 14px 40px -16px rgba(0, 0, 0, 0.7), 0 0 34px -6px var(--rail, var(--glow-cyan));
+    transform: translateY(-2px);
+    border-color: var(--rail, var(--cyan));
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--rail, var(--cyan)) 75%, transparent);
   }
-  .card:hover::before, .card:focus-within::before { opacity: 1; box-shadow: 0 0 12px 0 var(--rail, var(--glow-cyan)); }
-  .card:hover::after, .card:focus-within::after { opacity: 1; }
   .card-top { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-bottom: 11px; }
   .source {
     display: inline-flex; align-items: center; gap: 7px; font-family: var(--mono); font-size: 11px; font-weight: 600;
@@ -143,11 +148,11 @@ export const STYLE = `
   .card-title { margin: 0 0 9px; font-size: clamp(1.2rem, 3.4vw, 1.45rem); line-height: 1.3; font-weight: 700; letter-spacing: -0.01em; }
   .card-title a {
     color: var(--ink); text-decoration: none;
-    background-image: linear-gradient(var(--cyan), var(--cyan)); background-size: 0% 1.5px;
+    background-image: linear-gradient(var(--rail, var(--cyan)), var(--rail, var(--cyan))); background-size: 0% 1.5px;
     background-repeat: no-repeat; background-position: 0 100%;
     transition: color .2s ease, background-size .3s ease; border-radius: 2px;
   }
-  .card-title a .arr { display: inline-block; margin-left: 3px; font-weight: 500; color: var(--cyan); opacity: 0; transition: opacity .25s ease, transform .25s ease; }
+  .card-title a .arr { display: inline-block; margin-left: 3px; font-weight: 500; color: var(--rail, var(--cyan)); opacity: 0; transition: opacity .25s ease, transform .25s ease; }
   .card:hover .card-title a, .card-title a:hover, .card-title a:focus-visible { color: #fff; }
   .card-title a:hover, .card-title a:focus-visible { background-size: 100% 1.5px; }
   .card:hover .card-title a .arr, .card-title a:focus-visible .arr { opacity: 1; transform: translate(2px, -2px); }

@@ -43,7 +43,7 @@ jobs:
         # Docs at the root; the AI news example (last 24h only) under /example.
         run: |
           mkdir -p public/example
-          pnpm exec tsx scripts/build-docs.ts public/index.html
+          pnpm exec tsx scripts/build-docs.ts public
           node packages/web/dist/cli.js \
             --mesh examples/ai-news.mesh.json \
             --since 24h \

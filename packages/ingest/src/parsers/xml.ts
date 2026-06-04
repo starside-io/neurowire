@@ -7,6 +7,9 @@ const parser = new XMLParser({
   trimValues: true,
   parseTagValue: false,
   parseAttributeValue: false,
+  // Decode named and numeric HTML entities in text, e.g. &#8217; -> ’ and &hellip; -> …
+  // (fast-xml-parser only handles the five core XML entities without this).
+  htmlEntities: true,
   // Feeds that embed full HTML can reference far more than the default 1000
   // entities. Raise the count limit, but keep the total expanded length bounded
   // so entity-expansion bombs (billion laughs) are still rejected.
