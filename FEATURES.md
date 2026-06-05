@@ -11,10 +11,9 @@ transforms).
 
 ## Backlog
 
-- [ ] **1. `watch` mode** - long-poll a feed/mesh on an interval, emit only new entries (diff vs last run). Purpose: turn one-shot fetch into a live tail for scripts/webhooks/notifiers. Usefulness: 9.
+- [ ] **1. `watch` mode** - long-poll a feed/mesh on an interval, emit only new entries (diff vs last run). The seen-ID state lives in the CLI (the app layer); core may expose a pure `newEntries(feed, seenIds)` helper, but no on-disk state in the library. Purpose: turn one-shot fetch into a live tail for scripts/webhooks/notifiers. Usefulness: 9.
 - [ ] **2. Entry-level filters (`--filter`)** - include/exclude rules on title/tag/source/author/date (substring, regex, glob). Purpose: cut noise, narrow a feed. Usefulness: 9.
-- [ ] **3. Persisted dedup / seen-state** - on-disk store of seen entry IDs per feed so reruns and `watch` never re-surface old items. Purpose: trustworthy cross-run dedup. Usefulness: 8.
-- [ ] **4. Conditional fetch (ETag / Last-Modified)** - send conditional headers, cache 304s, respect Cache-Control, per source. Purpose: politeness + speed for scheduled runs. Usefulness: 8.
+- [ ] **4. Conditional fetch + response cache** - per-source conditional headers (ETag/Last-Modified), honor 304s and Cache-Control, plus a TTL cache so the API serves the merged result for N seconds instead of refetching upstream every request. Purpose: politeness + speed for scheduled runs and the live API. Usefulness: 8.
 - [ ] **5. `tap doctor` / tap autogen** - inspect a feed-less page and propose a FeedTemplate (candidate selectors + preview). Purpose: kill the manual selector-hunting step. Usefulness: 8.
 - [ ] **6. Full-content enrichment (`--full`)** - optional second pass that fetches each entry's page and extracts the article body. Purpose: upgrade list-metadata to real reading. Usefulness: 7.
 - [ ] **7. OPML import/export** - `import feeds.opml` to a mesh; `--format opml` out. Purpose: onboarding from existing readers in one command. Usefulness: 7.
@@ -29,5 +28,16 @@ transforms).
 - [ ] **16. Mesh source weighting & caps** - per-source `weight` and `maxEntries` in the mesh JSON. Purpose: stop one noisy source from drowning the rest. Usefulness: 7.
 - [ ] **17. Plugin / transform hooks** - a pipeline of user transforms (`entry => entry | null`) run after parse, before serialize. Purpose: custom rewrite/tag/drop logic without forking. Usefulness: 7.
 - [ ] **18. Auth & headers per source** - per-source headers/bearer/basic-auth/cookie (env-interpolated) in mesh config. Purpose: read private or token-gated feeds. Usefulness: 6.
-- [ ] **19. `serve` static-feed mode** - API generates and caches atom/json/html at a stable URL with a TTL. Purpose: publish a mesh as a hostable feed others subscribe to. Usefulness: 8.
 - [ ] **20. Tap test snapshots / fixtures CLI** - `tap snapshot <url>` saves HTML + expected output; `tap test` replays offline. Purpose: catch tap regressions when sites change. Usefulness: 6.
+
+## Removed
+
+IDs are kept stable (the changelog and commits reference them), so removed items
+leave a gap rather than renumbering.
+
+- **3. Persisted dedup / seen-state** - cut. On-disk state does not belong in a
+  library (core is pure, no I/O). The pure part (`newEntries(feed, seenIds)`)
+  folds into #1 watch, with the CLI owning the file.
+- **19. `serve` static-feed mode** - cut as redundant. `@neurowire/api` already
+  serves feeds and meshes over Hono at stable URLs. The only non-redundant part,
+  TTL caching, folded into #4.
