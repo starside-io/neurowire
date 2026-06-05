@@ -69,6 +69,15 @@ Notes:
 - Do not put the real token in any tracked file. `.npmrc.example` keeps the
   `${NPM_TOKEN}` placeholder; the real value lives only in `.env`.
 
+## Git workflow
+
+- **Integrate feature branches by rebase, not merge commits.** Keep history
+  linear: `git rebase <base> <feature>` (or rebase the feature onto the base and
+  fast-forward), so the log is a straight line with no "merge: ..." commits.
+- When several feature branches/worktrees are built in parallel, rebase them in
+  sequence onto the integration branch and resolve conflicts during the rebase,
+  rather than a chain of merge commits.
+
 ## Tooling & conventions
 
 - TypeScript strict, ESM, `moduleResolution: Bundler`, `verbatimModuleSyntax` (use `import type` for type-only imports). Build with **tsup** (dist + d.ts), run dev with **tsx**.
