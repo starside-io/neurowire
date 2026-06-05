@@ -1,10 +1,13 @@
 import { type Mesh, type NeurowireFeed, mergeFeeds } from '@neurowire/core'
+import type { ConditionalCache } from './fetch'
 import { type FetchFeedOptions, fetchFeed } from './ingest'
 
 export interface FetchMeshOptions {
   signal?: AbortSignal
   /** Keep only the newest N merged entries. */
   limit?: number
+  /** A conditional response cache shared by every mesh source. */
+  cache?: ConditionalCache
 }
 
 interface MeshPart {
@@ -20,7 +23,7 @@ export async function fetchMesh(
   mesh: Mesh,
   options: FetchMeshOptions = {},
 ): Promise<NeurowireFeed> {
-  const fetchOptions: FetchFeedOptions = { signal: options.signal }
+  const fetchOptions: FetchFeedOptions = { signal: options.signal, cache: options.cache }
   const results = await Promise.allSettled(
     mesh.sources.map(
       async (source): Promise<MeshPart> => ({

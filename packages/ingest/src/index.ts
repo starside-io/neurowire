@@ -1,5 +1,12 @@
 export { detectKind, type FeedKind } from './detect'
-export { fetchDocument, type FetchOptions, type RawDocument } from './fetch'
+export {
+  type CachedResponse,
+  type ConditionalCache,
+  createMemoryCache,
+  fetchDocument,
+  type FetchOptions,
+  type RawDocument,
+} from './fetch'
 export { fetchFeed, ingestDocument, type FetchFeedOptions } from './ingest'
 export { fetchMesh, type FetchMeshOptions } from './mesh'
 export {

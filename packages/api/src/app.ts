@@ -8,13 +8,22 @@ import {
   isFormat,
   serialize,
 } from '@neurowire/core'
-import { fetchFeed, fetchMesh } from '@neurowire/ingest'
+import { createMemoryCache, fetchFeed, fetchMesh } from '@neurowire/ingest'
 import { registerAllTaps } from '@neurowire/taps'
 import { type Context, Hono } from 'hono'
+import { createTtlCache } from './cache'
 import { listMeshNames, resolveMesh } from './meshes'
 
 // Built-in taps plus any from NEUROWIRE_TAPS or ~/.config/neurowire/taps.
 registerAllTaps()
+
+// Seconds, default 300 to match the Cache-Control max-age below.
+const TTL_MS = Number(process.env.NEUROWIRE_CACHE_TTL ?? 300) * 1000
+
+// The API owns these module-level caches. The TTL cache serves the serialized
+// result; the conditional cache lets upstream fetches 304 on a TTL miss.
+const responseCache = createTtlCache()
+const upstreamCache = createMemoryCache()
 
 export const app = new Hono()
 
@@ -22,6 +31,12 @@ function feedResponse(c: Context, feed: NeurowireFeed, format: Format): Response
   c.header('Content-Type', MEDIA_TYPES[format])
   c.header('Cache-Control', 'public, max-age=300')
   return c.body(serialize(feed, format))
+}
+
+function cachedResponse(c: Context, body: string, contentType: string): Response {
+  c.header('Content-Type', contentType)
+  c.header('Cache-Control', 'public, max-age=300')
+  return c.body(body)
 }
 
 app.get('/', (c) =>
@@ -48,8 +63,16 @@ app.get('/feed', async (c) => {
   if (!isFormat(format)) {
     return c.json({ error: `unknown format "${format}"`, formats: FORMATS }, 400)
   }
+  const now = Date.now()
+  const key = `feed:${url}:${format}`
+  const hit = responseCache.get(key, now)
+  if (hit) return cachedResponse(c, hit.body, hit.contentType)
   try {
-    return feedResponse(c, await fetchFeed(url), format)
+    const feed = await fetchFeed(url, { cache: upstreamCache })
+    const body = serialize(feed, format)
+    const contentType = MEDIA_TYPES[format]
+    responseCache.set(key, { body, contentType, expires: now + TTL_MS })
+    return cachedResponse(c, body, contentType)
   } catch (error) {
     const detail = error instanceof Error ? error.message : String(error)
     return c.json({ error: 'failed to build feed', detail }, 502)
@@ -69,8 +92,16 @@ app.get('/mesh', async (c) => {
   if (!mesh) {
     return c.json({ error: `unknown mesh "${src}"`, meshes: listMeshNames() }, 404)
   }
+  const now = Date.now()
+  const key = `mesh:${src}:${format}`
+  const hit = responseCache.get(key, now)
+  if (hit) return cachedResponse(c, hit.body, hit.contentType)
   try {
-    return feedResponse(c, await fetchMesh(mesh), format)
+    const feed = await fetchMesh(mesh, { cache: upstreamCache })
+    const body = serialize(feed, format)
+    const contentType = MEDIA_TYPES[format]
+    responseCache.set(key, { body, contentType, expires: now + TTL_MS })
+    return cachedResponse(c, body, contentType)
   } catch (error) {
     const detail = error instanceof Error ? error.message : String(error)
     return c.json({ error: 'failed to build mesh', detail }, 502)

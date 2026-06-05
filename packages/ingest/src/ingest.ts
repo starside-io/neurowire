@@ -1,7 +1,7 @@
 import type { NeurowireFeed } from '@neurowire/core'
 import { load } from 'cheerio'
 import { detectKind } from './detect'
-import { type RawDocument, fetchDocument } from './fetch'
+import { type ConditionalCache, type RawDocument, fetchDocument } from './fetch'
 import { autodetect, discoverFeedLink } from './html/autodetect'
 import { findTemplate } from './html/registry'
 import { type FeedTemplate, applyTemplate } from './html/template'
@@ -14,6 +14,8 @@ export interface FetchFeedOptions {
   signal?: AbortSignal
   /** Max number of feed-link redirects to follow (default 3). */
   maxDepth?: number
+  /** A conditional (ETag/Last-Modified) response cache, owned by the caller. */
+  cache?: ConditionalCache
 }
 
 /** Fetch a URL (website, RSS, or Atom) and normalize it to a NeurowireFeed. */
@@ -29,7 +31,7 @@ async function ingest(
   options: FetchFeedOptions,
   depth: number,
 ): Promise<NeurowireFeed> {
-  const doc = await fetchDocument(url, { signal: options.signal })
+  const doc = await fetchDocument(url, { signal: options.signal, cache: options.cache })
   return ingestDocument(doc, options, depth)
 }
 

@@ -1,5 +1,22 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { app } from './app'
+
+afterEach(() => {
+  vi.unstubAllGlobals()
+})
+
+const ATOM_FEED = `<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <id>https://example.com/feed</id>
+  <title>Example</title>
+  <updated>2026-01-01T00:00:00Z</updated>
+  <entry>
+    <id>https://example.com/1</id>
+    <title>One</title>
+    <link href="https://example.com/1"/>
+    <updated>2026-01-01T00:00:00Z</updated>
+  </entry>
+</feed>`
 
 describe('api', () => {
   it('reports health', async () => {
@@ -48,5 +65,26 @@ describe('api', () => {
       headers: { 'content-type': 'application/json' },
     })
     expect(res.status).toBe(400)
+  })
+
+  it('serves a second identical /feed from the TTL cache', async () => {
+    const fetchMock = vi.fn(
+      async () =>
+        new Response(ATOM_FEED, {
+          status: 200,
+          headers: { 'content-type': 'application/atom+xml' },
+        }),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    const url = `https://example.com/cache-test-${Math.random()}`
+    const first = await app.request(`/feed?url=${encodeURIComponent(url)}&format=atom`)
+    const second = await app.request(`/feed?url=${encodeURIComponent(url)}&format=atom`)
+
+    expect(first.status).toBe(200)
+    expect(second.status).toBe(200)
+    expect(await first.text()).toBe(await second.text())
+    // The upstream was fetched only once across both requests.
+    expect(fetchMock).toHaveBeenCalledTimes(1)
   })
 })
