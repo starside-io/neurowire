@@ -158,6 +158,7 @@ interface PageDef {
 }
 const PAGES: PageDef[] = [
   { id: 'home', label: 'Home', href: './' },
+  { id: 'cli', label: 'CLI', href: 'cli.html' },
   { id: 'mesh', label: 'Mesh', href: 'mesh.html' },
   { id: 'taps', label: 'Taps', href: 'taps.html' },
   { id: 'packages', label: 'Packages', href: 'packages.html' },
@@ -331,18 +332,12 @@ npx @neurowire/cli --mesh ai-news.json --format atom`)}
       </section>
       <section class="section" id="shape">
         <h2>Shape the output</h2>
-        <p>Sort, cap, and date-filter a feed or mesh before it is serialized. <code>--limit</code> keeps payloads small for integrations, and the time-window flags scope a feed to a period without any date math on your side.</p>
+        <p>Filter, sort, cap, date-window, and live-watch a feed or mesh from the CLI, all before it is serialized. See the <a class="inline" href="cli.html">CLI parameters</a> page for every flag with examples.</p>
 ${codeShell(`# the 10 newest entries as JSON, ideal for piping into another system
 neurowire --mesh ai-news.json --format json --limit 10
 
-# sort by date, title, or source (--order asc|desc to flip)
-neurowire https://example.com/feed.xml --sort title --format md
-
-# time windows: --since / --max-age, --today, --this-week, --between
-neurowire --mesh ai-news.json --since 24h --format atom
-neurowire --mesh ai-news.json --today --limit 20
-neurowire --mesh ai-news.json --between 2026-01-01..2026-02-01 --format json`)}
-        <p style="margin-top:14px">Windows are evaluated in UTC. Entries without a date are dropped when a window is set, and <code>--limit</code> applies after sorting, so <code>--sort date --limit 10</code> is the ten newest.</p>
+# keep only what you want, then watch for new items
+neurowire --mesh ai-news.json --filter tag:release --watch --interval 15m`)}
       </section>
       <section class="section" id="nwf">
         <h2>The nwf format</h2>
@@ -499,6 +494,45 @@ ${PACKAGES.map((p, i) => {
         </div>
       </section>`
 
+const cliBody = `      <section class="section" id="filter">
+        <h2>Filter</h2>
+        <p>Keep or drop entries by field and pattern, before anything else runs. <code>--filter</code> includes, <code>--exclude</code> drops, both repeatable. A pattern is a case-insensitive substring by default, or <code>/regex/</code> for a regular expression. Fields: <code>title</code>, <code>summary</code>, <code>source</code>, <code>author</code>, <code>tag</code>.</p>
+${codeShell(`# only entries tagged "release", minus anything sponsored
+neurowire --mesh ai-news.json --filter tag:release --exclude title:sponsored --format json
+
+# regex, and combine include rules (kept if it matches any include)
+neurowire https://example.com/feed.xml --filter 'title:/gpt-?5/' --format md`)}
+        <p style="margin-top:14px">An entry is kept when it matches at least one <code>--filter</code> rule (or there are none) and no <code>--exclude</code> rule.</p>
+      </section>
+      <section class="section" id="sort">
+        <h2>Sort and limit</h2>
+        <p>Order by <code>date</code>, <code>title</code>, or <code>source</code>, and cap the count. <code>--limit</code> keeps payloads small for integrations. Date sorts are newest-first by default, title and source A-Z; flip with <code>--order asc|desc</code>. The limit applies after sorting, so <code>--sort date --limit 10</code> is the ten newest.</p>
+${codeShell(`# the 10 newest entries as JSON, ideal for piping into another system
+neurowire --mesh ai-news.json --sort date --limit 10 --format json
+
+# A-Z by title
+neurowire https://example.com/feed.xml --sort title --format md`)}
+      </section>
+      <section class="section" id="window">
+        <h2>Time windows</h2>
+        <p>Scope a feed to a period without any date math on your side. All windows are evaluated in UTC, and entries without a date are dropped when a window is set.</p>
+${codeShell(`neurowire --mesh ai-news.json --since 24h --format atom   # last 24 hours
+neurowire --mesh ai-news.json --max-age 7d                # nothing older than 7 days
+neurowire --mesh ai-news.json --today                     # since 00:00 UTC today
+neurowire --mesh ai-news.json --this-week                 # since Monday 00:00 UTC
+neurowire --mesh ai-news.json --between 2026-01-01..2026-02-01`)}
+      </section>
+      <section class="section" id="watch">
+        <h2>Watch</h2>
+        <p>Long-poll a feed or mesh and print only entries not seen before, turning a one-shot fetch into a live tail. Filters, sort, limit, and windows all still apply on every tick.</p>
+${codeShell(`# poll every 15 minutes, emit only new items as JSON
+neurowire --mesh ai-news.json --watch --interval 15m --format json
+
+# persist what has been seen, so restarts skip old items
+neurowire --mesh ai-news.json --watch --interval 1h --state ~/.neurowire-seen.json`)}
+        <p style="margin-top:14px">Seen-state lives in the CLI, never in the library. The interval accepts <code>m</code>, <code>h</code>, or <code>d</code> (default <code>5m</code>); <code>--state</code> is an optional JSON file of seen entry keys that the CLI reads and writes.</p>
+      </section>`
+
 const TAGLINE =
   'Turn any blog, website, RSS, or Atom feed into clean, modern feeds: Atom, JSON Feed 1.1, Markdown, and nwf. Bundle many sources into one mesh, and render it to a self-contained HTML page.'
 
@@ -513,6 +547,18 @@ const docs: ReadonlyArray<{ file: string; html: string }> = [
       heading: 'Neurowire',
       lead: esc(TAGLINE),
       body: homeBody,
+    }),
+  },
+  {
+    file: 'cli.html',
+    html: shell({
+      title: 'CLI parameters - Neurowire',
+      description:
+        'Every neurowire CLI flag: filter, sort, limit, time windows, and watch mode, with examples.',
+      active: 'cli',
+      heading: 'CLI parameters',
+      lead: 'Filter, sort, limit, date-window, and live-watch a feed or mesh, all before it is serialized.',
+      body: cliBody,
     }),
   },
   {
