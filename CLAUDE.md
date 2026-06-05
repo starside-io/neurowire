@@ -39,6 +39,36 @@ pnpm page -- --mesh <file> --out <html>   # generate an HTML page
 pnpm api              # start the API
 ```
 
+## Publishing to npm (read before you publish)
+
+**Always authenticate with the `NPM_TOKEN` in `.env`, never with `~/.npmrc`.**
+`~/.npmrc` may hold a stale, older token that no longer has publish rights, and
+because `npm`/`pnpm publish` read `~/.npmrc` by default, using it fails with a
+misleading `E404`/`E403` (it looks like the token was "revoked" but it was just
+the wrong token). `.env` is gitignored and holds the current token; it is the
+single source of truth for publishing.
+
+Publish all packages with the `.env` token, via a throwaway config so `~/.npmrc`
+is untouched:
+
+```bash
+# from the repo root, with the current token in .env (NPM_TOKEN=...)
+NPM_TOKEN=$(grep -E '^NPM_TOKEN=' .env | cut -d= -f2-)
+tmp=$(mktemp)
+printf '//registry.npmjs.org/:_authToken=%s\nregistry=https://registry.npmjs.org/\n' "$NPM_TOKEN" > "$tmp"
+pnpm build
+npm_config_userconfig="$tmp" pnpm -r publish --no-git-checks --access public
+rm -f "$tmp"
+```
+
+Notes:
+- Bump the relevant `package.json` versions first; npm versions are immutable, so
+  a failed/duplicate version cannot be re-pushed.
+- Internal deps use `workspace:*`; pnpm rewrites them to real versions at pack
+  time, so publish in topological order (pnpm does this automatically).
+- Do not put the real token in any tracked file. `.npmrc.example` keeps the
+  `${NPM_TOKEN}` placeholder; the real value lives only in `.env`.
+
 ## Tooling & conventions
 
 - TypeScript strict, ESM, `moduleResolution: Bundler`, `verbatimModuleSyntax` (use `import type` for type-only imports). Build with **tsup** (dist + d.ts), run dev with **tsx**.
