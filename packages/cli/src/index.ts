@@ -30,6 +30,7 @@ import {
   proposeTemplate,
 } from '@neurowire/ingest'
 import { registerAllTaps } from '@neurowire/taps'
+import { deliver } from './sinks'
 
 const VERSION = '0.4.0'
 
@@ -72,6 +73,11 @@ Watch a feed or mesh and emit only new entries:
       --interval <age>   Poll interval, e.g. 30m, 6h, 1d (default: 5m).
       --state <file>     JSON file of seen entry keys, so restarts skip old items.
 
+Deliver to sinks (push entries to a destination):
+      --sink <url>       POST entries to a destination. Repeatable. Slack, Discord,
+                         or a generic webhook, auto-detected by URL. With --watch,
+                         only the new entries are delivered each tick.
+
 Commands:
   validate <file-or-url> Check that an nwf document is well-formed (exits non-zero if not).
   tap doctor <url>       Propose a FeedTemplate (tap) for a feed-less page.
@@ -90,6 +96,7 @@ Examples:
   neurowire --mesh ai-news.json --since 24h --sort date --format atom
   neurowire --mesh ai-news.json --filter tag:release --exclude title:sponsored --format json
   neurowire --mesh ai-news.json --watch --interval 15m --format json
+  neurowire --mesh ai-news.json --watch --sink https://hooks.slack.com/services/...
   neurowire validate feed.nwf
   neurowire tap doctor https://example.com/blog > ~/.config/neurowire/taps/example.com.json
 `
@@ -394,6 +401,19 @@ function emitFeed(feed: NeurowireFeed, values: CliValues): boolean {
   return true
 }
 
+/**
+ * Push a feed's entries to every --sink url. Sinks are additive to stdout output
+ * and never throw, so a failing sink prints a warning but does not abort the run
+ * or the watch loop. A no-op when there are no entries to deliver.
+ */
+async function deliverToSinks(feed: NeurowireFeed, values: CliValues): Promise<void> {
+  if (feed.entries.length === 0) return
+  const sinks = (values.sink as string[] | undefined) ?? []
+  for (const url of sinks) {
+    await deliver(url, feed)
+  }
+}
+
 /** Read a JSON array of seen entry keys from a state file, or [] when absent. */
 function loadSeenState(path: string): string[] {
   if (!existsSync(path)) return []
@@ -429,6 +449,7 @@ async function runWatch(values: CliValues, positionals: string[]): Promise<void>
 
     const fresh = newEntries(refined, seen)
     if (fresh.length > 0) emitFeed({ ...refined, entries: fresh }, values)
+    await deliverToSinks({ ...refined, entries: fresh }, values)
 
     for (const entry of fresh) seen.add(entryKey(entry))
     if (statePath) writeFileSync(statePath, JSON.stringify([...seen]))
@@ -465,6 +486,7 @@ async function main(): Promise<void> {
       watch: { type: 'boolean', short: 'w' },
       interval: { type: 'string' },
       state: { type: 'string' },
+      sink: { type: 'string', multiple: true },
       help: { type: 'boolean', short: 'h' },
       version: { type: 'boolean', short: 'v' },
     },
@@ -524,10 +546,12 @@ async function main(): Promise<void> {
     } else {
       process.stdout.write(output)
     }
+    await deliverToSinks(feed, values)
     return
   }
 
   renderTerminal(feed)
+  await deliverToSinks(feed, values)
 }
 
 main().catch((error: unknown) => {

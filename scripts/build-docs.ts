@@ -159,6 +159,7 @@ interface PageDef {
 const PAGES: PageDef[] = [
   { id: 'home', label: 'Home', href: './' },
   { id: 'cli', label: 'CLI', href: 'cli.html' },
+  { id: 'sinks', label: 'Sinks', href: 'sinks.html' },
   { id: 'mesh', label: 'Mesh', href: 'mesh.html' },
   { id: 'taps', label: 'Taps', href: 'taps.html' },
   { id: 'packages', label: 'Packages', href: 'packages.html' },
@@ -533,6 +534,37 @@ neurowire --mesh ai-news.json --watch --interval 1h --state ~/.neurowire-seen.js
         <p style="margin-top:14px">Seen-state lives in the CLI, never in the library. The interval accepts <code>m</code>, <code>h</code>, or <code>d</code> (default <code>5m</code>); <code>--state</code> is an optional JSON file of seen entry keys that the CLI reads and writes.</p>
       </section>`
 
+const sinksBody = `      <section class="section" id="what">
+        <h2>What a sink is</h2>
+        <p>A sink pushes entries to a destination instead of (or alongside) printing them. Pass <code>--sink &lt;url&gt;</code> to deliver the resulting entries to a Slack channel, a Discord channel, or any HTTP endpoint that accepts a JSON Feed. The flag is repeatable, so one run can fan out to several places. Sinks are additive: stdout output is unchanged, the delivery just happens on top.</p>
+${codeShell(`# deliver the 10 newest items to a Slack channel
+neurowire --mesh ai-news.json --limit 10 --sink https://hooks.slack.com/services/...
+
+# fan out to two destinations at once
+neurowire --mesh ai-news.json --sink https://hooks.slack.com/services/... --sink https://example.com/hook`)}
+      </section>
+      <section class="section" id="kinds">
+        <h2>Three kinds, auto-detected</h2>
+        <p>The kind is detected from the destination host, so you never set it by hand. A URL containing <code>slack.com</code> is a Slack sink, one containing <code>discord.com</code> or <code>discordapp.com</code> is a Discord sink, and anything else is a generic webhook.</p>
+        <div class="two">
+          <div>
+            <h3>Slack and Discord</h3>
+            <p class="td-note">Each gets a short message: a header line (<code>&lt;feed&gt;: N new</code>) then a bullet per entry, the title and link joined by a hyphen. Slack receives <code>{ "text": "..." }</code>, Discord receives <code>{ "content": "..." }</code> capped at Discord's 2000-character limit, both as <code>application/json</code>.</p>
+          </div>
+          <div>
+            <h3>Generic webhook</h3>
+            <p class="td-note">Any other URL receives the full JSON Feed 1.1 of the delivered entries, posted as <code>application/feed+json</code>. This is the same document <code>--format json</code> prints, so a receiver can parse it like any feed.</p>
+          </div>
+        </div>
+      </section>
+      <section class="section" id="watch">
+        <h2>Pairs with watch</h2>
+        <p>On its own, <code>--sink</code> delivers the run's entries once. With <code>--watch</code> it delivers only the new entries on each tick, turning Neurowire into a push notifier: every poll that finds fresh items posts just those items, and nothing when there are none.</p>
+${codeShell(`# poll every 15 minutes, push only new items to Slack
+neurowire --mesh ai-news.json --watch --interval 15m --sink https://hooks.slack.com/services/...`)}
+        <p style="margin-top:14px">Delivery never throws: a sink that returns a non-2xx or fails to connect prints a one-line warning to stderr and the run (or watch loop) carries on.</p>
+      </section>`
+
 const TAGLINE =
   'Turn any blog, website, RSS, or Atom feed into clean, modern feeds: Atom, JSON Feed 1.1, Markdown, and nwf. Bundle many sources into one mesh, and render it to a self-contained HTML page.'
 
@@ -559,6 +591,18 @@ const docs: ReadonlyArray<{ file: string; html: string }> = [
       heading: 'CLI parameters',
       lead: 'Filter, sort, limit, date-window, and live-watch a feed or mesh, all before it is serialized.',
       body: cliBody,
+    }),
+  },
+  {
+    file: 'sinks.html',
+    html: shell({
+      title: 'Sinks - Neurowire',
+      description:
+        'Push entries to Slack, Discord, or a generic webhook with --sink, and pair it with --watch to deliver only new items.',
+      active: 'sinks',
+      heading: 'Sinks',
+      lead: 'Push entries to Slack, Discord, or any webhook with --sink. Pair it with --watch to deliver only new items.',
+      body: sinksBody,
     }),
   },
   {
