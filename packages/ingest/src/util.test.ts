@@ -48,4 +48,33 @@ describe('util', () => {
     expect(noDates.title).toBe('Untitled') // default title
     expect(typeof noDates.updated).toBe('string') // falls back to now
   })
+
+  it('synthesizes a stable urn id for entries with no source id', () => {
+    const make = () =>
+      finalizeFeed({ entries: [{ id: '', title: 'Hello', link: 'https://example.com/a' }] }, ctx)
+    const first = make().entries[0]?.id
+    expect(first).toMatch(/^urn:nwf:[0-9a-f]{16}$/) // synthetic stable id
+    expect(make().entries[0]?.id).toBe(first) // same input, same id
+  })
+
+  it('keeps a real source id untouched', () => {
+    const feed = finalizeFeed(
+      { entries: [{ id: 'guid-123', title: 'Hello', link: 'https://example.com/a' }] },
+      ctx,
+    )
+    expect(feed.entries[0]?.id).toBe('guid-123')
+  })
+
+  it('gives entries that share a link but differ in title distinct ids', () => {
+    const feed = finalizeFeed(
+      {
+        entries: [
+          { id: '', title: 'One', link: 'https://example.com/a' },
+          { id: '', title: 'Two', link: 'https://example.com/a' },
+        ],
+      },
+      ctx,
+    )
+    expect(feed.entries[0]?.id).not.toBe(feed.entries[1]?.id)
+  })
 })

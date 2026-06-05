@@ -96,7 +96,7 @@ function jsonLdEntry(node: JsonLdNode, ctx: ParseContext): NeurowireEntry | null
   if (!url || !title) return null
 
   const link = resolveUrl(url, ctx.sourceUrl)
-  const entry: NeurowireEntry = { id: link, title, link }
+  const entry: NeurowireEntry = { id: '', title, link }
   const published = normDate(str(node.datePublished))
   const updated = normDate(str(node.dateModified))
   if (published) entry.published = published
@@ -151,7 +151,7 @@ function fromSemantic($: CheerioAPI, ctx: ParseContext): NeurowireEntry[] {
     if (!title || !href) return
 
     const link = resolveUrl(href, ctx.sourceUrl)
-    const entry: NeurowireEntry = { id: link, title, link }
+    const entry: NeurowireEntry = { id: '', title, link }
     const $time = $el.find('time[datetime]').first()
     const date = normDate($time.attr('datetime') ?? $el.find('time').first().text().trim())
     if (date) entry.published = date

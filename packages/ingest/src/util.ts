@@ -1,4 +1,10 @@
-import { GENERATOR, type NeurowireEntry, type NeurowireFeed, type Person } from '@neurowire/core'
+import {
+  GENERATOR,
+  type NeurowireEntry,
+  type NeurowireFeed,
+  type Person,
+  stableId,
+} from '@neurowire/core'
 
 /** Context passed to every parser: the final URL of the fetched document. */
 export interface ParseContext {
@@ -53,6 +59,16 @@ function newestEntryDate(entries: NeurowireEntry[]): string | undefined {
   return max === Number.NEGATIVE_INFINITY ? undefined : new Date(max).toISOString()
 }
 
+/**
+ * Give an entry a stable id: keep a real source id, otherwise derive a
+ * deterministic `urn:nwf:` id from its link and title so dedup and round-trips
+ * stay stable across formats.
+ */
+function withStableId(entry: NeurowireEntry): NeurowireEntry {
+  if (entry.id.trim()) return entry
+  return { ...entry, id: stableId(entry.link, entry.title) }
+}
+
 /** Fill in defaults and stamp the generator to produce a valid NeurowireFeed. */
 export function finalizeFeed(draft: FeedDraft, ctx: ParseContext): NeurowireFeed {
   const updated =
@@ -61,7 +77,7 @@ export function finalizeFeed(draft: FeedDraft, ctx: ParseContext): NeurowireFeed
     id: draft.id?.trim() || ctx.sourceUrl,
     title: draft.title?.trim() || 'Untitled',
     updated,
-    entries: draft.entries,
+    entries: draft.entries.map(withStableId),
     generator: { name: GENERATOR.name, version: GENERATOR.version },
   }
   if (draft.home) feed.home = resolveUrl(draft.home, ctx.sourceUrl)

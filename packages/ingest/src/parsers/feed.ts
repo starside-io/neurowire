@@ -38,7 +38,7 @@ function atomEntry(node: unknown, ctx: ParseContext): NeurowireEntry {
   const href = pickLink(links, 'alternate') ?? attr(links[0], 'href') ?? text(get(node, 'id')) ?? ''
   const link = resolveUrl(href, ctx.sourceUrl)
   const entry: NeurowireEntry = {
-    id: text(get(node, 'id')) ?? link,
+    id: text(get(node, 'id')) ?? '',
     title: text(get(node, 'title')) ?? 'Untitled',
     link,
   }
@@ -78,7 +78,7 @@ function rssItem(node: unknown, ctx: ParseContext): NeurowireEntry {
   const guid = text(get(node, 'guid'))
   const link = resolveUrl(text(get(node, 'link')) ?? guid ?? '', ctx.sourceUrl)
   const entry: NeurowireEntry = {
-    id: guid ?? link,
+    id: guid ?? '',
     title: text(get(node, 'title')) ?? 'Untitled',
     link,
   }
@@ -179,7 +179,7 @@ export function parseJsonFeed(raw: unknown, ctx: ParseContext): NeurowireFeed {
   const entries: NeurowireEntry[] = toArray<JsonFeedItemRaw>(data.items).map((item) => {
     const link = resolveUrl(item.url ?? item.external_url ?? '', ctx.sourceUrl)
     const entry: NeurowireEntry = {
-      id: item.id !== undefined ? String(item.id) : link,
+      id: item.id !== undefined ? String(item.id) : '',
       title: item.title ?? 'Untitled',
       link,
     }

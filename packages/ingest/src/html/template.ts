@@ -42,7 +42,7 @@ export function applyTemplate(
     if (!title || !href) return
 
     const link = resolveUrl(href, ctx.sourceUrl)
-    const entry: NeurowireEntry = { id: link, title, link }
+    const entry: NeurowireEntry = { id: '', title, link }
 
     if (template.date) {
       const $date = $el.find(template.date).first()
