@@ -1,6 +1,6 @@
 {
   "name": "@neurowire/core",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Canonical feed model and serializers (Atom, JSON Feed 1.1, Markdown, nwf) for Neurowire.",
   "type": "module",
   "main": "./dist/index.js",

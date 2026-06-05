@@ -32,7 +32,7 @@ import {
 import { registerAllTaps } from '@neurowire/taps'
 import { deliver } from './sinks'
 
-const VERSION = '0.4.0'
+const VERSION = '0.5.0'
 
 const SORT_KEYS: readonly SortKey[] = ['date', 'title', 'source']
 const SORT_ORDERS: readonly SortOrder[] = ['asc', 'desc']

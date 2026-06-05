@@ -4,6 +4,27 @@ All notable changes to Neurowire are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/), and the project uses semantic
 versioning (breaking changes land as a minor bump while the project is pre-1.0).
 
+## [0.6.0] - 2026-06-06
+
+### Added
+
+- **Push sinks** (backlog #8): `--sink <url>` (repeatable) delivers entries to
+  Slack, Discord, or a generic webhook, auto-detected by URL. Slack/Discord get a
+  short text message; a webhook gets the JSON Feed. Additive to normal output, and
+  with `--watch` it pushes only the new entries each tick. Delivery never throws,
+  so a failing sink cannot break the watch loop. A dedicated Sinks docs page is
+  added to the site.
+- **Stable synthetic entry ids** (backlog #10): entries with no source GUID get a
+  deterministic content-hashed id (`urn:nwf:<hash>`) via `stableId` / `hashHex`
+  (FNV-1a) in `@neurowire/core`, applied centrally in ingest's `finalizeFeed`.
+  Real ids are kept untouched. This makes dedup (watch) and round-trips stable
+  across formats.
+
+### Versions
+
+- root 0.5.0 to 0.6.0; `@neurowire/core` 0.4.0 to 0.5.0; `@neurowire/ingest`
+  0.3.0 to 0.4.0; `@neurowire/cli` 0.4.0 to 0.5.0.
+
 ## [0.5.0] - 2026-06-05
 
 ### Added

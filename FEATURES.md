@@ -19,9 +19,9 @@ transforms, ingest conditional fetch (`createMemoryCache`, ETag/304) and
 - [x] **5. `tap doctor` / tap autogen** - inspect a feed-less page and propose a FeedTemplate (candidate selectors + preview). Purpose: kill the manual selector-hunting step. Usefulness: 8.
 - [ ] **6. Full-content enrichment (`--full`)** - optional second pass that fetches each entry's page and extracts the article body. Purpose: upgrade list-metadata to real reading. Usefulness: 7.
 - [ ] **7. OPML import/export** - `import feeds.opml` to a mesh; `--format opml` out. Purpose: onboarding from existing readers in one command. Usefulness: 7.
-- [ ] **8. Webhook / push sinks** - `--sink` targets: webhook POST, Slack/Discord, email; format-aware delivery of new entries. Purpose: Neurowire as the pipe, not just the printer. Usefulness: 7.
+- [x] **8. Webhook / push sinks** - `--sink` targets: webhook POST, Slack/Discord, email; format-aware delivery of new entries. Purpose: Neurowire as the pipe, not just the printer. Usefulness: 7.
 - [ ] **9. Per-source health + observability** - mesh fetch reports per-source status (ok/304/fail/parse-error, latency, count) via `--report`. Purpose: a silently-dead source becomes visible. Usefulness: 7.
-- [ ] **10. Content hashing + stable IDs** - deterministic synthetic IDs (hash of link+title) for entries lacking a GUID, normalized across formats. Purpose: fix dedup and round-trips at the root. Usefulness: 6.
+- [x] **10. Content hashing + stable IDs** - deterministic synthetic IDs (hash of link+title) for entries lacking a GUID, normalized across formats. Purpose: fix dedup and round-trips at the root. Usefulness: 6.
 - [x] **11. Sort & limit controls** - `--sort date|title|source`, `--order asc|desc`, `--limit N`. Purpose: order and cap output; small payloads for integrations. Usefulness: 7.
 - [ ] **12. Entry grouping / sectioned output** - `--group-by source|tag|day` so md/html/atom render in sections. Purpose: make a many-source mesh scannable. Usefulness: 7.
 - [x] **13. Time-window presets** - `--since`, `--max-age`, `--today`, `--this-week`, `--between A..B`. Purpose: scope a feed to a period without manual date math. Usefulness: 6.
