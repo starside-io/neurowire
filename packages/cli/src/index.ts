@@ -2,6 +2,9 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { parseArgs } from 'node:util'
 import {
   FORMATS,
+  type FilterField,
+  type FilterRule,
+  type FilterSpec,
   MeshSchema,
   type NeurowireFeed,
   type SelectOptions,
@@ -9,6 +12,7 @@ import {
   type SortOrder,
   type WindowSpec,
   entryKey,
+  filterEntries,
   isFormat,
   newEntries,
   parseDuration,
@@ -24,6 +28,7 @@ const VERSION = '0.3.0'
 
 const SORT_KEYS: readonly SortKey[] = ['date', 'title', 'source']
 const SORT_ORDERS: readonly SortOrder[] = ['asc', 'desc']
+const FILTER_FIELDS: readonly FilterField[] = ['title', 'summary', 'source', 'author', 'tag']
 
 const HELP = `Neurowire ${VERSION} - turn any blog or feed into Atom and friends.
 
@@ -42,6 +47,10 @@ Options:
   -v, --version          Show the version.
 
 Shape the output (applied before --format):
+      --filter <f:p>     Keep entries where field f matches pattern p. Repeatable.
+      --exclude <f:p>    Drop entries where field f matches pattern p. Repeatable.
+                         Pattern is a substring by default, or /regex/ for a regex.
+                         Fields: title, summary, source, author, tag.
       --sort <key>       Sort by date, title, or source.
       --order <dir>      asc or desc (default: newest-first for date, A-Z otherwise).
   -n, --limit <n>        Keep at most n entries. Handy for integrations: --limit 10.
@@ -71,6 +80,7 @@ Examples:
   neurowire https://example.com/feed.xml --format atom > feed.xml
   neurowire --mesh ai-news.json --format json --limit 10
   neurowire --mesh ai-news.json --since 24h --sort date --format atom
+  neurowire --mesh ai-news.json --filter tag:release --exclude title:sponsored --format json
   neurowire --mesh ai-news.json --watch --interval 15m --format json
   neurowire validate feed.nwf
 `
@@ -134,6 +144,67 @@ async function runValidate(input: string | undefined): Promise<void> {
 }
 
 type CliValues = Record<string, string | string[] | boolean | undefined>
+
+/**
+ * Parse a `field:pattern` string into a filter rule. Splits on the first colon
+ * only (patterns may contain colons). A pattern wrapped in slashes (`/.../`) is
+ * a case-insensitive regex; otherwise it is a case-insensitive substring.
+ * Returns undefined when the field is unknown.
+ */
+function parseFilterRule(value: string): FilterRule | undefined {
+  const colon = value.indexOf(':')
+  const field = (colon === -1 ? value : value.slice(0, colon)) as FilterField
+  if (!FILTER_FIELDS.includes(field)) return undefined
+  let pattern = colon === -1 ? '' : value.slice(colon + 1)
+  let regex = false
+  if (pattern.length >= 2 && pattern.startsWith('/') && pattern.endsWith('/')) {
+    pattern = pattern.slice(1, -1)
+    regex = true
+  }
+  return { field, pattern, regex }
+}
+
+/**
+ * Apply the --filter (include) and --exclude rules to a feed. Returns the
+ * filtered feed, or undefined after writing an error and setting a non-zero
+ * exit code when a rule has an unknown field.
+ */
+function applyFilters(feed: NeurowireFeed, values: CliValues): NeurowireFeed | undefined {
+  const fail = (raw: string): undefined => {
+    process.stderr.write(
+      `error: bad filter "${raw}". Use field:pattern with one of: ${FILTER_FIELDS.join(', ')}\n`,
+    )
+    process.exitCode = 1
+    return undefined
+  }
+
+  const collect = (raw: string[]): FilterRule[] | undefined => {
+    const rules: FilterRule[] = []
+    for (const value of raw) {
+      const rule = parseFilterRule(value)
+      if (!rule) return fail(value)
+      rules.push(rule)
+    }
+    return rules
+  }
+
+  const filterRaw = (values.filter as string[] | undefined) ?? []
+  const excludeRaw = (values.exclude as string[] | undefined) ?? []
+  if (filterRaw.length === 0 && excludeRaw.length === 0) return feed
+
+  const include = collect(filterRaw)
+  if (!include) return undefined
+  const exclude = collect(excludeRaw)
+  if (!exclude) return undefined
+
+  const spec: FilterSpec = { include, exclude }
+  const before = feed.entries.length
+  const filtered = filterEntries(feed, spec)
+  if (filtered.entries.length !== before) {
+    process.stderr.write(`Filtered to ${filtered.entries.length} of ${before} entries\n`)
+  }
+  return filtered
+}
 
 /**
  * Apply the --sort/--order/--limit and time-window flags to a feed. Returns the
@@ -308,7 +379,9 @@ async function runWatch(values: CliValues, positionals: string[]): Promise<void>
   for (;;) {
     const feed = await loadFeed(values, positionals)
     if (!feed) return
-    const refined = refineFeed(feed, values)
+    const filtered = applyFilters(feed, values)
+    if (!filtered) return
+    const refined = refineFeed(filtered, values)
     if (!refined) return
 
     const fresh = newEntries(refined, seen)
@@ -336,6 +409,8 @@ async function main(): Promise<void> {
       template: { type: 'string', short: 't' },
       mesh: { type: 'string', short: 'm' },
       taps: { type: 'string', multiple: true },
+      filter: { type: 'string', multiple: true },
+      exclude: { type: 'string', multiple: true },
       sort: { type: 'string' },
       order: { type: 'string' },
       limit: { type: 'string', short: 'n' },
@@ -377,7 +452,9 @@ async function main(): Promise<void> {
 
   const loaded = await loadFeed(values, positionals)
   if (!loaded) return
-  const feed = refineFeed(loaded, values)
+  const filtered = applyFilters(loaded, values)
+  if (!filtered) return
+  const feed = refineFeed(filtered, values)
   if (!feed) return
 
   if (values.format) {
