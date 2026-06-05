@@ -18,6 +18,7 @@ export {
 } from './parsers/feed'
 export { autodetect, discoverFeedLink } from './html/autodetect'
 export { applyTemplate, FeedTemplateSchema, type FeedTemplate } from './html/template'
+export { proposeTemplate, type TemplateProposal } from './html/propose'
 export { findTemplate, listTemplates, registerTemplate } from './html/registry'
 export {
   type FeedDraft,

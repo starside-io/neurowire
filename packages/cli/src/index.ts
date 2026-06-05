@@ -21,7 +21,14 @@ import {
   serialize,
   validateNwf,
 } from '@neurowire/core'
-import { type FeedTemplate, FeedTemplateSchema, fetchFeed, fetchMesh } from '@neurowire/ingest'
+import {
+  type FeedTemplate,
+  FeedTemplateSchema,
+  fetchDocument,
+  fetchFeed,
+  fetchMesh,
+  proposeTemplate,
+} from '@neurowire/ingest'
 import { registerAllTaps } from '@neurowire/taps'
 
 const VERSION = '0.3.0'
@@ -67,6 +74,7 @@ Watch a feed or mesh and emit only new entries:
 
 Commands:
   validate <file-or-url> Check that an nwf document is well-formed (exits non-zero if not).
+  tap doctor <url>       Propose a FeedTemplate (tap) for a feed-less page.
 
 A mesh bundles many sources into one feed:
   { "name": "AI News", "sources": [{ "name": "...", "url": "..." }] }
@@ -83,6 +91,7 @@ Examples:
   neurowire --mesh ai-news.json --filter tag:release --exclude title:sponsored --format json
   neurowire --mesh ai-news.json --watch --interval 15m --format json
   neurowire validate feed.nwf
+  neurowire tap doctor https://example.com/blog > ~/.config/neurowire/taps/example.com.json
 `
 
 const useColor = Boolean(process.stdout.isTTY) && !process.env.NO_COLOR
@@ -141,6 +150,40 @@ async function runValidate(input: string | undefined): Promise<void> {
     process.stdout.write(`${red('✗')} invalid nwf: ${count} error${count === 1 ? '' : 's'}\n`)
     process.exitCode = 1
   }
+}
+
+/**
+ * Fetch a feed-less page and propose a FeedTemplate (tap) for it. Prints the
+ * template as pretty JSON to stdout (redirect it into a taps file) and a human
+ * preview to stderr. Exits non-zero when no url is given or nothing is found.
+ */
+async function runTapDoctor(url: string | undefined): Promise<void> {
+  if (!url) {
+    process.stderr.write('error: tap doctor needs a url\n\nUsage: neurowire tap doctor <url>\n')
+    process.exitCode = 1
+    return
+  }
+
+  const doc = await fetchDocument(url)
+  const proposal = proposeTemplate(doc.body, doc.url)
+  if (!proposal) {
+    process.stderr.write(`${red('error')}: could not propose a template for ${url}\n`)
+    process.exitCode = 1
+    return
+  }
+
+  process.stdout.write(`${JSON.stringify(proposal.template, null, 2)}\n`)
+
+  process.stderr.write(
+    `${green('✓')} matched ${proposal.matched} entr${proposal.matched === 1 ? 'y' : 'ies'}\n`,
+  )
+  for (const title of proposal.sampleTitles) {
+    process.stderr.write(`  ${dim('·')} ${title}\n`)
+  }
+  const host = proposal.template.host ?? 'host'
+  process.stderr.write(
+    dim(`# save this as ~/.config/neurowire/taps/${host}.json or pass with --taps\n`),
+  )
 }
 
 type CliValues = Record<string, string | string[] | boolean | undefined>
@@ -438,6 +481,15 @@ async function main(): Promise<void> {
 
   if (positionals[0] === 'validate') {
     await runValidate(positionals[1])
+    return
+  }
+
+  if (positionals[0] === 'tap' && positionals[1] === 'doctor') {
+    await runTapDoctor(positionals[2])
+    return
+  }
+  if (positionals[0] === 'doctor') {
+    await runTapDoctor(positionals[1])
     return
   }
 
