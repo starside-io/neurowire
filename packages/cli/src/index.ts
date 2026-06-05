@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { parseArgs } from 'node:util'
 import {
   FORMATS,
@@ -8,7 +8,9 @@ import {
   type SortKey,
   type SortOrder,
   type WindowSpec,
+  entryKey,
   isFormat,
+  newEntries,
   parseDuration,
   resolveWindow,
   selectEntries,
@@ -49,6 +51,11 @@ Shape the output (applied before --format):
       --this-week        Keep entries since Monday midnight UTC.
       --between <a>..<b> Keep entries between two dates, e.g. 2026-01-01..2026-02-01.
 
+Watch a feed or mesh and emit only new entries:
+  -w, --watch            Long-poll on an interval, printing only entries not seen yet.
+      --interval <age>   Poll interval, e.g. 30m, 6h, 1d (default: 5m).
+      --state <file>     JSON file of seen entry keys, so restarts skip old items.
+
 Commands:
   validate <file-or-url> Check that an nwf document is well-formed (exits non-zero if not).
 
@@ -64,6 +71,7 @@ Examples:
   neurowire https://example.com/feed.xml --format atom > feed.xml
   neurowire --mesh ai-news.json --format json --limit 10
   neurowire --mesh ai-news.json --since 24h --sort date --format atom
+  neurowire --mesh ai-news.json --watch --interval 15m --format json
   neurowire validate feed.nwf
 `
 
@@ -225,6 +233,96 @@ function renderTerminal(feed: NeurowireFeed): void {
   process.stdout.write(`${out.join('\n')}\n`)
 }
 
+/**
+ * Fetch the feed for this invocation: a mesh when --mesh is set, otherwise the
+ * positional URL (optionally guided by a --template). Returns undefined after
+ * writing an error and setting a non-zero exit code when no URL is given.
+ */
+async function loadFeed(
+  values: CliValues,
+  positionals: string[],
+): Promise<NeurowireFeed | undefined> {
+  if (typeof values.mesh === 'string') {
+    const mesh = MeshSchema.parse(JSON.parse(readFileSync(values.mesh, 'utf8')))
+    return fetchMesh(mesh)
+  }
+  const url = positionals[0]
+  if (!url) {
+    process.stderr.write('error: missing <url> (or use --mesh <file>)\n\n')
+    process.stderr.write(HELP)
+    process.exitCode = 1
+    return undefined
+  }
+  let template: FeedTemplate | undefined
+  if (typeof values.template === 'string') {
+    template = FeedTemplateSchema.parse(JSON.parse(readFileSync(values.template, 'utf8')))
+  }
+  return fetchFeed(url, { template })
+}
+
+/**
+ * Write a feed to stdout: serialized when --format is set, otherwise the
+ * terminal view. Returns false after an error (unknown format), true otherwise.
+ */
+function emitFeed(feed: NeurowireFeed, values: CliValues): boolean {
+  if (typeof values.format === 'string') {
+    if (!isFormat(values.format)) {
+      process.stderr.write(
+        `error: unknown format "${values.format}". Use one of: ${FORMATS.join(', ')}\n`,
+      )
+      process.exitCode = 1
+      return false
+    }
+    process.stdout.write(serialize(feed, values.format))
+    return true
+  }
+  renderTerminal(feed)
+  return true
+}
+
+/** Read a JSON array of seen entry keys from a state file, or [] when absent. */
+function loadSeenState(path: string): string[] {
+  if (!existsSync(path)) return []
+  return JSON.parse(readFileSync(path, 'utf8')) as string[]
+}
+
+/**
+ * Long-poll a feed or mesh on an interval, emitting only entries not seen yet.
+ * Seen-state lives here in the CLI: an in-memory Set, optionally persisted to a
+ * --state JSON file so restarts skip items already reported. The loop runs until
+ * the process is killed.
+ */
+async function runWatch(values: CliValues, positionals: string[]): Promise<void> {
+  const intervalMs = parseDuration((values.interval as string | undefined) ?? '5m')
+  if (intervalMs === undefined) {
+    process.stderr.write(
+      `error: invalid --interval "${values.interval as string}" (use e.g. 30m, 6h, 1d)\n`,
+    )
+    process.exitCode = 1
+    return
+  }
+
+  const statePath = values.state as string | undefined
+  const seen = new Set<string>(statePath ? loadSeenState(statePath) : [])
+
+  for (;;) {
+    const feed = await loadFeed(values, positionals)
+    if (!feed) return
+    const refined = refineFeed(feed, values)
+    if (!refined) return
+
+    const fresh = newEntries(refined, seen)
+    if (fresh.length > 0) emitFeed({ ...refined, entries: fresh }, values)
+
+    for (const entry of fresh) seen.add(entryKey(entry))
+    if (statePath) writeFileSync(statePath, JSON.stringify([...seen]))
+
+    process.stderr.write(`[watch] ${fresh.length} new (${seen.size} seen)\n`)
+
+    await new Promise((resolve) => setTimeout(resolve, intervalMs))
+  }
+}
+
 async function main(): Promise<void> {
   // Tolerate a leading `--` that `pnpm run` and tsx can inject when forwarding args.
   const argv = process.argv.slice(2)
@@ -246,6 +344,9 @@ async function main(): Promise<void> {
       today: { type: 'boolean' },
       'this-week': { type: 'boolean' },
       between: { type: 'string' },
+      watch: { type: 'boolean', short: 'w' },
+      interval: { type: 'string' },
+      state: { type: 'string' },
       help: { type: 'boolean', short: 'h' },
       version: { type: 'boolean', short: 'v' },
     },
@@ -269,28 +370,15 @@ async function main(): Promise<void> {
   const { user } = registerAllTaps(values.taps ?? [])
   if (user.length) process.stderr.write(`Loaded ${user.length} custom tap(s)\n`)
 
-  let feed: NeurowireFeed
-  if (values.mesh) {
-    const mesh = MeshSchema.parse(JSON.parse(readFileSync(values.mesh, 'utf8')))
-    feed = await fetchMesh(mesh)
-  } else {
-    const url = positionals[0]
-    if (!url) {
-      process.stderr.write('error: missing <url> (or use --mesh <file>)\n\n')
-      process.stderr.write(HELP)
-      process.exitCode = 1
-      return
-    }
-    let template: FeedTemplate | undefined
-    if (values.template) {
-      template = FeedTemplateSchema.parse(JSON.parse(readFileSync(values.template, 'utf8')))
-    }
-    feed = await fetchFeed(url, { template })
+  if (values.watch) {
+    await runWatch(values, positionals)
+    return
   }
 
-  const refined = refineFeed(feed, values)
-  if (!refined) return
-  feed = refined
+  const loaded = await loadFeed(values, positionals)
+  if (!loaded) return
+  const feed = refineFeed(loaded, values)
+  if (!feed) return
 
   if (values.format) {
     if (!isFormat(values.format)) {

@@ -1,3 +1,4 @@
+export * from './diff'
 export * from './merge'
 export * from './model'
 export * from './refine'
