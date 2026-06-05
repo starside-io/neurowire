@@ -4,6 +4,31 @@ All notable changes to Neurowire are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/), and the project uses semantic
 versioning (breaking changes land as a minor bump while the project is pre-1.0).
 
+## [0.5.0] - 2026-06-05
+
+### Added
+
+- **Watch mode** (backlog #1): `neurowire ... --watch` long-polls a feed or mesh
+  on an `--interval` and emits only new entries each tick. Seen-state lives in the
+  CLI (optional `--state` JSON file); the library exposes pure `newEntries` /
+  `entryKey` helpers in `@neurowire/core` with no on-disk state.
+- **Entry filters** (backlog #2): `--filter` and `--exclude` keep or drop entries
+  by `field:pattern` (title, summary, source, author, tag), substring by default
+  or `/regex/`. Backed by pure `filterEntries` / `matchRule` in `@neurowire/core`.
+- **Conditional fetch + response cache** (backlog #4): `@neurowire/ingest` sends
+  ETag / Last-Modified and honors 304s via an injected `ConditionalCache`
+  (`createMemoryCache`), threaded through `fetchFeed` and `fetchMesh`. The API
+  adds a TTL response cache on `GET /feed` and `/mesh` (`NEUROWIRE_CACHE_TTL`,
+  default 300s).
+- **tap doctor** (backlog #5): `neurowire tap doctor <url>` inspects a feed-less
+  page and proposes a `FeedTemplate` (printed as JSON) with a match preview,
+  backed by `proposeTemplate` in `@neurowire/ingest`.
+
+### Versions
+
+- root 0.4.0 to 0.5.0; `@neurowire/core` 0.3.0 to 0.4.0; `@neurowire/ingest`
+  0.2.0 to 0.3.0; `@neurowire/cli` 0.3.0 to 0.4.0; `@neurowire/api` 0.2.0 to 0.3.0.
+
 ## [0.4.0] - 2026-06-05
 
 ### Added

@@ -4,17 +4,19 @@ A running checklist of proposed features. Each carries a short description, its
 purpose, and a usefulness rating (impact x how many users hit it, out of 10).
 Check the box when shipped.
 
-Done so far: **#11 sort & limit** and **#13 time-window presets** (see the CLI
-`--sort` / `--order` / `--limit` and `--since` / `--max-age` / `--today` /
-`--this-week` / `--between` flags, and the core `selectEntries` / `resolveWindow`
-transforms).
+Done so far: **#11 sort & limit**, **#13 time-window presets**, **#1 watch mode**,
+**#2 entry filters**, **#4 conditional fetch + response cache**, and **#5 tap
+doctor**. See the CLI `--sort` / `--limit` / `--filter` / `--watch` flags and the
+`tap doctor` subcommand, the core `selectEntries` / `newEntries` / `filterEntries`
+transforms, ingest conditional fetch (`createMemoryCache`, ETag/304) and
+`proposeTemplate`, and the API TTL response cache.
 
 ## Backlog
 
-- [ ] **1. `watch` mode** - long-poll a feed/mesh on an interval, emit only new entries (diff vs last run). The seen-ID state lives in the CLI (the app layer); core may expose a pure `newEntries(feed, seenIds)` helper, but no on-disk state in the library. Purpose: turn one-shot fetch into a live tail for scripts/webhooks/notifiers. Usefulness: 9.
-- [ ] **2. Entry-level filters (`--filter`)** - include/exclude rules on title/tag/source/author/date (substring, regex, glob). Purpose: cut noise, narrow a feed. Usefulness: 9.
-- [ ] **4. Conditional fetch + response cache** - per-source conditional headers (ETag/Last-Modified), honor 304s and Cache-Control, plus a TTL cache so the API serves the merged result for N seconds instead of refetching upstream every request. Purpose: politeness + speed for scheduled runs and the live API. Usefulness: 8.
-- [ ] **5. `tap doctor` / tap autogen** - inspect a feed-less page and propose a FeedTemplate (candidate selectors + preview). Purpose: kill the manual selector-hunting step. Usefulness: 8.
+- [x] **1. `watch` mode** - long-poll a feed/mesh on an interval, emit only new entries (diff vs last run). The seen-ID state lives in the CLI (the app layer); core may expose a pure `newEntries(feed, seenIds)` helper, but no on-disk state in the library. Purpose: turn one-shot fetch into a live tail for scripts/webhooks/notifiers. Usefulness: 9.
+- [x] **2. Entry-level filters (`--filter`)** - include/exclude rules on title/tag/source/author/date (substring, regex, glob). Purpose: cut noise, narrow a feed. Usefulness: 9.
+- [x] **4. Conditional fetch + response cache** - per-source conditional headers (ETag/Last-Modified), honor 304s and Cache-Control, plus a TTL cache so the API serves the merged result for N seconds instead of refetching upstream every request. Purpose: politeness + speed for scheduled runs and the live API. Usefulness: 8.
+- [x] **5. `tap doctor` / tap autogen** - inspect a feed-less page and propose a FeedTemplate (candidate selectors + preview). Purpose: kill the manual selector-hunting step. Usefulness: 8.
 - [ ] **6. Full-content enrichment (`--full`)** - optional second pass that fetches each entry's page and extracts the article body. Purpose: upgrade list-metadata to real reading. Usefulness: 7.
 - [ ] **7. OPML import/export** - `import feeds.opml` to a mesh; `--format opml` out. Purpose: onboarding from existing readers in one command. Usefulness: 7.
 - [ ] **8. Webhook / push sinks** - `--sink` targets: webhook POST, Slack/Discord, email; format-aware delivery of new entries. Purpose: Neurowire as the pipe, not just the printer. Usefulness: 7.

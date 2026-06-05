@@ -42,7 +42,7 @@ function cachedResponse(c: Context, body: string, contentType: string): Response
 app.get('/', (c) =>
   c.json({
     name: 'neurowire',
-    version: '0.1.0',
+    version: '0.3.0',
     formats: FORMATS,
     endpoints: {
       feed: 'GET /feed?url=<encoded-url>&format=atom|json|md|nwf',
@@ -52,7 +52,7 @@ app.get('/', (c) =>
   }),
 )
 
-app.get('/healthz', (c) => c.json({ status: 'ok', service: 'neurowire', version: '0.1.0' }))
+app.get('/healthz', (c) => c.json({ status: 'ok', service: 'neurowire', version: '0.3.0' }))
 
 app.get('/feed', async (c) => {
   const url = c.req.query('url')

@@ -31,7 +31,7 @@ import {
 } from '@neurowire/ingest'
 import { registerAllTaps } from '@neurowire/taps'
 
-const VERSION = '0.3.0'
+const VERSION = '0.4.0'
 
 const SORT_KEYS: readonly SortKey[] = ['date', 'title', 'source']
 const SORT_ORDERS: readonly SortOrder[] = ['asc', 'desc']

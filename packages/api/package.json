@@ -1,6 +1,6 @@
 {
   "name": "@neurowire/api",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Self-hostable Hono HTTP service that serves Neurowire feeds and meshes as an API.",
   "type": "module",
   "main": "./dist/index.js",
