@@ -1,9 +1,10 @@
 name: Publish site
 
-# Build the docs page (site root) and the AI news example (/example), and deploy
-# both to GitHub Pages in one deployment. Runs on every push to main, daily to keep
-# the news example fresh, and on demand. Enable Pages once for the repo
-# (Settings -> Pages -> Source: GitHub Actions) before the first run.
+# Build the docs page (site root) and the example construct (/example), and deploy
+# both to GitHub Pages in one deployment. The example is a construct: an overview
+# page recapping every built-in mesh, each linking to its own feed page. Runs on
+# every push to main, daily to keep the example fresh, and on demand. Enable Pages
+# once for the repo (Settings -> Pages -> Source: GitHub Actions) before the first run.
 
 on:
   schedule:
@@ -12,7 +13,8 @@ on:
   push:
     branches: [main]
     paths:
-      - 'examples/ai-news.mesh.json'
+      - 'examples/*.mesh.json'
+      - 'examples/*.construct.json'
       - 'packages/**'
       - 'scripts/**'
       - '.github/workflows/pages.yml'
@@ -40,14 +42,18 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm build
       - name: Build the site
-        # Docs at the root; the AI news example (last 24h only) under /example.
+        # Docs at the root; the example construct (last 7d) under /example: an
+        # overview of every built-in mesh, each linking to its own feed page.
+        # NEUROWIRE_MESHES lets the construct reference the example meshes by name.
+        env:
+          NEUROWIRE_MESHES: examples
         run: |
           mkdir -p public/example
           pnpm exec tsx scripts/build-docs.ts public
           node packages/web/dist/cli.js \
-            --mesh examples/ai-news.mesh.json \
-            --since 24h \
-            --out public/example/index.html
+            --construct examples/all.construct.json \
+            --since 7d \
+            --out public/example
       - uses: actions/upload-pages-artifact@v3
         with:
           path: public

@@ -1,6 +1,34 @@
 import type { NeurowireFeed } from '@neurowire/core'
+import type { FetchedConstruct } from '@neurowire/ingest'
 import { describe, expect, it } from 'vitest'
-import { toHtml } from './render'
+import { meshSlug, toConstructHtml, toConstructPages, toHtml } from './render'
+
+const feedOf = (title: string, links: string[]): NeurowireFeed => ({
+  id: title,
+  title,
+  updated: '2024-03-10T12:00:00.000Z',
+  entries: links.map((link, i) => ({
+    id: String(i),
+    title: `${title} ${i}`,
+    link,
+    updated: '2024-03-10T12:00:00Z',
+  })),
+})
+
+const construct: FetchedConstruct = {
+  name: 'Daily Brief',
+  parts: [
+    {
+      mesh: { name: 'AI News', sources: [{ name: 's', url: 'https://s' }] },
+      feed: feedOf('AI News', ['https://a/1', 'https://a/2']),
+    },
+    { mesh: { name: 'AI News', sources: [] }, feed: feedOf('Dup', ['https://b/1']) },
+    {
+      mesh: { name: 'Empty', sources: [] },
+      feed: { id: 'e', title: 'Empty', updated: '2024-01-01T00:00:00Z', entries: [] },
+    },
+  ],
+}
 
 const sample: NeurowireFeed = {
   id: 'https://blog.example.com/feed.atom',
@@ -79,5 +107,48 @@ describe('toHtml', () => {
     expect(html).not.toContain('class="card-date"')
     expect(html).toContain('>Edge<')
     expect(html).toContain('<time datetime="">')
+  })
+})
+
+describe('meshSlug', () => {
+  it('slugifies names and falls back to the index', () => {
+    expect(meshSlug('AI News', 0)).toBe('ai-news')
+    expect(meshSlug('  C++ & Rust!', 1)).toBe('c-rust')
+    expect(meshSlug('', 2)).toBe('mesh-3')
+  })
+})
+
+describe('toConstructHtml', () => {
+  it('renders an overview with one recap card per mesh', () => {
+    const html = toConstructHtml(construct)
+    expect(html.startsWith('<!doctype html>')).toBe(true)
+    expect(html).toContain('<title>Daily Brief - Neurowire</title>')
+    expect(html).toContain('<span class="count">3</span> meshes')
+    expect(html).toContain('<span class="count">3</span> entries') // 2 + 1 + 0
+    expect(html).toContain('>AI News<')
+    expect(html).toContain('class="recap"')
+    expect(html).toContain('class="empty"') // the empty mesh
+  })
+
+  it('links cards when given an href, plain span otherwise', () => {
+    const linked = toConstructHtml(construct, { meshHref: (_p, i) => `${i}.html` })
+    expect(linked).toContain('href="0.html"')
+    const plain = toConstructHtml(construct)
+    expect(plain).not.toContain('<a href="0.html"')
+  })
+})
+
+describe('toConstructPages', () => {
+  it('emits an index plus one de-duplicated page per mesh', () => {
+    const pages = toConstructPages(construct)
+    expect(pages.map((p) => p.filename)).toEqual([
+      'index.html',
+      'ai-news.html',
+      'ai-news-2.html',
+      'empty.html',
+    ])
+    expect(pages[0]?.html).toContain('href="ai-news.html"')
+    expect(pages[0]?.html).toContain('href="ai-news-2.html"')
+    expect(pages[1]?.html).toContain('<title>AI News - Neurowire</title>')
   })
 })

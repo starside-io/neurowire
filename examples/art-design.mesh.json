@@ -1,0 +1,9 @@
+{
+  "name": "Art & Design",
+  "sources": [
+    { "name": "Colossal", "url": "https://www.thisiscolossal.com/feed/" },
+    { "name": "Hyperallergic", "url": "https://hyperallergic.com/feed/" },
+    { "name": "Designboom", "url": "https://www.designboom.com/feed/" },
+    { "name": "It's Nice That", "url": "https://feeds.feedburner.com/itsnicethat" }
+  ]
+}

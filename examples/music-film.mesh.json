@@ -1,0 +1,7 @@
+{
+  "name": "Music & Film",
+  "sources": [
+    { "name": "Pitchfork", "url": "https://pitchfork.com/feed/feed-news/rss" },
+    { "name": "Variety", "url": "https://variety.com/feed/" }
+  ]
+}

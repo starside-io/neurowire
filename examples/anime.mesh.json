@@ -1,0 +1,9 @@
+{
+  "name": "Anime",
+  "sources": [
+    { "name": "MyAnimeList News", "url": "https://myanimelist.net/rss/news.xml" },
+    { "name": "Anime UK News", "url": "https://animeuknews.net/feed/" },
+    { "name": "Otaku USA", "url": "https://otakuusamagazine.com/feed/" },
+    { "name": "CBR Anime", "url": "https://www.cbr.com/feed/category/anime/" }
+  ]
+}

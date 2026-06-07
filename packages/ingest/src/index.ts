@@ -10,6 +10,22 @@ export {
 export { fetchFeed, ingestDocument, type FetchFeedOptions } from './ingest'
 export { fetchMesh, type FetchMeshOptions } from './mesh'
 export {
+  type ConstructPart,
+  type FetchConstructOptions,
+  type FetchedConstruct,
+  type FlattenConstructOptions,
+  type MeshResolver,
+  fetchConstruct,
+  flattenConstruct,
+  resolveConstructMembers,
+} from './construct'
+export {
+  type ConfigResolverOptions,
+  createConfigMeshResolver,
+  loadMeshFromConfig,
+  meshConfigDirs,
+} from './mesh-config'
+export {
   parseAtom,
   parseFeedString,
   parseJsonFeed,

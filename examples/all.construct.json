@@ -1,0 +1,13 @@
+{
+  "name": "Neurowire Brief",
+  "meshes": [
+    "ai-news",
+    "gaming",
+    "art-design",
+    "science",
+    "culture",
+    "world-news",
+    "music-film",
+    "anime"
+  ]
+}

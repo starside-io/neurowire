@@ -1,6 +1,6 @@
 {
   "name": "@neurowire/web",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "Render a Neurowire feed or mesh into a self-contained HTML news page.",
   "type": "module",
   "main": "./dist/index.js",
@@ -14,7 +14,10 @@
   "bin": {
     "neurowire-web": "./dist/cli.js"
   },
-  "files": ["dist", "CHANGELOG.md"],
+  "files": [
+    "dist",
+    "CHANGELOG.md"
+  ],
   "keywords": [
     "neurowire",
     "feed",

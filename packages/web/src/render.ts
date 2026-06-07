@@ -1,4 +1,5 @@
 import type { NeurowireEntry, NeurowireFeed } from '@neurowire/core'
+import type { FetchedConstruct } from '@neurowire/ingest'
 
 /**
  * Render a feed to a single self-contained HTML page (neon-glass cyberpunk
@@ -105,7 +106,7 @@ export const STYLE = `
     margin: 0; font-size: clamp(2.6rem, 9vw, 4.1rem); line-height: 1.0; font-weight: 800; letter-spacing: -0.026em;
     background: linear-gradient(100deg, #ffffff 0%, #cfe6ff 38%, var(--cyan) 80%, var(--magenta) 124%);
     -webkit-background-clip: text; background-clip: text; color: transparent;
-    text-shadow: 0 0 38px rgba(69, 230, 255, 0.12);
+    text-shadow: 0 0 38px rgba(69, 230, 255, 0.12); overflow-wrap: anywhere;
   }
   .meta { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; margin-top: 18px; font-family: var(--mono); font-size: 12.5px; color: var(--ink-soft); }
   .meta .item { display: inline-flex; align-items: center; gap: 7px; }
@@ -150,7 +151,7 @@ export const STYLE = `
   }
   .source .pip { width: 6px; height: 6px; border-radius: 50%; background: var(--rail, var(--cyan)); box-shadow: 0 0 8px 0 var(--rail, var(--glow-cyan)); }
   .card-date { font-family: var(--mono); font-size: 12px; color: var(--ink-faint); margin-left: auto; }
-  .card-title { margin: 0 0 9px; font-size: clamp(1.2rem, 3.4vw, 1.45rem); line-height: 1.3; font-weight: 700; letter-spacing: -0.01em; }
+  .card-title { margin: 0 0 9px; font-size: clamp(1.2rem, 3.4vw, 1.45rem); line-height: 1.3; font-weight: 700; letter-spacing: -0.01em; overflow-wrap: anywhere; }
   .card-title a {
     color: var(--ink); text-decoration: none;
     background-image: linear-gradient(var(--rail, var(--cyan)), var(--rail, var(--cyan))); background-size: 0% 1.5px;
@@ -162,7 +163,7 @@ export const STYLE = `
   .card-title a:hover, .card-title a:focus-visible { background-size: 100% 1.5px; }
   .card:hover .card-title a .arr, .card-title a:focus-visible .arr { opacity: 1; transform: translate(2px, -2px); }
   a:focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; }
-  .summary { margin: 0; font-size: 0.98rem; color: var(--ink-soft); max-width: 64ch; }
+  .summary { margin: 0; font-size: 0.98rem; color: var(--ink-soft); max-width: 64ch; overflow-wrap: anywhere; }
   .tags { display: flex; flex-wrap: wrap; gap: 7px; margin: 14px 0 0; list-style: none; padding: 0; }
   .tags li {
     font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.06em; color: var(--ink-soft);
@@ -310,4 +311,170 @@ ${items}
 </body>
 </html>
 `
+}
+
+// Extra styles for the construct overview page: each card recaps one mesh and
+// links to that mesh's own page, with a short preview of its latest entries.
+const CONSTRUCT_STYLE = `
+  .mesh-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; margin: 2px 0 12px; font-family: var(--mono); font-size: 12px; color: var(--ink-soft); }
+  .mesh-meta .count { color: var(--rail, var(--cyan)); font-weight: 600; }
+  .mesh-meta .sep { width: 4px; height: 4px; border-radius: 50%; background: var(--line-strong); }
+  .recap { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+  .recap li { display: flex; gap: 9px; font-size: 0.94rem; color: var(--ink-soft); min-width: 0; overflow-wrap: anywhere; }
+  .recap li::before { content: "›"; color: var(--rail, var(--cyan)); }
+  .recap .empty { color: var(--ink-faint); font-style: italic; }
+`
+
+/**
+ * A self-contained HTML page produced from a construct. `filename` is relative
+ * (e.g. "index.html" or "ai-news.html"); write the set into one directory.
+ */
+export interface ConstructPage {
+  filename: string
+  html: string
+}
+
+export interface ConstructHtmlOptions {
+  /** Given a part and its index, return the href its recap card links to (or undefined for no link). */
+  meshHref?: (part: FetchedConstruct['parts'][number], index: number) => string | undefined
+}
+
+/** Slugify a mesh name into a filename stem, falling back to its 1-based index. */
+export function meshSlug(name: string, index: number): string {
+  const base = name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+  return base || `mesh-${index + 1}`
+}
+
+function meshCardHtml(
+  part: FetchedConstruct['parts'][number],
+  index: number,
+  href: string | undefined,
+): string {
+  const { mesh, feed } = part
+  const [rail, rail2] = ACCENTS[index % ACCENTS.length] as readonly [string, string]
+  const delay = Math.min(index * 70, 700)
+  const date = day(feed.updated)
+  const entryCount = feed.entries.length
+  const sourceCount = mesh.sources.length
+
+  const dateRow = date
+    ? `<span class="card-date"><time datetime="${escapeAttr(date)}">${escapeText(date)}</time></span>`
+    : ''
+  const titleInner = `${escapeText(mesh.name)}<span class="arr" aria-hidden="true">↗</span>`
+  const title = href
+    ? `<a href="${escapeAttr(href)}">${titleInner}</a>`
+    : `<span>${escapeText(mesh.name)}</span>`
+
+  const preview = feed.entries.slice(0, 3)
+  const recap = preview.length
+    ? preview.map((e) => `<li>${escapeText(e.title)}</li>`).join('\n            ')
+    : '<li class="empty">no entries</li>'
+
+  return `      <li>
+        <article class="card" style="--d: ${delay}ms; --rail: ${rail}; --rail2: ${rail2}">
+          <div class="card-top">
+            <span class="source"><span class="pip" aria-hidden="true"></span>mesh</span>
+            ${dateRow}
+          </div>
+          <h2 class="card-title">${title}</h2>
+          <div class="mesh-meta">
+            <span><span class="count">${entryCount}</span> entries</span>
+            <span class="sep" aria-hidden="true"></span>
+            <span><span class="count">${sourceCount}</span> sources</span>
+          </div>
+          <ul class="recap">
+            ${recap}
+          </ul>
+        </article>
+      </li>`
+}
+
+/**
+ * Render a construct's overview page: one recap card per mesh, each linking to
+ * that mesh's own feed page. This is the "repo of feeds" landing page.
+ */
+export function toConstructHtml(
+  construct: FetchedConstruct,
+  options: ConstructHtmlOptions = {},
+): string {
+  const totalEntries = construct.parts.reduce((sum, part) => sum + part.feed.entries.length, 0)
+  const cards = construct.parts
+    .map((part, i) => meshCardHtml(part, i, options.meshHref?.(part, i)))
+    .join('\n')
+  const updated = day(
+    construct.parts
+      .map((part) => part.feed.updated)
+      .filter(Boolean)
+      .sort()
+      .at(-1),
+  )
+
+  return `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<meta name="description" content="${escapeAttr(construct.name)} - a Neurowire construct: ${construct.parts.length} meshes.">
+<title>${escapeText(construct.name)} - Neurowire</title>
+<style>${STYLE}${CONSTRUCT_STYLE}</style>
+</head>
+<body>
+  <div class="bg" aria-hidden="true"></div>
+  <main class="wrap">
+    <header class="head">
+      <div class="topline">
+        <a class="brand" href="${SITE}" target="_blank" rel="noopener noreferrer"><span class="dot" aria-hidden="true"></span>NEURO<b>WIRE</b></a>
+      </div>
+      ${WIRE}
+      <h1 class="title">${escapeText(construct.name)}</h1>
+      <div class="meta">
+        <span class="item"><span class="label">updated</span> <time datetime="${escapeAttr(updated)}">${escapeText(updated)}</time></span>
+        <span class="sep" aria-hidden="true"></span>
+        <span class="item"><span class="count">${construct.parts.length}</span> meshes</span>
+        <span class="sep" aria-hidden="true"></span>
+        <span class="item"><span class="count">${totalEntries}</span> entries</span>
+      </div>
+    </header>
+    <ul class="feed">
+${cards}
+    </ul>
+    <footer class="foot">
+      <a class="gen" href="${SITE}" target="_blank" rel="noopener noreferrer"><span class="dot" aria-hidden="true"></span>Made with NEURO<b>WIRE</b></a>
+      <span>neural feed aggregator</span>
+    </footer>
+  </main>
+  <script>${SCRIPT}</script>
+</body>
+</html>
+`
+}
+
+/**
+ * Render a construct into a full set of pages: an `index.html` overview plus one
+ * page per mesh. Write the set into a single directory. Mesh filenames are
+ * de-duplicated, so two meshes that slugify the same still get distinct files.
+ */
+export function toConstructPages(construct: FetchedConstruct): ConstructPage[] {
+  const seen = new Map<string, number>()
+  const slugs = construct.parts.map((part, i) => {
+    let slug = meshSlug(part.mesh.name, i)
+    const count = seen.get(slug) ?? 0
+    seen.set(slug, count + 1)
+    if (count > 0) slug = `${slug}-${count + 1}`
+    return slug
+  })
+
+  const index: ConstructPage = {
+    filename: 'index.html',
+    html: toConstructHtml(construct, { meshHref: (_part, i) => `${slugs[i]}.html` }),
+  }
+  const meshPages = construct.parts.map((part, i) => ({
+    filename: `${slugs[i]}.html`,
+    html: toHtml(part.feed),
+  }))
+  return [index, ...meshPages]
 }

@@ -1,6 +1,6 @@
 {
   "name": "@neurowire/taps",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Curated per-host feed templates (taps) for sites that ship no RSS or Atom feed.",
   "type": "module",
   "main": "./dist/index.js",
@@ -11,7 +11,10 @@
       "import": "./dist/index.js"
     }
   },
-  "files": ["dist", "CHANGELOG.md"],
+  "files": [
+    "dist",
+    "CHANGELOG.md"
+  ],
   "keywords": [
     "neurowire",
     "feed",

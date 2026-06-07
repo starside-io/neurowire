@@ -1,0 +1,8 @@
+{
+  "name": "Gaming",
+  "sources": [
+    { "name": "Rock Paper Shotgun", "url": "https://www.rockpapershotgun.com/feed" },
+    { "name": "Eurogamer", "url": "https://www.eurogamer.net/feed" },
+    { "name": "PC Gamer", "url": "https://www.pcgamer.com/rss/" }
+  ]
+}

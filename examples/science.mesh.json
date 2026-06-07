@@ -1,0 +1,9 @@
+{
+  "name": "Science",
+  "sources": [
+    { "name": "Quanta Magazine", "url": "https://www.quantamagazine.org/feed/" },
+    { "name": "NASA", "url": "https://www.nasa.gov/feed/" },
+    { "name": "Phys.org", "url": "https://phys.org/rss-feed/" },
+    { "name": "ScienceDaily", "url": "https://www.sciencedaily.com/rss/all.xml" }
+  ]
+}

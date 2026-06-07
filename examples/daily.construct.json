@@ -1,0 +1,18 @@
+{
+  "name": "Daily Brief",
+  "meshes": [
+    {
+      "name": "Models",
+      "sources": [
+        { "name": "Claude Blog", "url": "https://claude.com/blog" },
+        { "name": "Simon Willison", "url": "https://simonwillison.net/atom/everything/" }
+      ]
+    },
+    {
+      "name": "Releases",
+      "sources": [
+        { "name": "Claude Code Releases", "url": "https://github.com/anthropics/claude-code/releases.atom" }
+      ]
+    }
+  ]
+}

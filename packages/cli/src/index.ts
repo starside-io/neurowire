@@ -1,6 +1,7 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { parseArgs } from 'node:util'
 import {
+  ConstructSchema,
   FORMATS,
   type FilterField,
   type FilterRule,
@@ -24,15 +25,19 @@ import {
 import {
   type FeedTemplate,
   FeedTemplateSchema,
+  type FetchedConstruct,
+  createConfigMeshResolver,
+  fetchConstruct,
   fetchDocument,
   fetchFeed,
   fetchMesh,
+  flattenConstruct,
   proposeTemplate,
 } from '@neurowire/ingest'
 import { registerAllTaps } from '@neurowire/taps'
 import { deliver } from './sinks'
 
-const VERSION = '0.5.0'
+const VERSION = '0.6.0'
 
 const SORT_KEYS: readonly SortKey[] = ['date', 'title', 'source']
 const SORT_ORDERS: readonly SortOrder[] = ['asc', 'desc']
@@ -43,6 +48,7 @@ const HELP = `Neurowire ${VERSION} - turn any blog or feed into Atom and friends
 Usage:
   neurowire <url> [options]
   neurowire --mesh <file> [options]
+  neurowire --construct <file> [options]
   neurowire validate <file-or-url>
 
 Options:
@@ -50,6 +56,8 @@ Options:
   -o, --out <file>       Write output to a file instead of stdout.
   -t, --template <file>  Path to a JSON CSS-selector template for HTML pages.
   -m, --mesh <file>      Fetch a mesh: a JSON bundle of named sources, merged into one feed.
+  -c, --construct <file> Fetch a construct: a bundle of meshes. Terminal view keeps the
+                         per-mesh grouping; --format flattens it into one feed.
       --taps <path>      Load extra taps: a .json file or a directory. Repeatable.
   -h, --help             Show this help.
   -v, --version          Show the version.
@@ -85,6 +93,10 @@ Commands:
 A mesh bundles many sources into one feed:
   { "name": "AI News", "sources": [{ "name": "...", "url": "..." }] }
 
+A construct bundles many meshes. Members are inline meshes or references by name
+(resolved from ~/.config/neurowire/meshes or NEUROWIRE_MESHES):
+  { "name": "Daily", "meshes": ["ai-news", { "name": "Custom", "sources": [...] }] }
+
 Taps teach Neurowire to read sites with no RSS/Atom feed. Add your own with
 --taps, the NEUROWIRE_TAPS env var (a path or ':'-separated list), or by dropping
 *.json files into ~/.config/neurowire/taps/.
@@ -93,6 +105,8 @@ Examples:
   neurowire https://example.com/blog
   neurowire https://example.com/feed.xml --format atom > feed.xml
   neurowire --mesh ai-news.json --format json --limit 10
+  neurowire --construct daily.json
+  neurowire --construct daily.json --format atom --limit 20
   neurowire --mesh ai-news.json --since 24h --sort date --format atom
   neurowire --mesh ai-news.json --filter tag:release --exclude title:sponsored --format json
   neurowire --mesh ai-news.json --watch --interval 15m --format json
@@ -328,48 +342,73 @@ function refineFeed(feed: NeurowireFeed, values: CliValues): NeurowireFeed | und
   return refined
 }
 
+function pushEntry(out: string[], entry: NeurowireFeed['entries'][number], index: number): void {
+  out.push(`${dim(String(index + 1).padStart(2))}  ${bold(entry.title)}`)
+
+  const meta: string[] = []
+  if (entry.source?.name) meta.push(cyan(entry.source.name))
+  const date = day(entry.published ?? entry.updated)
+  if (date) meta.push(yellow(date))
+  if (entry.authors?.length) meta.push(entry.authors.map((a) => a.name).join(', '))
+  if (entry.tags?.length) meta.push(magenta(entry.tags.map((t) => `#${t}`).join(' ')))
+  if (meta.length) out.push(`    ${meta.join(dim(' · '))}`)
+
+  out.push(`    ${green(entry.link)}`)
+  if (entry.summary) out.push(`    ${dim(truncate(entry.summary, 100))}`)
+  out.push('')
+}
+
 function renderTerminal(feed: NeurowireFeed): void {
   const out: string[] = [bold(cyan(feed.title))]
   const sub = [feed.home, `${feed.entries.length} entries`, `updated ${day(feed.updated)}`].filter(
     Boolean,
   )
   out.push(dim(sub.join('  ·  ')), '')
+  feed.entries.forEach((entry, index) => pushEntry(out, entry, index))
+  process.stdout.write(`${out.join('\n')}\n`)
+}
 
-  feed.entries.forEach((entry, index) => {
-    out.push(`${dim(String(index + 1).padStart(2))}  ${bold(entry.title)}`)
+/** Render a construct to the terminal: a section per mesh, grouping preserved. */
+function renderConstructTerminal(construct: FetchedConstruct): void {
+  const total = construct.parts.reduce((sum, part) => sum + part.feed.entries.length, 0)
+  const out: string[] = [bold(cyan(construct.name))]
+  out.push(dim(`${construct.parts.length} meshes  ·  ${total} entries`), '')
 
-    const meta: string[] = []
-    if (entry.source?.name) meta.push(cyan(entry.source.name))
-    const date = day(entry.published ?? entry.updated)
-    if (date) meta.push(yellow(date))
-    if (entry.authors?.length) meta.push(entry.authors.map((a) => a.name).join(', '))
-    if (entry.tags?.length) meta.push(magenta(entry.tags.map((t) => `#${t}`).join(' ')))
-    if (meta.length) out.push(`    ${meta.join(dim(' · '))}`)
-
-    out.push(`    ${green(entry.link)}`)
-    if (entry.summary) out.push(`    ${dim(truncate(entry.summary, 100))}`)
-    out.push('')
-  })
+  for (const part of construct.parts) {
+    out.push(bold(magenta(`▍ ${part.mesh.name}`)))
+    out.push(dim(`  ${part.feed.entries.length} entries`), '')
+    part.feed.entries.forEach((entry, index) => pushEntry(out, entry, index))
+  }
 
   process.stdout.write(`${out.join('\n')}\n`)
 }
 
+/** Parse a construct file and fetch it, resolving `{ ref }` members from config. */
+async function loadConstruct(path: string): Promise<FetchedConstruct> {
+  const construct = ConstructSchema.parse(JSON.parse(readFileSync(path, 'utf8')))
+  return fetchConstruct(construct, { resolver: createConfigMeshResolver() })
+}
+
 /**
- * Fetch the feed for this invocation: a mesh when --mesh is set, otherwise the
- * positional URL (optionally guided by a --template). Returns undefined after
- * writing an error and setting a non-zero exit code when no URL is given.
+ * Fetch the feed for this invocation: a construct (flattened) when --construct is
+ * set, a mesh when --mesh is set, otherwise the positional URL (optionally guided
+ * by a --template). Returns undefined after writing an error and setting a
+ * non-zero exit code when no source is given.
  */
 async function loadFeed(
   values: CliValues,
   positionals: string[],
 ): Promise<NeurowireFeed | undefined> {
+  if (typeof values.construct === 'string') {
+    return flattenConstruct(await loadConstruct(values.construct))
+  }
   if (typeof values.mesh === 'string') {
     const mesh = MeshSchema.parse(JSON.parse(readFileSync(values.mesh, 'utf8')))
     return fetchMesh(mesh)
   }
   const url = positionals[0]
   if (!url) {
-    process.stderr.write('error: missing <url> (or use --mesh <file>)\n\n')
+    process.stderr.write('error: missing <url> (or use --mesh/--construct <file>)\n\n')
     process.stderr.write(HELP)
     process.exitCode = 1
     return undefined
@@ -472,6 +511,7 @@ async function main(): Promise<void> {
       out: { type: 'string', short: 'o' },
       template: { type: 'string', short: 't' },
       mesh: { type: 'string', short: 'm' },
+      construct: { type: 'string', short: 'c' },
       taps: { type: 'string', multiple: true },
       filter: { type: 'string', multiple: true },
       exclude: { type: 'string', multiple: true },
@@ -521,6 +561,24 @@ async function main(): Promise<void> {
 
   if (values.watch) {
     await runWatch(values, positionals)
+    return
+  }
+
+  // Construct without --format keeps the mesh grouping in a sectioned terminal
+  // view. With --format it falls through to loadFeed, which flattens it.
+  if (typeof values.construct === 'string' && !values.format) {
+    const construct = await loadConstruct(values.construct)
+    const parts = []
+    for (const part of construct.parts) {
+      const filtered = applyFilters(part.feed, values)
+      if (!filtered) return
+      const refined = refineFeed(filtered, values)
+      if (!refined) return
+      parts.push({ ...part, feed: refined })
+    }
+    const refinedConstruct: FetchedConstruct = { ...construct, parts }
+    renderConstructTerminal(refinedConstruct)
+    await deliverToSinks(flattenConstruct(refinedConstruct), values)
     return
   }
 

@@ -1,6 +1,6 @@
-import { mkdirSync, writeFileSync } from 'node:fs'
+import { mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { type NeurowireFeed, serialize } from '@neurowire/core'
+import { type Mesh, type NeurowireFeed, serialize } from '@neurowire/core'
 import { type Tap, taps } from '@neurowire/taps'
 import { STYLE, WIRE } from '@neurowire/web'
 
@@ -125,6 +125,13 @@ const DOCS_STYLE = `
   .td-title { margin: 0 0 6px; font-size: 1.1rem; font-weight: 700; color: var(--ink); }
   .td-note { margin: 0 0 14px; max-width: 64ch; color: var(--ink-soft); font-size: 0.95rem; }
   @media (max-width: 620px) { .taps-explorer { grid-template-columns: 1fr; } .tap-detail { grid-column: 1; grid-row: auto; margin-bottom: 8px; } }
+  .mesh-card h3 { margin: 0 0 4px; font-size: 1.15rem; font-weight: 700; color: var(--ink); letter-spacing: -0.01em; }
+  .mesh-card .cnt { margin: 0; font-family: var(--mono); font-size: 12px; color: var(--ink-faint); }
+  .mesh-card .cnt code { color: var(--rail, var(--cyan)); }
+  .mesh-card ul { margin: 12px 0 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 4px; color: var(--ink-soft); font-size: 0.92rem; }
+  .mesh-card ul li { display: flex; gap: 8px; overflow-wrap: anywhere; }
+  .mesh-card ul li::before { content: "›"; color: var(--rail, var(--cyan)); }
+  ul.bullets { margin: 10px 0 0; padding-left: 18px; color: var(--ink-soft); max-width: 74ch; display: flex; flex-direction: column; gap: 6px; }
 `
 
 const SCRIPT = `(function () {
@@ -161,6 +168,7 @@ const PAGES: PageDef[] = [
   { id: 'cli', label: 'CLI', href: 'cli.html' },
   { id: 'sinks', label: 'Sinks', href: 'sinks.html' },
   { id: 'mesh', label: 'Mesh', href: 'mesh.html' },
+  { id: 'construct', label: 'Construct', href: 'construct.html' },
   { id: 'taps', label: 'Taps', href: 'taps.html' },
   { id: 'packages', label: 'Packages', href: 'packages.html' },
 ]
@@ -331,15 +339,6 @@ npx @neurowire/cli https://example.com/feed.xml --format atom > feed.xml
 # bundle many sources into one mesh
 npx @neurowire/cli --mesh ai-news.json --format atom`)}
       </section>
-      <section class="section" id="shape">
-        <h2>Shape the output</h2>
-        <p>Filter, sort, cap, date-window, and live-watch a feed or mesh from the CLI, all before it is serialized. See the <a class="inline" href="cli.html">CLI parameters</a> page for every flag with examples.</p>
-${codeShell(`# the 10 newest entries as JSON, ideal for piping into another system
-neurowire --mesh ai-news.json --format json --limit 10
-
-# keep only what you want, then watch for new items
-neurowire --mesh ai-news.json --filter tag:release --watch --interval 15m`)}
-      </section>
       <section class="section" id="nwf">
         <h2>The nwf format</h2>
         <p>nwf (Neurowire Feed) is a compact, line-oriented format. It interns authors, tags, and sources into dictionaries referenced by index, stores each link relative to a shared prefix, and stores each date as a delta in seconds before the feed's timestamp. It round-trips back to the canonical model via <code>fromNwf</code>.</p>
@@ -355,6 +354,63 @@ ${statCard('Smaller', `${smaller}%`, '#ff5cc8')}
           <div><h3>As nwf</h3>${codeNwf(nwfOut)}</div>
         </div>
       </section>`
+
+// Read the shipped example meshes/constructs so the docs list stays in sync with
+// the files (and the live /example) instead of drifting out of date.
+const EXAMPLES_DIR = join(process.cwd(), 'examples')
+
+interface BuiltinMesh {
+  ref: string
+  mesh: Mesh
+}
+function loadBuiltinMeshes(): BuiltinMesh[] {
+  return readdirSync(EXAMPLES_DIR)
+    .filter((f) => f.endsWith('.mesh.json'))
+    .sort()
+    .map((file) => ({
+      ref: file.replace(/\.mesh\.json$/, ''),
+      mesh: JSON.parse(readFileSync(join(EXAMPLES_DIR, file), 'utf8')) as Mesh,
+    }))
+}
+
+interface BuiltinConstruct {
+  name: string
+  meshes: string[]
+}
+function loadBuiltinConstructs(): BuiltinConstruct[] {
+  return readdirSync(EXAMPLES_DIR)
+    .filter((f) => f.endsWith('.construct.json'))
+    .sort()
+    .map((file) => {
+      const raw = JSON.parse(readFileSync(join(EXAMPLES_DIR, file), 'utf8')) as {
+        name: string
+        meshes: Array<string | { ref?: string; name?: string }>
+      }
+      const meshes = raw.meshes.map((m) => (typeof m === 'string' ? m : (m.ref ?? m.name ?? '?')))
+      return { name: raw.name, meshes }
+    })
+}
+
+const meshCard = ({ ref, mesh }: BuiltinMesh, i: number): string => {
+  const [rail, rail2] = ACCENTS[i % ACCENTS.length] as readonly [string, string]
+  const sources = mesh.sources.map((s) => `<li>${esc(s.name)}</li>`).join('')
+  return `        <article class="card mesh-card" style="--rail: ${rail}; --rail2: ${rail2}">
+          <h3>${esc(mesh.name)}</h3>
+          <p class="cnt">${mesh.sources.length} sources · <code>${esc(ref)}</code></p>
+          <ul>${sources}</ul>
+        </article>`
+}
+
+const builtinMeshes = loadBuiltinMeshes()
+const builtinConstructs = loadBuiltinConstructs()
+const meshCards = builtinMeshes.map(meshCard).join('\n')
+const totalSources = builtinMeshes.reduce((n, b) => n + b.mesh.sources.length, 0)
+const constructList = builtinConstructs
+  .map(
+    (c) =>
+      `<li><strong>${esc(c.name)}</strong>: ${c.meshes.map((m) => `<code>${esc(m)}</code>`).join(', ')}</li>`,
+  )
+  .join('')
 
 const meshBody = `      <section class="section" id="what">
         <h2>What a mesh is</h2>
@@ -378,7 +434,50 @@ neurowire --mesh ai-news.json --format nwf --out feed.nwf
 
 # serve a named mesh from the API
 curl 'http://localhost:8787/mesh?src=ai-news&format=json'`)}
-        <p style="margin-top:16px">The <a class="inline" href="example/">live example</a> is a mesh of Anthropic, OpenAI, Google, Mistral, and the major AI press, rebuilt daily and filtered to the last 24 hours.</p>
+      </section>
+      <section class="section" id="builtin">
+        <h2>Built-in meshes</h2>
+        <p>Neurowire ships ${fmt(builtinMeshes.length)} ready-to-use meshes (${fmt(totalSources)} sources in total). Run any of them by file, e.g. <code>neurowire --mesh examples/gaming.mesh.json</code>, or reference one by name from a construct.</p>
+        <div class="grid">
+${meshCards}
+        </div>
+        <p style="margin-top:16px">Group several meshes into a <a class="inline" href="construct.html">construct</a>, a "repo" of feeds rendered as a browsable site.</p>
+      </section>`
+
+const constructBody = `      <section class="section" id="what">
+        <h2>What a construct is</h2>
+        <p>A construct bundles many meshes into a "repo" of feeds: a named group of meshes, each of which is itself a group of sources. Members are inline meshes (self-contained) or references to meshes by name, so you can publish a library of meshes and point a construct at them without copying their sources. A bare string is shorthand for a reference.</p>
+${codeJson(`{
+  "name": "Daily Brief",
+  "meshes": [
+    "ai-news",
+    { "ref": "gaming" },
+    { "name": "My Picks", "sources": [{ "name": "...", "url": "..." }] }
+  ]
+}`)}
+        <p style="margin-top:10px">References resolve from <code>~/.config/neurowire/meshes</code> or the <code>NEUROWIRE_MESHES</code> directories.</p>
+      </section>
+      <section class="section" id="use">
+        <h2>Use it</h2>
+        <p>The terminal view keeps the per-mesh grouping (a section per mesh); <code>--format</code> flattens the construct into one feed, tagging each entry with the mesh it came from. The <code>Construct</code> type and <code>parseConstruct</code> live in <code>@neurowire/core</code>; <code>fetchConstruct</code>, <code>flattenConstruct</code>, and <code>createConfigMeshResolver</code> live in <code>@neurowire/ingest</code>.</p>
+${codeShell(`# grouped terminal view, or a flattened feed
+neurowire --construct examples/varied.construct.json
+neurowire --construct examples/varied.construct.json --format atom --limit 20
+
+# serve a named construct from the API (flattened feed; HTML is rejected)
+curl 'http://localhost:8787/construct?src=daily&format=json'`)}
+      </section>
+      <section class="section" id="page">
+        <h2>Render it as a site</h2>
+        <p><code>neurowire-web</code> renders a construct as a small site: an <code>index.html</code> overview that recaps each mesh, each linking through to that mesh's own feed page. Pass a directory as <code>--out</code>. Use <code>--combined</code> for a single page where every entry carries a badge for the mesh it came from.</p>
+${codeShell(`# overview + one page per mesh
+neurowire-web --construct examples/varied.construct.json --out public/
+
+# one combined page, entries badged by mesh
+neurowire-web --construct examples/varied.construct.json --combined --out page.html`)}
+        <p style="margin-top:16px">Shipped constructs:</p>
+        <ul class="bullets">${constructList}</ul>
+        <p style="margin-top:16px">The <a class="inline" href="example/">live example</a> is the <code>all</code> construct: an overview of every built-in mesh, each linking to its own feed page, rebuilt daily and filtered to the last 7 days.</p>
       </section>`
 
 const TAP_NOTES: Record<string, string> = {
@@ -614,6 +713,18 @@ const docs: ReadonlyArray<{ file: string; html: string }> = [
       heading: 'Meshes',
       lead: 'Bundle many sources into one named feed: fetched in parallel, tagged by source, de-duplicated, newest first.',
       body: meshBody,
+    }),
+  },
+  {
+    file: 'construct.html',
+    html: shell({
+      title: 'Constructs - Neurowire',
+      description:
+        'Bundle many meshes into a construct: a repo of feeds rendered as a browsable overview that links to each mesh page.',
+      active: 'construct',
+      heading: 'Constructs',
+      lead: 'Bundle many meshes into a "repo" of feeds: grouped in the terminal, flattened for any format, or rendered as a browsable site.',
+      body: constructBody,
     }),
   },
   {

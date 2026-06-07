@@ -67,6 +67,36 @@ describe('api', () => {
     expect(res.status).toBe(400)
   })
 
+  it('lists constructs at the root', async () => {
+    const res = await app.request('/')
+    const body = (await res.json()) as { constructs: string[] }
+    expect(body.constructs).toContain('daily')
+  })
+
+  it('rejects /construct without src', async () => {
+    const res = await app.request('/construct')
+    expect(res.status).toBe(400)
+  })
+
+  it('404s an unknown construct', async () => {
+    const res = await app.request('/construct?src=does-not-exist')
+    expect(res.status).toBe(404)
+  })
+
+  it('rejects /construct with an unknown format (incl. html)', async () => {
+    expect((await app.request('/construct?src=daily&format=zzz')).status).toBe(400)
+    expect((await app.request('/construct?src=daily&format=html')).status).toBe(400)
+  })
+
+  it('rejects POST /construct with an invalid body', async () => {
+    const res = await app.request('/construct', {
+      method: 'POST',
+      body: JSON.stringify({ nope: true }),
+      headers: { 'content-type': 'application/json' },
+    })
+    expect(res.status).toBe(400)
+  })
+
   it('serves a second identical /feed from the TTL cache', async () => {
     const fetchMock = vi.fn(
       async () =>

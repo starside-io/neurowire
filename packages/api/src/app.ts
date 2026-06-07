@@ -1,4 +1,6 @@
 import {
+  type Construct,
+  ConstructSchema,
   FORMATS,
   type Format,
   MEDIA_TYPES,
@@ -8,10 +10,17 @@ import {
   isFormat,
   serialize,
 } from '@neurowire/core'
-import { createMemoryCache, fetchFeed, fetchMesh } from '@neurowire/ingest'
+import {
+  createMemoryCache,
+  fetchConstruct,
+  fetchFeed,
+  fetchMesh,
+  flattenConstruct,
+} from '@neurowire/ingest'
 import { registerAllTaps } from '@neurowire/taps'
 import { type Context, Hono } from 'hono'
 import { createTtlCache } from './cache'
+import { listConstructNames, resolveConstruct } from './constructs'
 import { listMeshNames, resolveMesh } from './meshes'
 
 // Built-in taps plus any from NEUROWIRE_TAPS or ~/.config/neurowire/taps.
@@ -42,17 +51,19 @@ function cachedResponse(c: Context, body: string, contentType: string): Response
 app.get('/', (c) =>
   c.json({
     name: 'neurowire',
-    version: '0.3.0',
+    version: '0.4.0',
     formats: FORMATS,
     endpoints: {
       feed: 'GET /feed?url=<encoded-url>&format=atom|json|md|nwf',
       mesh: 'GET /mesh?src=<name>&format=...  or  POST /mesh (mesh JSON body)',
+      construct: 'GET /construct?src=<name>&format=...  or  POST /construct (construct JSON body)',
     },
     meshes: listMeshNames(),
+    constructs: listConstructNames(),
   }),
 )
 
-app.get('/healthz', (c) => c.json({ status: 'ok', service: 'neurowire', version: '0.3.0' }))
+app.get('/healthz', (c) => c.json({ status: 'ok', service: 'neurowire', version: '0.4.0' }))
 
 app.get('/feed', async (c) => {
   const url = c.req.query('url')
@@ -125,5 +136,61 @@ app.post('/mesh', async (c) => {
   } catch (error) {
     const detail = error instanceof Error ? error.message : String(error)
     return c.json({ error: 'failed to build mesh', detail }, 502)
+  }
+})
+
+// Constructs (bundles of meshes) are flattened into one feed for the API. HTML is
+// not a feed format, so `format=html` is rejected like any unknown format; the
+// grouped, multi-page view lives in @neurowire/web.
+app.get('/construct', async (c) => {
+  const src = c.req.query('src')
+  if (!src) {
+    return c.json(
+      { error: 'missing required query parameter: src', constructs: listConstructNames() },
+      400,
+    )
+  }
+  const format = c.req.query('format') ?? 'atom'
+  if (!isFormat(format)) {
+    return c.json({ error: `unknown format "${format}"`, formats: FORMATS }, 400)
+  }
+  const construct = resolveConstruct(src)
+  if (!construct) {
+    return c.json({ error: `unknown construct "${src}"`, constructs: listConstructNames() }, 404)
+  }
+  const now = Date.now()
+  const key = `construct:${src}:${format}`
+  const hit = responseCache.get(key, now)
+  if (hit) return cachedResponse(c, hit.body, hit.contentType)
+  try {
+    const fetched = await fetchConstruct(construct, { cache: upstreamCache, resolver: resolveMesh })
+    const body = serialize(flattenConstruct(fetched), format)
+    const contentType = MEDIA_TYPES[format]
+    responseCache.set(key, { body, contentType, expires: now + TTL_MS })
+    return cachedResponse(c, body, contentType)
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error)
+    return c.json({ error: 'failed to build construct', detail }, 502)
+  }
+})
+
+app.post('/construct', async (c) => {
+  const format = c.req.query('format') ?? 'atom'
+  if (!isFormat(format)) {
+    return c.json({ error: `unknown format "${format}"`, formats: FORMATS }, 400)
+  }
+  let construct: Construct
+  try {
+    construct = ConstructSchema.parse(await c.req.json())
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error)
+    return c.json({ error: 'invalid construct body', detail }, 400)
+  }
+  try {
+    const fetched = await fetchConstruct(construct, { resolver: resolveMesh })
+    return feedResponse(c, flattenConstruct(fetched), format)
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error)
+    return c.json({ error: 'failed to build construct', detail }, 502)
   }
 })

@@ -71,3 +71,46 @@ export type Mesh = z.infer<typeof MeshSchema>
 export function parseMesh(data: unknown): Mesh {
   return MeshSchema.parse(data)
 }
+
+/**
+ * A reference to a mesh that lives elsewhere (a published pack, a config file),
+ * resolved to a real {@link Mesh} at fetch time by a higher layer. Lets a
+ * construct point at an existing mesh by name instead of inlining its sources.
+ */
+export const ConstructRefSchema = z.object({
+  ref: z.string(),
+})
+export type ConstructRef = z.infer<typeof ConstructRefSchema>
+
+/**
+ * One member of a {@link Construct}: either an inline {@link Mesh} (self-contained)
+ * or a {@link ConstructRef} pointing at a mesh by name. A bare string is shorthand
+ * for `{ ref: string }`, so published mesh lists stay terse: `["ai-news", "security"]`.
+ */
+export const ConstructMemberSchema = z.union([
+  z.string().transform((ref): ConstructRef => ({ ref })),
+  ConstructRefSchema,
+  MeshSchema,
+])
+export type ConstructMember = z.infer<typeof ConstructMemberSchema>
+
+/** Narrow a resolved {@link ConstructMember} to a {@link ConstructRef}. */
+export function isConstructRef(member: ConstructMember): member is ConstructRef {
+  return 'ref' in member
+}
+
+/**
+ * A named bundle of meshes: a "repo" of feeds grouped into meshes. Members may be
+ * inline meshes or references to meshes resolved elsewhere. Fetched and rendered
+ * with the mesh grouping preserved (per-mesh sections), or flattened to one feed.
+ */
+export const ConstructSchema = z.object({
+  name: z.string(),
+  meshes: z.array(ConstructMemberSchema),
+})
+export type Construct = z.infer<typeof ConstructSchema>
+
+/** Validate an unknown value into a Construct. Throws (ZodError) on invalid input. */
+export function parseConstruct(data: unknown): Construct {
+  return ConstructSchema.parse(data)
+}
