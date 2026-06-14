@@ -141,4 +141,47 @@ describe('fetchDocument', () => {
     expect(headers['if-modified-since']).toBeUndefined()
     expect(doc.body).toBe('<feed/>')
   })
+
+  it('follows redirects manually and resolves a relative Location', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(null, { status: 302, headers: { location: '/final' } }),
+      )
+      .mockResolvedValueOnce(
+        new Response('<feed/>', { status: 200, headers: { 'content-type': 'application/atom+xml' } }),
+      )
+    vi.stubGlobal('fetch', fetchMock)
+    const doc = await fetchDocument('https://example.com/start')
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+    expect(fetchMock.mock.calls[1][0]).toBe('https://example.com/final')
+    expect(doc.body).toBe('<feed/>')
+  })
+
+  it('runs validate() on every redirect hop and lets it block (SSRF guard)', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(null, { status: 301, headers: { location: 'http://169.254.169.254/' } }),
+      )
+      .mockResolvedValue(new Response('<feed/>', { status: 200 }))
+    vi.stubGlobal('fetch', fetchMock)
+    const seen: string[] = []
+    const validate = (u: string) => {
+      seen.push(u)
+      if (u.includes('169.254.169.254')) throw new Error('Blocked non-public address')
+    }
+    await expect(fetchDocument('https://example.com/start', { validate })).rejects.toThrow(
+      /Blocked non-public/,
+    )
+    expect(seen).toEqual(['https://example.com/start', 'http://169.254.169.254/'])
+  })
+
+  it('throws after too many redirects', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response(null, { status: 302, headers: { location: '/loop' } })),
+    )
+    await expect(fetchDocument('https://example.com/start')).rejects.toThrow(/Too many redirects/)
+  })
 })

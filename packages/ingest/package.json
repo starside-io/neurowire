@@ -1,6 +1,6 @@
 {
   "name": "@neurowire/ingest",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "Fetch, detect, and parse RSS/Atom/RDF/JSON feeds and HTML pages into the Neurowire model.",
   "type": "module",
   "main": "./dist/index.js",
