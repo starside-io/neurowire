@@ -81,21 +81,30 @@ describe('fetchConstruct', () => {
           : new Response('no', { status: 500 }),
       ),
     )
-    const fetched = await fetchConstruct({
-      name: 'C',
-      meshes: [
-        { name: 'Dead', sources: [{ name: 'D', url: 'https://dead.example/feed' }] },
-        { name: 'Live', sources: [{ name: 'L', url: 'https://ok.example/feed' }] },
-      ],
-    })
+    const meshErrors: string[] = []
+    // retries: 0 keeps the failing mesh fast; capture the failure instead of stderr noise.
+    const fetched = await fetchConstruct(
+      {
+        name: 'C',
+        meshes: [
+          { name: 'Dead', sources: [{ name: 'D', url: 'https://dead.example/feed' }] },
+          { name: 'Live', sources: [{ name: 'L', url: 'https://ok.example/feed' }] },
+        ],
+      },
+      { retries: 0, onSourceError: () => {}, onMeshError: (mesh) => meshErrors.push(mesh.name) },
+    )
     expect(fetched.parts).toHaveLength(1)
     expect(fetched.parts[0]?.mesh.name).toBe('Live')
+    expect(meshErrors).toEqual(['Dead'])
 
     await expect(
-      fetchConstruct({
-        name: 'AllDead',
-        meshes: [{ name: 'D', sources: [{ name: 'D', url: 'https://dead.example/feed' }] }],
-      }),
+      fetchConstruct(
+        {
+          name: 'AllDead',
+          meshes: [{ name: 'D', sources: [{ name: 'D', url: 'https://dead.example/feed' }] }],
+        },
+        { retries: 0, onSourceError: () => {}, onMeshError: () => {} },
+      ),
     ).rejects.toThrow(/no meshes/)
   })
 
