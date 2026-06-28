@@ -12,9 +12,11 @@ import {
   type SortKey,
   type SortOrder,
   type WindowSpec,
+  constructToOpml,
   entryKey,
   filterEntries,
   isFormat,
+  meshToOpml,
   newEntries,
   parseDuration,
   resolveWindow,
@@ -32,6 +34,7 @@ import {
   fetchFeed,
   fetchMesh,
   flattenConstruct,
+  opmlToMesh,
   proposeTemplate,
 } from '@neurowire/ingest'
 import { registerAllTaps } from '@neurowire/taps'
@@ -89,6 +92,8 @@ Deliver to sinks (push entries to a destination):
 Commands:
   validate <file-or-url> Check that an nwf document is well-formed (exits non-zero if not).
   tap doctor <url>       Propose a FeedTemplate (tap) for a feed-less page.
+  opml export            Export a mesh/construct to OPML 2.0 (--mesh or --construct, -o optional).
+  opml import <src>      Import an OPML file or URL into a mesh JSON (-o, --name optional).
 
 A mesh bundles many sources into one feed:
   { "name": "AI News", "sources": [{ "name": "...", "url": "..." }] }
@@ -113,6 +118,8 @@ Examples:
   neurowire --mesh ai-news.json --watch --sink https://hooks.slack.com/services/...
   neurowire validate feed.nwf
   neurowire tap doctor https://example.com/blog > ~/.config/neurowire/taps/example.com.json
+  neurowire opml export --mesh ai-news.json > ai-news.opml
+  neurowire opml import subscriptions.opml -o mesh.json --name "My Reader"
 `
 
 const useColor = Boolean(process.stdout.isTTY) && !process.env.NO_COLOR
@@ -205,6 +212,84 @@ async function runTapDoctor(url: string | undefined): Promise<void> {
   process.stderr.write(
     dim(`# save this as ~/.config/neurowire/taps/${host}.json or pass with --taps\n`),
   )
+}
+
+/**
+ * Export a mesh or construct to OPML 2.0. Reads the JSON file named by --mesh or
+ * --construct, serializes it, and writes to --out or stdout. Exits non-zero when
+ * neither flag is given.
+ */
+function runOpmlExport(values: CliValues): void {
+  let opml: string
+  if (typeof values.mesh === 'string') {
+    const mesh = MeshSchema.parse(JSON.parse(readFileSync(values.mesh, 'utf8')))
+    opml = meshToOpml(mesh)
+  } else if (typeof values.construct === 'string') {
+    const construct = ConstructSchema.parse(JSON.parse(readFileSync(values.construct, 'utf8')))
+    opml = constructToOpml(construct)
+  } else {
+    process.stderr.write(
+      'error: opml export needs --mesh <file> or --construct <file>\n\n' +
+        'Usage: neurowire opml export --mesh <file>|--construct <file> [-o out.opml]\n',
+    )
+    process.exitCode = 1
+    return
+  }
+
+  if (typeof values.out === 'string') {
+    writeFileSync(values.out, opml)
+    process.stderr.write(`Wrote OPML to ${values.out}\n`)
+  } else {
+    process.stdout.write(opml)
+  }
+}
+
+/**
+ * Import an OPML subscription list (file path or http(s) URL) into a mesh JSON.
+ * The mesh name comes from --name, else the OPML head/title, else "imported".
+ * Writes the mesh JSON to --out or stdout. Exits non-zero when no input is given.
+ */
+async function runOpmlImport(input: string | undefined, values: CliValues): Promise<void> {
+  if (!input) {
+    process.stderr.write(
+      'error: opml import needs a path or URL\n\n' +
+        'Usage: neurowire opml import <file-or-url> [-o mesh.json] [--name <name>]\n',
+    )
+    process.exitCode = 1
+    return
+  }
+
+  const name = typeof values.name === 'string' ? values.name : undefined
+  const mesh = opmlToMesh(await readInput(input), name)
+  const json = `${JSON.stringify(mesh, null, 2)}\n`
+
+  if (typeof values.out === 'string') {
+    writeFileSync(values.out, json)
+    process.stderr.write(
+      `Wrote mesh "${mesh.name}" (${mesh.sources.length} sources) to ${values.out}\n`,
+    )
+  } else {
+    process.stdout.write(json)
+  }
+}
+
+/** Dispatch the `opml` subcommand group: `export` or `import`. */
+async function runOpml(sub: string | undefined, rest: string[], values: CliValues): Promise<void> {
+  if (sub === 'export') {
+    runOpmlExport(values)
+    return
+  }
+  if (sub === 'import') {
+    await runOpmlImport(rest[0], values)
+    return
+  }
+  process.stderr.write(
+    'error: opml needs a subcommand: export or import\n\n' +
+      'Usage:\n' +
+      '  neurowire opml export --mesh <file>|--construct <file> [-o out.opml]\n' +
+      '  neurowire opml import <file-or-url> [-o mesh.json] [--name <name>]\n',
+  )
+  process.exitCode = 1
 }
 
 type CliValues = Record<string, string | string[] | boolean | undefined>
@@ -527,6 +612,7 @@ async function main(): Promise<void> {
       interval: { type: 'string' },
       state: { type: 'string' },
       sink: { type: 'string', multiple: true },
+      name: { type: 'string' },
       help: { type: 'boolean', short: 'h' },
       version: { type: 'boolean', short: 'v' },
     },
@@ -543,6 +629,11 @@ async function main(): Promise<void> {
 
   if (positionals[0] === 'validate') {
     await runValidate(positionals[1])
+    return
+  }
+
+  if (positionals[0] === 'opml') {
+    await runOpml(positionals[1], positionals.slice(2), values)
     return
   }
 
