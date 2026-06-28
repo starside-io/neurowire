@@ -14,7 +14,7 @@ const culture: Theme = {
     { name: 'The Atlantic', url: 'https://www.theatlantic.com/feed/all/' },
     { name: 'The New Yorker', url: 'https://www.newyorker.com/feed/everything' },
     { name: 'Nautilus', url: 'https://nautil.us/feed/' },
-    { name: 'The New York Review of Books', url: 'https://www.nybooks.com/feed/' },
+    { name: 'Open Culture', url: 'https://www.openculture.com/feed' },
     { name: 'Vox', url: 'https://www.vox.com/rss/index.xml' },
     { name: 'Public Books', url: 'https://www.publicbooks.org/feed/' },
     { name: 'Noema Magazine', url: 'https://www.noemamag.com/feed/' },

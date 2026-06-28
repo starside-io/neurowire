@@ -16,7 +16,7 @@ const books: Theme = {
     { name: 'Electric Literature', url: 'https://electricliterature.com/feed/' },
     { name: 'The Paris Review', url: 'https://www.theparisreview.org/blog/feed/' },
     { name: 'Reactor (Tor.com)', url: 'https://reactormag.com/feed/' },
-    { name: 'The New York Review of Books', url: 'https://www.nybooks.com/feed/' },
+    { name: 'Open Culture', url: 'https://www.openculture.com/feed' },
     { name: 'The Marginalian', url: 'https://www.themarginalian.org/feed/' },
     { name: 'Aeon', url: 'https://aeon.co/feed.rss' },
   ],

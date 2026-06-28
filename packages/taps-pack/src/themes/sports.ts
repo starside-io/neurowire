@@ -14,7 +14,7 @@ const sports: Theme = {
     { name: 'Yahoo Sports', url: 'https://sports.yahoo.com/rss/' },
     { name: 'SB Nation', url: 'https://www.sbnation.com/rss/index.xml' },
     { name: 'The Guardian Sport', url: 'https://www.theguardian.com/sport/rss' },
-    { name: 'Fox Sports', url: 'https://api.foxsports.com/v1/rss' },
+    { name: 'ESPN NFL', url: 'https://www.espn.com/espn/rss/nfl/news' },
     { name: 'Deadspin', url: 'https://deadspin.com/rss' },
     { name: 'Defector', url: 'https://defector.com/feed' },
   ],

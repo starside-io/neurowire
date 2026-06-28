@@ -7,7 +7,7 @@ const space: Theme = {
   title: 'Space',
   sources: [
     { name: 'NASA', url: 'https://www.nasa.gov/feed/' },
-    { name: 'NASA JPL News', url: 'https://www.jpl.nasa.gov/feeds/news/' },
+    { name: 'Phys.org Space News', url: 'https://phys.org/rss-feed/space-news/' },
     { name: 'SpaceNews', url: 'https://spacenews.com/feed/' },
     { name: 'Spaceflight Now', url: 'https://spaceflightnow.com/feed/' },
     { name: 'Space.com', url: 'https://www.space.com/feeds/all' },

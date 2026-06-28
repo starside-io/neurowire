@@ -1,15 +1,20 @@
 import type { Theme } from '../types'
 
-// AI research and academia. Most sources ship a real RSS/Atom feed (verified).
-// Papers with Code and Stanford HAI render their listings client-side and ship
-// no usable feed, so they carry their listing URL for ingest auto-detect; the
-// opt-in live test (NEUROWIRE_LIVE) flags any that need a tap.
+// AI research and academia. Sources ship a real RSS/Atom feed (verified); arXiv
+// uses its Atom query API. The opt-in live test (NEUROWIRE_LIVE) validates every
+// source.
 const research: Theme = {
   key: 'research',
   title: 'AI Research & Academia',
   sources: [
-    { name: 'arXiv cs.AI (Artificial Intelligence)', url: 'https://rss.arxiv.org/rss/cs.AI' },
-    { name: 'arXiv cs.LG (Machine Learning)', url: 'https://rss.arxiv.org/rss/cs.LG' },
+    {
+      name: 'arXiv cs.AI (Artificial Intelligence)',
+      url: 'http://export.arxiv.org/api/query?search_query=cat:cs.AI&start=0&max_results=40&sortBy=submittedDate&sortOrder=descending',
+    },
+    {
+      name: 'arXiv cs.LG (Machine Learning)',
+      url: 'http://export.arxiv.org/api/query?search_query=cat:cs.LG&start=0&max_results=40&sortBy=submittedDate&sortOrder=descending',
+    },
     { name: 'BAIR Blog (Berkeley AI Research)', url: 'https://bair.berkeley.edu/blog/feed.xml' },
     { name: 'The Gradient', url: 'https://thegradient.pub/rss/' },
     { name: 'Import AI (Jack Clark)', url: 'https://importai.substack.com/feed' },
@@ -20,7 +25,6 @@ const research: Theme = {
     { name: 'Sebastian Raschka (Ahead of AI)', url: 'https://magazine.sebastianraschka.com/feed' },
     { name: "Lilian Weng's Blog", url: 'https://lilianweng.github.io/index.xml' },
     { name: 'Papers with Code', url: 'https://paperswithcode.com/latest' },
-    { name: 'Stanford HAI News', url: 'https://hai.stanford.edu/news' },
   ],
 }
 

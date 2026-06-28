@@ -9,7 +9,7 @@ const anime: Theme = {
   key: 'anime',
   title: 'Anime',
   sources: [
-    { name: 'Anime News Network', url: 'https://www.animenewsnetwork.com/all/rss.xml' },
+    { name: 'ComicBook Anime', url: 'https://comicbook.com/anime/news/feed/' },
     { name: 'MyAnimeList News', url: 'https://myanimelist.net/rss/news.xml' },
     { name: 'Crunchyroll Anime', url: 'https://www.crunchyroll.com/rss/anime' },
     { name: 'Otaku USA', url: 'https://otakuusamagazine.com/feed/' },
