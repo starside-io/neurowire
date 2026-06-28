@@ -20,3 +20,7 @@ feed.html
 
 # Local drafts, not for the repo
 to-post/
+
+# VitePress build output and cache
+docs/.vitepress/dist/
+docs/.vitepress/cache/
