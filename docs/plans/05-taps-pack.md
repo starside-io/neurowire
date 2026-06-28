@@ -9,6 +9,16 @@ Taps are the product differentiator: turn feed-less sites into feeds. Today only
 **new package** organized by theme with **conditional / tree-shakeable import**,
 so a consumer pulls only the themes they want.
 
+**Neurowire is general-purpose, not a tech tool.** The shipped example meshes
+already span anime, gaming, science, music/film, art/design, culture, and world
+news (see `examples/*.mesh.json`). The catalog must reflect that: a **tech
+cluster** AND a **general-interest cluster** (space, science, gaming, anime,
+movies/TV, music, sports, art/design, culture, world news, books, food, and more
+over time). Many general-interest sources already publish RSS, so they ship as
+**example meshes** (no tap needed); the catalog still groups them by theme so a
+user can pull "gaming" or "space" in one import, and adds **taps** only for the
+feed-less ones.
+
 ## Why a new package (not more entries in `@neurowire/taps`)
 
 - `@neurowire/taps` stays the small, always-on default (the 4 curated taps the
@@ -28,6 +38,7 @@ packages/taps-pack/
   src/
     index.ts          # registerAll() + theme registry (lazy)
     themes/
+      # --- tech cluster ---
       frontier-labs.ts
       ai-tools.ts
       cloud-infra.ts
@@ -40,6 +51,19 @@ packages/taps-pack/
       research.ts
       vc-startups.ts
       product-design.ts
+      # --- general-interest cluster ---
+      space.ts
+      science.ts
+      gaming.ts
+      anime.ts
+      movies-tv.ts
+      music.ts
+      sports.ts
+      art-design.ts
+      culture.ts
+      world-news.ts
+      books.ts
+      food.ts
     sites/
       <host>.ts       # one FeedTemplate per site (same shape as taps today)
 ```
@@ -150,7 +174,7 @@ table marks each `Feed` (use directly in a mesh) or `Tap` (needs a recipe).
 
 ---
 
-## Appendix: the 100 (grouped by theme, with priority + feed/tap guess)
+## Appendix A: tech themes (grouped by theme, with priority + feed/tap guess)
 
 Priority: **P0** = launch-critical, **P1** = high, **P2** = nice-to-have.
 `Feed` = already has RSS/Atom (put in a mesh, no tap). `Tap` = feed-less, needs a
@@ -316,9 +340,142 @@ Priority: **P0** = launch-critical, **P1** = high, **P2** = nice-to-have.
 | 99 | Figma Blog | figma.com/blog | P2 | Tap |
 | 100 | Nielsen Norman Group | nngroup.com | P2 | Feed |
 
+## Appendix B: general-interest themes
+
+Neurowire is general-purpose. These themes mirror (and extend) the shipped
+`examples/*.mesh.json`. Most sources here already publish RSS (`Feed`, ship as an
+example mesh); only the feed-less ones (`Tap`) need a `FeedTemplate`. Verify each
+at authoring time.
+
+### Space (`space`)
+
+| # | Site | Host | Pri | Kind |
+|---|------|------|-----|------|
+| 101 | NASA | nasa.gov/feed | P0 | Feed |
+| 102 | SpaceNews | spacenews.com/feed | P1 | Feed |
+| 103 | Spaceflight Now | spaceflightnow.com/feed | P1 | Feed |
+| 104 | NASASpaceflight | nasaspaceflight.com/feed | P2 | Feed |
+| 105 | ESA | esa.int | P1 | Tap |
+| 106 | Ars Technica Space | arstechnica.com/science/space | P2 | Feed |
+
+### Science (`science`)
+
+| # | Site | Host | Pri | Kind |
+|---|------|------|-----|------|
+| 107 | Quanta Magazine | quantamagazine.org/feed | P0 | Feed |
+| 108 | Phys.org | phys.org/rss-feed | P1 | Feed |
+| 109 | ScienceDaily | sciencedaily.com/rss/all.xml | P1 | Feed |
+| 110 | Nature News | nature.com | P1 | Feed |
+| 111 | Scientific American | scientificamerican.com | P2 | Feed |
+| 112 | New Scientist | newscientist.com | P2 | Tap |
+| 113 | Live Science | livescience.com | P2 | Feed |
+
+### Gaming (`gaming`)
+
+| # | Site | Host | Pri | Kind |
+|---|------|------|-----|------|
+| 114 | IGN | ign.com | P0 | Feed |
+| 115 | Rock Paper Shotgun | rockpapershotgun.com/feed | P1 | Feed |
+| 116 | Eurogamer | eurogamer.net/feed | P1 | Feed |
+| 117 | PC Gamer | pcgamer.com | P1 | Feed |
+| 118 | Polygon | polygon.com | P1 | Feed |
+| 119 | Kotaku | kotaku.com | P2 | Feed |
+| 120 | GameSpot | gamespot.com | P2 | Feed |
+
+### Anime (`anime`)
+
+| # | Site | Host | Pri | Kind |
+|---|------|------|-----|------|
+| 121 | Anime News Network | animenewsnetwork.com | P0 | Feed |
+| 122 | MyAnimeList News | myanimelist.net | P0 | Feed |
+| 123 | Crunchyroll News | crunchyroll.com/news | P1 | Tap |
+| 124 | Otaku USA | otakuusamagazine.com/feed | P2 | Feed |
+| 125 | Anime UK News | animeuknews.net/feed | P2 | Feed |
+
+### Movies / TV (`movies-tv`)
+
+| # | Site | Host | Pri | Kind |
+|---|------|------|-----|------|
+| 126 | Variety | variety.com/feed | P1 | Feed |
+| 127 | The Hollywood Reporter | hollywoodreporter.com/feed | P1 | Feed |
+| 128 | Deadline | deadline.com/feed | P1 | Feed |
+| 129 | IndieWire | indiewire.com/feed | P2 | Feed |
+| 130 | Collider | collider.com/feed | P2 | Feed |
+| 131 | /Film | slashfilm.com/feed | P2 | Feed |
+
+### Music (`music`)
+
+| # | Site | Host | Pri | Kind |
+|---|------|------|-----|------|
+| 132 | Pitchfork | pitchfork.com | P1 | Feed |
+| 133 | Stereogum | stereogum.com/feed | P2 | Feed |
+| 134 | Consequence | consequence.net/feed | P2 | Feed |
+| 135 | Rolling Stone (Music) | rollingstone.com | P2 | Feed |
+| 136 | NME | nme.com/feed | P2 | Feed |
+
+### Sports (`sports`)
+
+| # | Site | Host | Pri | Kind |
+|---|------|------|-----|------|
+| 137 | ESPN | espn.com | P1 | Feed |
+| 138 | BBC Sport | feeds.bbci.co.uk/sport | P1 | Feed |
+| 139 | Sky Sports | skysports.com | P2 | Feed |
+| 140 | The Athletic | theathletic.com | P2 | Tap |
+
+### Art / design (`art-design`)
+
+| # | Site | Host | Pri | Kind |
+|---|------|------|-----|------|
+| 141 | Colossal | thisiscolossal.com/feed | P1 | Feed |
+| 142 | Hyperallergic | hyperallergic.com/feed | P1 | Feed |
+| 143 | Designboom | designboom.com/feed | P2 | Feed |
+| 144 | It's Nice That | itsnicethat.com | P2 | Feed |
+| 145 | Creative Bloq | creativebloq.com | P2 | Feed |
+
+### Culture / ideas (`culture`)
+
+| # | Site | Host | Pri | Kind |
+|---|------|------|-----|------|
+| 146 | Aeon | aeon.co/feed.rss | P1 | Feed |
+| 147 | The Marginalian | themarginalian.org/feed | P1 | Feed |
+| 148 | Longreads | longreads.com/feed | P2 | Feed |
+| 149 | The Paris Review | theparisreview.org | P2 | Feed |
+
+### World news (`world-news`)
+
+| # | Site | Host | Pri | Kind |
+|---|------|------|-----|------|
+| 150 | BBC News | feeds.bbci.co.uk/news/rss.xml | P0 | Feed |
+| 151 | NPR | feeds.npr.org/1001/rss.xml | P1 | Feed |
+| 152 | The Guardian | theguardian.com/world/rss | P1 | Feed |
+| 153 | Al Jazeera | aljazeera.com | P2 | Feed |
+| 154 | Reuters | reuters.com | P1 | Tap |
+| 155 | AP News | apnews.com | P2 | Tap |
+
+### Books (`books`)
+
+| # | Site | Host | Pri | Kind |
+|---|------|------|-----|------|
+| 156 | Literary Hub | lithub.com/feed | P1 | Feed |
+| 157 | The Millions | themillions.com/feed | P2 | Feed |
+| 158 | Book Riot | bookriot.com/feed | P2 | Feed |
+
+### Food (`food`)
+
+| # | Site | Host | Pri | Kind |
+|---|------|------|-----|------|
+| 159 | Serious Eats | seriouseats.com | P1 | Feed |
+| 160 | Eater | eater.com/rss/index.xml | P1 | Feed |
+| 161 | Bon Appetit | bonappetit.com | P2 | Feed |
+
+More general-interest themes can follow the same pattern (photography, automotive
+/ EVs, finance/markets, travel, fashion, comics, podcasts). Add a theme file, fill
+its table, ship feed-less sites as taps and RSS sites as example meshes.
+
 ### Suggested launch tranche (first PR after scaffolding)
 
-The **P0 feed-less Taps** (highest value, actually need this package because no
-RSS exists): #1 OpenAI, #2 Anthropic, #4 Meta AI, plus carry over the existing 4.
-Then P1 feed-less taps by theme. The P0/P1 **Feed** rows ship as **example
-meshes**, not taps.
+The **P0 feed-less Taps** (highest value, they actually need this package because
+no RSS exists): #1 OpenAI, #2 Anthropic, #4 Meta AI, plus carry over the existing
+4. Then P1 feed-less taps by theme across both clusters. The P0/P1 **Feed** rows
+ship as **example meshes**, not taps, one mesh per theme (the non-tech ones extend
+the meshes already in `examples/`).
