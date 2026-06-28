@@ -9,6 +9,7 @@ export {
 } from './fetch'
 export { fetchFeed, ingestDocument, type FetchFeedOptions } from './ingest'
 export { fetchMesh, type FetchMeshOptions } from './mesh'
+export { opmlToMesh } from './opml'
 export {
   type ConstructPart,
   type FetchConstructOptions,
