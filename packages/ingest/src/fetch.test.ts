@@ -145,11 +145,12 @@ describe('fetchDocument', () => {
   it('follows redirects manually and resolves a relative Location', async () => {
     const fetchMock = vi
       .fn()
+      .mockResolvedValueOnce(new Response(null, { status: 302, headers: { location: '/final' } }))
       .mockResolvedValueOnce(
-        new Response(null, { status: 302, headers: { location: '/final' } }),
-      )
-      .mockResolvedValueOnce(
-        new Response('<feed/>', { status: 200, headers: { 'content-type': 'application/atom+xml' } }),
+        new Response('<feed/>', {
+          status: 200,
+          headers: { 'content-type': 'application/atom+xml' },
+        }),
       )
     vi.stubGlobal('fetch', fetchMock)
     const doc = await fetchDocument('https://example.com/start')
