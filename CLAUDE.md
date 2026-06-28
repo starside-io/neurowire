@@ -70,6 +70,19 @@ Notes:
 - Do not put the real token in any tracked file. `.npmrc.example` keeps the
   `${NPM_TOKEN}` placeholder; the real value lives only in `.env`.
 
+**Always update the docs as part of a bump + publish.** A release is not done
+until the docs reflect it. Whenever you bump a version and publish, in the same
+change:
+- update each changed package's `CHANGELOG.md` with the new version entry, and
+- update the VitePress docs under `docs/` (and `README.md` where relevant) for any
+  new or changed behavior: new flags/subcommands in `docs/guide/cli.md`, new
+  formats in `docs/formats/` + `docs/concepts/output-formats.md`, new exports in
+  the `docs/reference/<pkg>.md` page, etc.
+- run `pnpm docs:build` and confirm it passes (it fails on dead links).
+- follow the NWF naming/ordering convention in any docs you touch (write the
+  format as `NWF` in prose, and lead every format list with NWF; code literals
+  like the `nwf` key, `.nwf`, `toNwf` stay lowercase).
+
 ## Git workflow
 
 - **Integrate feature branches by rebase, not merge commits.** Keep history
