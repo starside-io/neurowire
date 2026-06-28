@@ -4,9 +4,9 @@ import { data } from './stats.data'
 const fmt = (n: number) => n.toLocaleString('en-US')
 
 const stats = [
-  { lbl: 'Standard JSON feed', big: `${fmt(data.jsonBytes)} bytes`, accent: '#5cff9d' },
-  { lbl: 'Neurowire NWF', big: `${fmt(data.nwfBytes)} bytes`, accent: '#45e6ff' },
-  { lbl: 'Smaller', big: `${data.smaller}%`, accent: '#ff5cc8' },
+  { lbl: 'Standard JSON feed', big: `${fmt(data.jsonBytes)} bytes`, accent: '#ffb38a' },
+  { lbl: 'Neurowire NWF', big: `${fmt(data.nwfBytes)} bytes`, accent: '#ff5c39' },
+  { lbl: 'Smaller', big: `${data.smaller}%`, accent: '#e8401f' },
 ]
 </script>
 

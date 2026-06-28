@@ -11,7 +11,7 @@ export default defineConfig({
   cleanUrls: true,
   lastUpdated: true,
   srcExclude: ['plans/**', '**/README.md'],
-  head: [['meta', { name: 'theme-color', content: '#45e6ff' }]],
+  head: [['meta', { name: 'theme-color', content: '#ff5c39' }]],
   themeConfig: {
     logo: '/logo.svg',
     nav: [

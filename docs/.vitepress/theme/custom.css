@@ -1,3 +1,26 @@
+/* Brand palette: the coral/orange of the helix logo (#ff5c39). */
+:root {
+  --vp-c-brand-1: #e8472a;
+  --vp-c-brand-2: #ff5c39;
+  --vp-c-brand-3: #ff5c39;
+  --vp-c-brand-soft: rgba(255, 92, 57, 0.14);
+
+  --vp-button-brand-bg: #ff5c39;
+  --vp-button-brand-hover-bg: #ff744f;
+  --vp-button-brand-active-bg: #e8472a;
+  --vp-button-brand-border: transparent;
+  --vp-button-brand-hover-border: transparent;
+
+  --vp-home-hero-name-color: transparent;
+  --vp-home-hero-name-background: linear-gradient(120deg, #ff9e6d 10%, #ff5c39 90%);
+}
+.dark {
+  --vp-c-brand-1: #ff744f;
+  --vp-c-brand-2: #ff5c39;
+  --vp-c-brand-3: #ff5c39;
+  --vp-c-brand-soft: rgba(255, 92, 57, 0.16);
+}
+
 /* NWF byte-comparison card in the home hero (vertical column on the right) */
 .nwf-stats {
   display: flex;
