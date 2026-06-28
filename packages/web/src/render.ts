@@ -114,6 +114,31 @@ export const STYLE = `
   .meta time { color: var(--ink); }
   .meta .count { color: var(--cyan); font-weight: 600; }
   .meta .sep { width: 4px; height: 4px; border-radius: 50%; background: var(--line-strong); }
+  .visually-hidden {
+    position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden;
+    clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; border: 0;
+  }
+  .search-bar { margin: 0 0 22px; }
+  .search {
+    width: 100%; font-family: var(--mono); font-size: 0.95rem; color: var(--ink);
+    padding: 12px 16px; border-radius: var(--radius); background: var(--panel);
+    border: 1px solid var(--line-strong); -webkit-appearance: none; appearance: none;
+    backdrop-filter: blur(13px) saturate(120%); -webkit-backdrop-filter: blur(13px) saturate(120%);
+    transition: border-color .2s ease, box-shadow .2s ease;
+  }
+  .search::placeholder { color: var(--ink-faint); }
+  .search:focus-visible {
+    outline: none; border-color: var(--cyan);
+    box-shadow: 0 0 0 1px var(--cyan), 0 0 18px 0 var(--glow-cyan);
+  }
+  .search::-webkit-search-cancel-button { -webkit-appearance: none; appearance: none; }
+  .count { margin: 10px 2px 0; font-family: var(--mono); font-size: 12px; color: var(--ink-faint); }
+  .no-matches {
+    margin: 18px 0 0; padding: 26px 18px; text-align: center; border-radius: var(--radius);
+    border: 1px dashed var(--line-strong); background: var(--panel); color: var(--ink-soft);
+    font-family: var(--mono); font-size: 0.95rem;
+  }
+  [hidden] { display: none !important; }
   .feed { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 16px; }
   .card {
     position: relative; padding: clamp(18px, 4vw, 24px) clamp(18px, 4vw, 26px); border-radius: var(--radius);
@@ -219,6 +244,41 @@ const SCRIPT = `(function () {
           card.style.setProperty('--mx', ((e.clientX - r.left) / r.width * 100) + '%');
         });
       });
+    })();
+    (function () {
+      var input = document.getElementById('search');
+      var feed = document.getElementById('feed');
+      var count = document.getElementById('count');
+      var empty = document.querySelector('.no-matches');
+      if (!input || !feed) return;
+      var entries = Array.prototype.slice.call(feed.querySelectorAll('.entry'));
+      var total = entries.length;
+      var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      var timer;
+      function apply() {
+        var q = input.value.trim().toLowerCase();
+        var shown = 0;
+        for (var i = 0; i < entries.length; i++) {
+          var el = entries[i];
+          var match = !q || (el.getAttribute('data-search') || '').indexOf(q) !== -1;
+          el.hidden = !match;
+          if (match) shown++;
+        }
+        if (count) {
+          if (q) {
+            count.textContent = shown + ' of ' + total + ' shown';
+            count.hidden = false;
+          } else {
+            count.hidden = true;
+          }
+        }
+        if (empty) empty.hidden = shown !== 0;
+      }
+      input.addEventListener('input', function () {
+        if (reduce) { apply(); return; }
+        clearTimeout(timer);
+        timer = setTimeout(apply, 120);
+      });
     })();`
 
 function entryHtml(
@@ -232,6 +292,20 @@ function entryHtml(
   const date = day(entry.published ?? entry.updated)
   const delay = Math.min(index * 70, 700)
 
+  // Lowercased haystack the client-side filter matches against (title +
+  // summary + source + tags + authors). Read from data-search, not DOM text.
+  const search = escapeAttr(
+    [
+      entry.title,
+      entry.summary ?? '',
+      sourceName,
+      ...(entry.tags ?? []),
+      ...(entry.authors?.map((a) => a.name) ?? []),
+    ]
+      .join(' ')
+      .toLowerCase(),
+  )
+
   const dateRow = date
     ? `<span class="card-date"><time datetime="${escapeAttr(date)}">${escapeText(date)}</time></span>`
     : ''
@@ -242,7 +316,7 @@ function entryHtml(
     ? `\n          <ul class="tags">${entry.tags.map((t) => `<li>${escapeText(t)}</li>`).join('')}</ul>`
     : ''
 
-  return `      <li>
+  return `      <li class="entry" data-search="${search}">
         <article class="card" style="--d: ${delay}ms; --rail: ${rail}; --rail2: ${rail2}">
           <div class="card-top">
             <span class="source"><span class="pip" aria-hidden="true"></span>${escapeText(sourceName)}</span>
@@ -299,9 +373,15 @@ export function toHtml(feed: NeurowireFeed): string {
         <span class="item"><span class="label">sources</span> ${sources.size}</span>
       </div>
     </header>
-    <ul class="feed">
+    <div class="search-bar">
+      <label class="visually-hidden" for="search">Filter stories</label>
+      <input class="search" id="search" type="search" placeholder="Filter stories..." autocomplete="off" aria-controls="feed" aria-describedby="count">
+      <p class="count" id="count" aria-live="polite" hidden></p>
+    </div>
+    <ul class="feed" id="feed">
 ${items}
     </ul>
+    <p class="no-matches" hidden>No stories match your filter.</p>
     <footer class="foot">
       <a class="gen" href="${SITE}" target="_blank" rel="noopener noreferrer"><span class="dot" aria-hidden="true"></span>Made with NEURO<b>WIRE</b></a>
       <span>neural feed aggregator</span>

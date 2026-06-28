@@ -67,6 +67,68 @@ describe('toHtml', () => {
     expect(html).not.toContain('googleapis') // no external fonts
   })
 
+  it('renders the client-side search controls', () => {
+    const html = toHtml(sample)
+    // a search input with an associated visually-hidden label
+    expect(html).toContain('<input class="search"')
+    expect(html).toContain('type="search"')
+    expect(html).toContain('for="search"')
+    expect(html).toContain('class="visually-hidden"')
+    // a live count region and an empty-state element
+    expect(html).toContain('class="count" id="count" aria-live="polite"')
+    expect(html).toContain('class="no-matches"')
+    // the filter script reads data-search and reports "of ... shown"
+    expect(html).toContain("getElementById('search')")
+    expect(html).toContain("' of '")
+  })
+
+  it('puts a lowercased data-search haystack on every entry card', () => {
+    const feed: NeurowireFeed = {
+      id: 'm',
+      title: 'Mesh',
+      updated: '2024-01-02T00:00:00.000Z',
+      entries: [
+        {
+          id: '1',
+          title: 'Quantum Leap',
+          link: 'https://a/1',
+          summary: 'A Big Story',
+          source: { name: 'ACME Labs' },
+          tags: ['Physics'],
+          authors: [{ name: 'Ada Lovelace' }],
+        },
+      ],
+    }
+    const html = toHtml(feed)
+    const cards = html.match(/<li class="entry" data-search="([^"]*)"/g) ?? []
+    // every entry card carries the attribute
+    expect(cards.length).toBe(feed.entries.length)
+    // it is lowercased and concatenates title + summary + source + tags + author
+    const m = html.match(/<li class="entry" data-search="([^"]*)"/)
+    const haystack = m?.[1] ?? ''
+    expect(haystack).toContain('quantum leap')
+    expect(haystack).toContain('a big story')
+    expect(haystack).toContain('acme labs')
+    expect(haystack).toContain('physics')
+    expect(haystack).toContain('ada lovelace')
+    expect(haystack).toBe(haystack.toLowerCase())
+  })
+
+  it('stays self-contained: no off-host refs except entry links', () => {
+    const html = toHtml(sample)
+    // collect every absolute URL in src=, href=, and url(...) refs
+    const refs = [
+      ...html.matchAll(/(?:src|href)\s*=\s*"(https?:\/\/[^"]+)"/g),
+      ...html.matchAll(/url\(\s*"?(https?:\/\/[^")]+)"?\s*\)/g),
+    ].map((x) => x[1] as string)
+    const allowed = new Set<string>([
+      'https://starside-io.github.io/neurowire/',
+      ...sample.entries.map((e) => e.link),
+    ])
+    const offHost = refs.filter((u) => !allowed.has(u))
+    expect(offHost).toEqual([])
+  })
+
   it('assigns a distinct accent per source and counts distinct sources', () => {
     const feed: NeurowireFeed = {
       id: 'm',
