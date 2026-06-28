@@ -34,7 +34,7 @@ runs the standalone server (`@hono/node-server`) when executed directly, listeni
 
 All feed-shaped responses set `Content-Type` from the format's media type and
 `Cache-Control: public, max-age=300`. The `format` query defaults to `atom` and must be one
-of `atom`, `rss`, `json`, `md`, `nwf` (an unknown value returns 400). HTML is not a feed
+of `nwf`, `atom`, `rss`, `json`, `md` (an unknown value returns 400). HTML is not a feed
 format, so `format=html` is rejected like any unknown format.
 
 ### `GET /`

@@ -88,7 +88,7 @@ See [Taps](/concepts/taps) for adding your own.
 
 ## Serialize a feed
 
-`serialize(feed, format)` from core renders a `NeurowireFeed` to a string. Formats: `atom`, `rss`, `json`, `md`, `nwf`.
+`serialize(feed, format)` from core renders a `NeurowireFeed` to a string. Formats: `nwf`, `atom`, `rss`, `json`, `md`.
 
 ```ts
 import { serialize, FORMATS, MEDIA_TYPES } from '@neurowire/core'

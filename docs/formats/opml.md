@@ -3,7 +3,7 @@
 OPML 2.0 is a subscription-list interchange format, used to move feed lists between readers. Neurowire can export a mesh or construct to OPML and import an OPML file into a mesh.
 
 ::: info Not a feed format
-OPML is **not** a feed serializer. It is not one of the `serialize()` formats (`atom`, `rss`, `json`, `md`, `nwf`) and it does not carry articles. It is lossy interchange: it lists which sources a mesh or construct subscribes to, so you can hand that list to a feed reader, or build a mesh from a reader's export.
+OPML is **not** a feed serializer. It is not one of the `serialize()` formats (`nwf`, `atom`, `rss`, `json`, `md`) and it does not carry articles. It is lossy interchange: it lists which sources a mesh or construct subscribes to, so you can hand that list to a feed reader, or build a mesh from a reader's export.
 :::
 
 | Direction | Function | Package |

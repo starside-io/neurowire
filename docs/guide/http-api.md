@@ -66,7 +66,7 @@ curl http://localhost:8787/healthz
 Convert any feed or website URL. Query params:
 
 - `url` (required): the source URL.
-- `format` (optional, default `atom`): one of `atom`, `rss`, `json`, `md`, `nwf`.
+- `format` (optional, default `atom`): one of `nwf`, `atom`, `rss`, `json`, `md`.
 
 ```bash
 curl "http://localhost:8787/feed?url=https%3A%2F%2Fblog.rust-lang.org%2Ffeed.xml&format=json"

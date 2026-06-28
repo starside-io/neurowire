@@ -1,6 +1,6 @@
 # Neurowire
 
-Turn any blog, website, RSS, or Atom feed into clean, modern feeds. Point it at a URL and get back **Atom**, **JSON Feed 1.1**, **Markdown**, and **nwf** (a compact custom format). Bundle many sources into one **mesh**, and render a feed or mesh into a self-contained **HTML news page**. Usable as a library, a CLI, and an HTTP API.
+Turn any blog, website, RSS, or Atom feed into clean, modern feeds. Point it at a URL and get back **NWF** (a compact custom format), **Atom**, **JSON Feed 1.1**, **Markdown**. Bundle many sources into one **mesh**, and render a feed or mesh into a self-contained **HTML news page**. Usable as a library, a CLI, and an HTTP API.
 
 ## Monorepo layout
 
@@ -8,7 +8,7 @@ pnpm workspaces. Dependency direction is strictly one way: `core` <- `ingest` <-
 
 | Package | Role | Runtime deps |
 |---------|------|--------------|
-| `@neurowire/core` | The format authority: canonical model (zod), serializers (atom, jsonfeed, markdown, nwf), `validateNwf`, `mergeFeeds`, `Mesh` types. Pure, no network, no DOM. | `zod` only |
+| `@neurowire/core` | The format authority: canonical model (zod), serializers (NWF, atom, jsonfeed, markdown), `validateNwf`, `mergeFeeds`, `Mesh` types. Pure, no network, no DOM. | `zod` only |
 | `@neurowire/ingest` | Fetch + detect + parse (RSS/Atom/RDF/JSON Feed), HTML auto-detect, the CSS-template engine + registry, `fetchFeed`/`ingestDocument`/`fetchMesh`. | core, cheerio, fast-xml-parser, zod |
 | `@neurowire/taps` | Curated per-host `FeedTemplate`s for feed-less sites (`claudeBlog`, `cursorBlog`) + loaders (`registerAllTaps`, `loadTaps`, ...). | core, ingest |
 | `@neurowire/cli` | `neurowire` bin: terminal view, `--format`, `--mesh`, `--taps`, `validate` subcommand. | core, ingest, taps |
@@ -18,7 +18,7 @@ pnpm workspaces. Dependency direction is strictly one way: `core` <- `ingest` <-
 ## Key concepts
 
 - **Model** (`core/src/model.ts`): `NeurowireFeed { id, title, home?, self?, updated, authors?, generator?, entries }`, `NeurowireEntry { id, title, link, published?, updated?, summary?, authors?, tags?, source? }`. Every parser produces it; every serializer consumes it. List-metadata only (no full article bodies).
-- **Output formats** (`core/src/serialize/`): `atom`, `json` (JSON Feed 1.1), `md`, `nwf`. Registered in `FORMATS`/`MEDIA_TYPES`/`EXTENSIONS` and dispatched by `serialize(feed, format)`. **HTML is deliberately NOT a core format**, it lives in `@neurowire/web` (`toHtml`), so core stays format-pure and dependency-light.
+- **Output formats** (`core/src/serialize/`): `nwf`, `atom`, `json` (JSON Feed 1.1), `md`. Registered in `FORMATS`/`MEDIA_TYPES`/`EXTENSIONS` and dispatched by `serialize(feed, format)`. **HTML is deliberately NOT a core format**, it lives in `@neurowire/web` (`toHtml`), so core stays format-pure and dependency-light.
 - **nwf** (`core/src/serialize/nwf.ts`): compact line-oriented format (interned authors/tags/sources, relative links, delta timestamps). Round-trips via `fromNwf`. `validateNwf` returns line-numbered diagnostics. Full spec in the README.
 - **Taps** (`@neurowire/taps`): a tap is a per-host `FeedTemplate` (CSS selectors) for sites with no feed. `link` is optional (omit it when the matched `item` element is itself the `<a>`). Resolution order in `ingestDocument`: explicit template -> discovered feed link -> registry tap (by host) -> heuristic auto-detect. Users add taps via `--taps`, `NEUROWIRE_TAPS`, or `~/.config/neurowire/taps/*.json`.
 - **Meshes** (`Mesh` in core, `fetchMesh` in ingest): a named bundle of `{ name, sources: [{ name, url }] }` fetched in parallel and merged (tagged by source, deduped, newest-first). The API serves named meshes from `~/.config/neurowire/meshes/` plus a bundled `ai-news` (see `api/src/meshes.ts`).
@@ -35,7 +35,7 @@ pnpm test:coverage    # v8 coverage + thresholds
 pnpm typecheck        # tsc --noEmit per package
 pnpm lint             # biome check .
 pnpm cli -- <args>    # run the CLI in dev (note the --, see gotchas)
-pnpm validate <url>   # validate an nwf file/url
+pnpm validate <url>   # validate an NWF file/url
 pnpm page -- --mesh <file> --out <html>   # generate an HTML page
 pnpm api              # start the API
 ```

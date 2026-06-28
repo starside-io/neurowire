@@ -1,6 +1,6 @@
 # The canonical model
 
-Neurowire has exactly one in-memory representation of a feed: the `NeurowireFeed`. Every parser (RSS, Atom, RDF, JSON Feed, HTML auto-detect, taps) produces this shape, and every serializer (atom, rss, json, md, nwf) consumes it. Nothing else in the system reads the upstream format directly. This single model is the contract that lets any input format turn into any output format.
+Neurowire has exactly one in-memory representation of a feed: the `NeurowireFeed`. Every parser (RSS, Atom, RDF, JSON Feed, HTML auto-detect, taps) produces this shape, and every serializer (NWF, atom, rss, json, md) consumes it. Nothing else in the system reads the upstream format directly. This single model is the contract that lets any input format turn into any output format.
 
 The model lives in [`packages/core/src/model.ts`](https://github.com/neurowire/neurowire) and is defined with [zod](https://zod.dev) schemas, so the same definition both types the code and validates unknown input at runtime.
 

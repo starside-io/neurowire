@@ -43,7 +43,7 @@ neurowire --mesh ai-news.json -f atom
 
 | Flag | Description |
 |------|-------------|
-| `-f, --format <fmt>` | Output format: `atom`, `rss`, `json`, `md`, `nwf`. Omit for the terminal view. |
+| `-f, --format <fmt>` | Output format: `nwf`, `atom`, `rss`, `json`, `md`. Omit for the terminal view. |
 | `-o, --out <file>` | Write serialized output to a file instead of stdout. |
 
 ```bash

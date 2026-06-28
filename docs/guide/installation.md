@@ -11,7 +11,7 @@ Neurowire is published as a set of scoped npm packages. Install only the ones yo
 
 | Package | Version | Role |
 |---------|---------|------|
-| `@neurowire/core` | 0.7.0 | Canonical model, serializers (atom, rss, json, md, nwf), `validateNwf`, `mergeFeeds`, mesh/construct types. Pure, no network. |
+| `@neurowire/core` | 0.7.0 | Canonical model, serializers (NWF, atom, rss, json, md), `validateNwf`, `mergeFeeds`, mesh/construct types. Pure, no network. |
 | `@neurowire/ingest` | 0.6.0 | Fetch + detect + parse, HTML auto-detect, the CSS-template engine, `fetchFeed`/`fetchMesh`/`fetchConstruct`. |
 | `@neurowire/taps` | 0.3.0 | Curated per-host templates for feed-less sites plus loaders. |
 | `@neurowire/cli` | 0.7.0 | The `neurowire` binary. |
