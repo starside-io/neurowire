@@ -1,0 +1,19 @@
+/* "a starside.io initiative" credit in the footer */
+.starside-credit {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 6px;
+  font-size: 12px;
+  opacity: 0.65;
+  transition: opacity 0.2s;
+}
+.starside-credit:hover {
+  opacity: 1;
+}
+.starside-credit img {
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  vertical-align: middle;
+}

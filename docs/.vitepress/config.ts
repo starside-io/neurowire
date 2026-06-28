@@ -91,7 +91,7 @@ export default defineConfig({
     },
     footer: {
       message: 'Released under the Apache-2.0 License.',
-      copyright: 'Copyright © 2025 Neurowire',
+      copyright: `Copyright © ${new Date().getFullYear()} Neurowire<br><a href="https://starside.io/" target="_blank" rel="noopener" class="starside-credit"><img src="https://starside.io/mars.png" alt="" width="14" height="14" /> a starside.io initiative</a>`,
     },
   },
 })
