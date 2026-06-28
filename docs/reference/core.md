@@ -136,11 +136,11 @@ function serialize(feed: NeurowireFeed, format: Format): string
 
 | Format | Content-Type | Extension |
 |--------|--------------|-----------|
+| `nwf` | `text/x-neurowire; charset=utf-8` | `nwf` |
 | `atom` | `application/atom+xml; charset=utf-8` | `xml` |
 | `rss` | `application/rss+xml; charset=utf-8` | `xml` |
 | `json` | `application/feed+json; charset=utf-8` | `json` |
 | `md` | `text/markdown; charset=utf-8` | `md` |
-| `nwf` | `text/x-neurowire; charset=utf-8` | `nwf` |
 
 ### Atom
 

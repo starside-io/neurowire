@@ -52,7 +52,7 @@ neurowire --mesh ai-news.json -f json -o ai-news.json
 ```
 
 ::: tip Formats
-`atom` and `rss` both produce XML. `json` is JSON Feed 1.1. `md` is Markdown. `nwf` is the compact Neurowire format. See [Atom](/formats/atom), [RSS](/formats/rss), [JSON Feed](/formats/json-feed), [Markdown](/formats/markdown), and [NWF](/formats/nwf).
+`atom` and `rss` both produce XML. `json` is JSON Feed 1.1. `md` is Markdown. `nwf` is the compact Neurowire format. See [NWF](/formats/nwf), [Atom](/formats/atom), [RSS](/formats/rss), [JSON Feed](/formats/json-feed), and [Markdown](/formats/markdown).
 :::
 
 ## Shaping the output

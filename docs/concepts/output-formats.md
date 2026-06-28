@@ -20,11 +20,11 @@ Internally it is a switch over the format that delegates to the per-format seria
 
 | Format | Page | Media type | Extension |
 |--------|------|------------|-----------|
+| `nwf` | [/formats/nwf](/formats/nwf) | `text/x-neurowire; charset=utf-8` | `nwf` |
 | `atom` | [/formats/atom](/formats/atom) | `application/atom+xml; charset=utf-8` | `xml` |
 | `rss` | [/formats/rss](/formats/rss) | `application/rss+xml; charset=utf-8` | `xml` |
 | `json` | [/formats/json-feed](/formats/json-feed) | `application/feed+json; charset=utf-8` | `json` |
 | `md` | [/formats/markdown](/formats/markdown) | `text/markdown; charset=utf-8` | `md` |
-| `nwf` | [/formats/nwf](/formats/nwf) | `text/x-neurowire; charset=utf-8` | `nwf` |
 
 The `json` format is [JSON Feed 1.1](https://www.jsonfeed.org/version/1.1/). The `nwf` format is Neurowire's own compact line-oriented format (see [/formats/nwf](/formats/nwf)).
 
