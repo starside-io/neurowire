@@ -158,6 +158,28 @@ importers:
         specifier: ^5.7.3
         version: 5.9.3
 
+  packages/taps-pack:
+    dependencies:
+      '@neurowire/core':
+        specifier: workspace:*
+        version: link:../core
+      '@neurowire/ingest':
+        specifier: workspace:*
+        version: link:../ingest
+      '@neurowire/taps':
+        specifier: workspace:*
+        version: link:../taps
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.5
+        version: 22.19.19
+      tsup:
+        specifier: ^8.3.5
+        version: 8.5.1(postcss@8.5.15)(tsx@4.22.4)(typescript@5.9.3)
+      typescript:
+        specifier: ^5.7.3
+        version: 5.9.3
+
   packages/web:
     dependencies:
       '@neurowire/core':

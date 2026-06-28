@@ -28,6 +28,8 @@
       "**/node_modules/**",
       "**/coverage/**",
       "**/__fixtures__/**",
+      "**/.vitepress/cache/**",
+      "**/.vitepress/dist/**",
       "**/*.json"
     ]
   }

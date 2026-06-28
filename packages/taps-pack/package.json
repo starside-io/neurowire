@@ -1,0 +1,85 @@
+{
+  "name": "@neurowire/taps-pack",
+  "version": "0.1.0",
+  "description": "A large, themed catalog of Neurowire taps and feed sources (tech and general-interest), with per-theme conditional imports.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./frontier-labs": { "types": "./dist/themes/frontier-labs.d.ts", "import": "./dist/themes/frontier-labs.js" },
+    "./ai-tools": { "types": "./dist/themes/ai-tools.d.ts", "import": "./dist/themes/ai-tools.js" },
+    "./cloud-infra": { "types": "./dist/themes/cloud-infra.d.ts", "import": "./dist/themes/cloud-infra.js" },
+    "./devtools": { "types": "./dist/themes/devtools.d.ts", "import": "./dist/themes/devtools.js" },
+    "./languages": { "types": "./dist/themes/languages.d.ts", "import": "./dist/themes/languages.js" },
+    "./security": { "types": "./dist/themes/security.d.ts", "import": "./dist/themes/security.js" },
+    "./data": { "types": "./dist/themes/data.d.ts", "import": "./dist/themes/data.js" },
+    "./hardware": { "types": "./dist/themes/hardware.d.ts", "import": "./dist/themes/hardware.js" },
+    "./tech-news": { "types": "./dist/themes/tech-news.d.ts", "import": "./dist/themes/tech-news.js" },
+    "./research": { "types": "./dist/themes/research.d.ts", "import": "./dist/themes/research.js" },
+    "./vc-startups": { "types": "./dist/themes/vc-startups.d.ts", "import": "./dist/themes/vc-startups.js" },
+    "./product-design": { "types": "./dist/themes/product-design.d.ts", "import": "./dist/themes/product-design.js" },
+    "./space": { "types": "./dist/themes/space.d.ts", "import": "./dist/themes/space.js" },
+    "./science": { "types": "./dist/themes/science.d.ts", "import": "./dist/themes/science.js" },
+    "./gaming": { "types": "./dist/themes/gaming.d.ts", "import": "./dist/themes/gaming.js" },
+    "./anime": { "types": "./dist/themes/anime.d.ts", "import": "./dist/themes/anime.js" },
+    "./movies-tv": { "types": "./dist/themes/movies-tv.d.ts", "import": "./dist/themes/movies-tv.js" },
+    "./music": { "types": "./dist/themes/music.d.ts", "import": "./dist/themes/music.js" },
+    "./sports": { "types": "./dist/themes/sports.d.ts", "import": "./dist/themes/sports.js" },
+    "./art-design": { "types": "./dist/themes/art-design.d.ts", "import": "./dist/themes/art-design.js" },
+    "./culture": { "types": "./dist/themes/culture.d.ts", "import": "./dist/themes/culture.js" },
+    "./world-news": { "types": "./dist/themes/world-news.d.ts", "import": "./dist/themes/world-news.js" },
+    "./books": { "types": "./dist/themes/books.d.ts", "import": "./dist/themes/books.js" },
+    "./food": { "types": "./dist/themes/food.d.ts", "import": "./dist/themes/food.js" }
+  },
+  "files": [
+    "dist",
+    "CHANGELOG.md"
+  ],
+  "keywords": [
+    "neurowire",
+    "feed",
+    "rss",
+    "atom",
+    "taps",
+    "template",
+    "catalog",
+    "feedless"
+  ],
+  "author": "Médéric Burlet <mederic.burlet@gmail.com>",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/starside-io/neurowire.git",
+    "directory": "packages/taps-pack"
+  },
+  "homepage": "https://github.com/starside-io/neurowire#readme",
+  "bugs": {
+    "url": "https://github.com/starside-io/neurowire/issues"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "typecheck": "tsc --noEmit",
+    "prepack": "tsup"
+  },
+  "dependencies": {
+    "@neurowire/core": "workspace:*",
+    "@neurowire/ingest": "workspace:*",
+    "@neurowire/taps": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.5",
+    "tsup": "^8.3.5",
+    "typescript": "^5.7.3"
+  }
+}
