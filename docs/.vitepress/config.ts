@@ -17,7 +17,7 @@ export default defineConfig({
     nav: [
       { text: 'Guide', link: '/guide/getting-started' },
       { text: 'Concepts', link: '/concepts/model' },
-      { text: 'Formats', link: '/formats/atom' },
+      { text: 'Formats', link: '/formats/nwf' },
       { text: 'API Reference', link: '/reference/core' },
       {
         text: 'npm',
