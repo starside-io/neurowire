@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 72 24" width="72" height="24" aria-label="Neurowire">
+  <style>
+    .nw-helix .strand{fill:none;stroke:#ff5c39;stroke-width:3;stroke-linecap:round;stroke-dasharray:8 8;}
+    .nw-helix .sA{animation:nw-helix-flow 1.4s linear infinite;}
+    .nw-helix .sB{animation:nw-helix-flow 1.4s linear infinite reverse;}
+    .nw-helix .rung{stroke:#ff5c39;stroke-opacity:.5;stroke-width:1.6;stroke-linecap:round;}
+    .nw-helix .tip{fill:#ff5c39;}
+    @keyframes nw-helix-flow{to{stroke-dashoffset:-32;}}
+    @media(prefers-reduced-motion:reduce){.nw-helix .sA,.nw-helix .sB{animation:none;}}
+  </style>
+  <g class="nw-helix">
+    <line class="rung" x1="6" y1="5" x2="6" y2="19" />
+    <line class="rung" x1="36" y1="5" x2="36" y2="19" />
+    <line class="rung" x1="66" y1="5" x2="66" y2="19" />
+    <path class="strand sA" d="M6 5 C20 5 20 19 36 19 C52 19 52 5 66 5" />
+    <path class="strand sB" d="M6 19 C20 19 20 5 36 5 C52 5 52 19 66 19" />
+    <circle class="tip" cx="6" cy="5" r="3" />
+    <circle class="tip" cx="6" cy="19" r="3" />
+    <circle class="tip" cx="66" cy="5" r="3" />
+    <circle class="tip" cx="66" cy="19" r="3" />
+  </g>
+</svg>

@@ -13,6 +13,7 @@ export default defineConfig({
   srcExclude: ['plans/**', '**/README.md'],
   head: [['meta', { name: 'theme-color', content: '#45e6ff' }]],
   themeConfig: {
+    logo: '/logo.svg',
     nav: [
       { text: 'Guide', link: '/guide/getting-started' },
       { text: 'Concepts', link: '/concepts/model' },

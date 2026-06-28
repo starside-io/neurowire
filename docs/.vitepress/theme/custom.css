@@ -1,3 +1,68 @@
+/* NWF byte-comparison card in the home hero (vertical column on the right) */
+.nwf-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  max-width: 340px;
+  margin: 0 auto;
+}
+.nwf-stats__cap {
+  margin: 0 0 2px;
+  font-size: 13px;
+  color: var(--vp-c-text-2);
+  font-family: var(--vp-font-family-mono);
+}
+.nwf-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px 18px;
+  border-radius: 14px;
+  border: 1px solid var(--vp-c-divider);
+  border-left: 3px solid var(--rail);
+  background: var(--vp-c-bg-soft);
+  box-shadow: 0 0 18px -10px var(--rail);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.nwf-stat:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0 26px -8px var(--rail);
+}
+.nwf-stat__lbl {
+  font-size: 13px;
+  color: var(--vp-c-text-2);
+  font-family: var(--vp-font-family-mono);
+}
+.nwf-stat__big {
+  font-size: 28px;
+  font-weight: 800;
+  line-height: 1.05;
+  color: var(--rail);
+}
+
+/* The hero image slot holds the card column. Neutralize the default decorative
+   blob sizing/offsets so the cards flow cleanly (no overlap with the headline
+   on narrow screens). */
+.VPHero .image-bg {
+  display: none;
+}
+.VPHero .image-container {
+  transform: none;
+  padding: 0;
+  width: 100%;
+  height: auto;
+}
+@media (max-width: 959px) {
+  .VPHero .image {
+    order: 1;
+    margin: 0 0 32px;
+  }
+  .nwf-stats {
+    max-width: 420px;
+  }
+}
+
 /* "a starside.io initiative" credit in the footer */
 .starside-credit {
   display: inline-flex;
