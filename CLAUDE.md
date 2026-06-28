@@ -85,7 +85,7 @@ Notes:
 - **Biome** for lint + format: single quotes, no semicolons, trailing commas, width 100. Run `pnpm lint`; auto-fix with `biome check --write`.
 - **No em-dashes** anywhere (code, comments, docs, UI copy). Use commas, periods, parens, or colons.
 - Tests: **vitest**, colocated as `*.test.ts` next to source; fixtures in `src/__fixtures__/`; network tests are `*.live.test.ts` gated behind `NEUROWIRE_LIVE` via `describe.skipIf`.
-- Coverage thresholds (`vitest.config.ts`): `core` and `taps` at 100% statements/functions/lines; `ingest` at 90/95/90. Keep them green when adding code to those packages.
+- Coverage thresholds (`vitest.config.ts`): `core` and `taps` at 100% statements/functions/lines; `ingest` at 90/95/90; the runnable layers `api` at 85/85/85, `cli` at 80/85/80, and `web` at 85/85/85 (modest, ratchet up later). Keep them green when adding code to those packages. The thin process/server entrypoints (`api/src/index.ts`, `cli/src/index.ts`, `web/src/cli.ts`) are excluded from coverage: their pure logic is extracted into tested modules (`cli/src/pipeline.ts`, `web/src/cli-helpers.ts`, `api/src/app.ts`) and the entrypoints are just argv/fs/network/`serve()` orchestration.
 
 ## Gotchas (read before editing)
 
