@@ -29,6 +29,8 @@ Options:
                           directory for a multi-page construct (default: stdout).
   -s, --since <age>       Keep only entries published within this window (e.g. 24h, 36h, 7d).
                           Entries without a date are dropped.
+      --today             Keep only entries published since 00:00 UTC today.
+                          Entries without a date are dropped.
   -h, --help              Show this help.
 
 A construct bundles many meshes. Members are inline meshes or references by name
@@ -51,14 +53,19 @@ function parseDuration(value: string): number | undefined {
   return amount * unitMs
 }
 
-/** Keep only entries published within `windowMs` of now; drop dateless entries. */
-function filterSince(feed: NeurowireFeed, windowMs: number): NeurowireFeed {
-  const cutoff = Date.now() - windowMs
+/** Keep only entries dated at or after `cutoff` (epoch ms); drop dateless entries. */
+function filterByCutoff(feed: NeurowireFeed, cutoff: number): NeurowireFeed {
   const entries = feed.entries.filter((entry) => {
     const when = Date.parse(entry.published ?? entry.updated ?? '')
     return !Number.isNaN(when) && when >= cutoff
   })
   return { ...feed, entries }
+}
+
+/** Midnight UTC at the start of the current day. */
+function startOfUtcToday(): number {
+  const now = new Date()
+  return Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
 }
 
 async function main(): Promise<void> {
@@ -73,6 +80,7 @@ async function main(): Promise<void> {
       combined: { type: 'boolean' },
       out: { type: 'string', short: 'o' },
       since: { type: 'string', short: 's' },
+      today: { type: 'boolean' },
       help: { type: 'boolean', short: 'h' },
     },
   })
@@ -85,14 +93,17 @@ async function main(): Promise<void> {
   // Built-in taps so feed-less sources (e.g. claude.com, cursor.com) resolve.
   registerAllTaps()
 
-  let windowMs: number | undefined
-  if (values.since !== undefined) {
-    windowMs = parseDuration(values.since)
+  let cutoff: number | undefined
+  if (values.today) {
+    cutoff = startOfUtcToday()
+  } else if (values.since !== undefined) {
+    const windowMs = parseDuration(values.since)
     if (windowMs === undefined) {
       process.stderr.write(`error: invalid --since "${values.since}" (use e.g. 24h, 36h, 7d)\n`)
       process.exitCode = 1
       return
     }
+    cutoff = Date.now() - windowMs
   }
 
   // Construct: a bundle of meshes. Default to a multi-page repo; --combined makes
@@ -103,7 +114,7 @@ async function main(): Promise<void> {
 
     if (values.combined) {
       let feed = flattenConstruct(fetched)
-      if (windowMs !== undefined) feed = filterSince(feed, windowMs)
+      if (cutoff !== undefined) feed = filterByCutoff(feed, cutoff)
       const html = toHtml(feed)
       if (values.out) {
         writeFileSync(values.out, html)
@@ -121,13 +132,13 @@ async function main(): Promise<void> {
       return
     }
     const trimmed =
-      windowMs === undefined
+      cutoff === undefined
         ? fetched
         : {
             ...fetched,
             parts: fetched.parts.map((part) => ({
               ...part,
-              feed: filterSince(part.feed, windowMs as number),
+              feed: filterByCutoff(part.feed, cutoff),
             })),
           }
     mkdirSync(values.out, { recursive: true })
@@ -151,12 +162,11 @@ async function main(): Promise<void> {
     feed = await fetchFeed(url)
   }
 
-  if (windowMs !== undefined) {
+  if (cutoff !== undefined) {
     const before = feed.entries.length
-    feed = filterSince(feed, windowMs)
-    process.stderr.write(
-      `Filtered to ${feed.entries.length} of ${before} entries from the last ${values.since}\n`,
-    )
+    feed = filterByCutoff(feed, cutoff)
+    const label = values.today ? 'today' : `the last ${values.since}`
+    process.stderr.write(`Filtered to ${feed.entries.length} of ${before} entries from ${label}\n`)
   }
 
   const html = toHtml(feed)

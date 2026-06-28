@@ -98,9 +98,9 @@ export const STYLE = `
   @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(0.78); } }
   .wire { display: block; width: 100%; height: 44px; margin: 18px 0 26px; overflow: visible; }
   .wire .track { stroke: var(--line-strong); stroke-width: 1.1; fill: none; }
-  .wire .flow { stroke: url(#wireGrad); stroke-width: 2; fill: none; stroke-linecap: round; stroke-dasharray: 10 94; filter: drop-shadow(0 0 5px var(--glow-cyan)); animation: flow 1.9s linear infinite; }
+  .wire .flow { stroke: url(#wireGrad); stroke-width: 3; fill: none; stroke-linecap: round; stroke-dasharray: 40 64; filter: drop-shadow(0 0 8px var(--glow-cyan)) drop-shadow(0 0 16px rgba(69,230,255,0.4)); animation: flow 2.4s linear infinite; }
   .wire .node { fill: var(--bg-2); stroke: var(--cyan); stroke-width: 1.5; filter: drop-shadow(0 0 6px var(--glow-cyan)); animation: nodepulse 1.9s ease-in-out infinite; }
-  @keyframes flow { to { stroke-dashoffset: -104; } }
+  @keyframes flow { from { stroke-dashoffset: 0; } to { stroke-dashoffset: -104; } }
   @keyframes nodepulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.55; } }
   .title {
     margin: 0; font-size: clamp(2.6rem, 9vw, 4.1rem); line-height: 1.0; font-weight: 800; letter-spacing: -0.026em;

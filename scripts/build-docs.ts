@@ -477,7 +477,7 @@ neurowire-web --construct examples/varied.construct.json --out public/
 neurowire-web --construct examples/varied.construct.json --combined --out page.html`)}
         <p style="margin-top:16px">Shipped constructs:</p>
         <ul class="bullets">${constructList}</ul>
-        <p style="margin-top:16px">The <a class="inline" href="example/">live example</a> is the <code>all</code> construct: an overview of every built-in mesh, each linking to its own feed page, rebuilt daily and filtered to the last 7 days.</p>
+        <p style="margin-top:16px">The <a class="inline" href="example/">live example</a> is the <code>all</code> construct: an overview of every built-in mesh, each linking to its own feed page, rebuilt every day and showing only today's stories.</p>
       </section>`
 
 const TAP_NOTES: Record<string, string> = {

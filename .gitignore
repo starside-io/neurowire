@@ -17,3 +17,6 @@ coverage
 # Generated output (the news page is built in CI and deployed, not committed)
 /public/
 feed.html
+
+# Local drafts, not for the repo
+to-post/

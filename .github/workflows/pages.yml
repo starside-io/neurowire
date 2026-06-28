@@ -8,7 +8,9 @@ name: Publish site
 
 on:
   schedule:
-    - cron: '0 0 * * *' # daily at 00:00 UTC (08:00 in UTC+8), refreshes the news example
+    # Every 6 hours (00:00/06:00/12:00/18:00 UTC). The example shows only today's
+    # stories, so it rebuilds through the day to stay current as articles publish.
+    - cron: '0 */6 * * *'
   workflow_dispatch: {}
   push:
     branches: [main]
@@ -42,9 +44,10 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm build
       - name: Build the site
-        # Docs at the root; the example construct (last 7d) under /example: an
-        # overview of every built-in mesh, each linking to its own feed page.
-        # NEUROWIRE_MESHES lets the construct reference the example meshes by name.
+        # Docs at the root; the example construct (today only) under /example: an
+        # overview of every built-in mesh, each linking to its own feed page. The
+        # daily schedule keeps it to the current day's news. NEUROWIRE_MESHES lets
+        # the construct reference the example meshes by name.
         env:
           NEUROWIRE_MESHES: examples
         run: |
@@ -52,7 +55,7 @@ jobs:
           pnpm exec tsx scripts/build-docs.ts public
           node packages/web/dist/cli.js \
             --construct examples/all.construct.json \
-            --since 7d \
+            --today \
             --out public/example
       - uses: actions/upload-pages-artifact@v3
         with:

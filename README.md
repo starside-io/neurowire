@@ -122,7 +122,7 @@ neurowire-web --construct daily.json --out public/            # overview + per-m
 neurowire-web --construct daily.json --combined --out page.html  # one combined page
 ```
 
-Drive it from any scheduler. [`.github/workflows/pages.yml`](.github/workflows/pages.yml) builds the live site: the [docs](https://starside-io.github.io/neurowire/) at the root and the construct [example](https://starside-io.github.io/neurowire/example/) under `/example`, an overview of every built-in mesh that links through to each mesh's own page (filtered to the last 7 days). It deploys to GitHub Pages on every push to main and daily (enable Pages with Source: GitHub Actions).
+Drive it from any scheduler. [`.github/workflows/pages.yml`](.github/workflows/pages.yml) builds the live site: the [docs](https://starside-io.github.io/neurowire/) at the root and the construct [example](https://starside-io.github.io/neurowire/example/) under `/example`, an overview of every built-in mesh that links through to each mesh's own page (showing only today's stories). It deploys to GitHub Pages on every push to main and daily (enable Pages with Source: GitHub Actions).
 
 ## Develop
 
