@@ -1,6 +1,6 @@
 # Getting started
 
-Neurowire turns any blog, website, RSS, or Atom feed into clean, modern feeds. Point it at a URL and get back **Atom**, **RSS 2.0**, **JSON Feed 1.1**, **Markdown**, or **nwf** (a compact custom format). Bundle many sources into one **mesh**, group meshes into a **construct**, and render any feed, mesh, or construct into a self-contained **HTML news page**.
+Neurowire turns any blog, website, RSS, or Atom feed into clean, modern feeds. Point it at a URL and get back **NWF** (a compact custom format), **Atom**, **RSS 2.0**, **JSON Feed 1.1**, or **Markdown**. Bundle many sources into one **mesh**, group meshes into a **construct**, and render any feed, mesh, or construct into a self-contained **HTML news page**.
 
 ## Three surfaces
 

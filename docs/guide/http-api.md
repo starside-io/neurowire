@@ -1,6 +1,6 @@
 # HTTP API
 
-`@neurowire/api` is a small [Hono](https://hono.dev) service that exposes Neurowire over HTTP: convert a feed, serve a named mesh or construct, or build one from a posted body. It serves the feed formats only (Atom, RSS, JSON Feed, Markdown, nwf). HTML is not a feed format and lives in `@neurowire/web`.
+`@neurowire/api` is a small [Hono](https://hono.dev) service that exposes Neurowire over HTTP: convert a feed, serve a named mesh or construct, or build one from a posted body. It serves the feed formats only (NWF, Atom, RSS, JSON Feed, Markdown). HTML is not a feed format and lives in `@neurowire/web`.
 
 ## Running it
 

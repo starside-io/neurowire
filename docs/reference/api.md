@@ -1,7 +1,7 @@
 # @neurowire/api
 
 The Neurowire HTTP service (version 0.4.0): a [Hono](https://hono.dev) app that serves
-feeds, meshes, and constructs as Atom, RSS, JSON Feed, Markdown, or nwf. It registers the
+feeds, meshes, and constructs as NWF, Atom, RSS, JSON Feed, or Markdown. It registers the
 built-in [taps](/reference/taps) at startup and caches both the serialized response and the
 upstream fetches.
 

@@ -201,7 +201,7 @@ function toMarkdown(feed: NeurowireFeed): string
 
 Serialize a feed to a Markdown document (one `###` heading per entry).
 
-### nwf
+### NWF
 
 The compact, line-oriented Neurowire Feed format. See the README for the full spec.
 
@@ -225,9 +225,9 @@ interface NwfValidation {
 
 | Export | Description |
 |--------|-------------|
-| `toNwf(feed)` | Serialize a feed to nwf (interned authors/tags/sources, relative links, delta timestamps). Does not carry `generator`. |
-| `fromNwf(text)` | Parse an nwf document back into a `NeurowireFeed`. |
-| `validateNwf(text)` | Validate an nwf document and return line-numbered diagnostics, plus the parsed `feed` when there are no errors. |
+| `toNwf(feed)` | Serialize a feed to NWF (interned authors/tags/sources, relative links, delta timestamps). Does not carry `generator`. |
+| `fromNwf(text)` | Parse an NWF document back into a `NeurowireFeed`. |
+| `validateNwf(text)` | Validate an NWF document and return line-numbered diagnostics, plus the parsed `feed` when there are no errors. |
 | `NwfIssue` | One diagnostic: a 1-based `line` and a `message`. |
 | `NwfValidation` | Validation result: `valid`, `errors`, `warnings`, and (on success) `feed`. |
 

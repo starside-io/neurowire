@@ -6,7 +6,7 @@ import { defineConfig } from 'vitepress'
 export default defineConfig({
   title: 'Neurowire',
   description:
-    'Turn any blog, website, RSS, or Atom feed into clean, modern feeds: Atom, JSON Feed, Markdown, RSS, nwf, OPML, and self-contained HTML pages.',
+    'Turn any blog, website, RSS, or Atom feed into clean, modern feeds: NWF, Atom, JSON Feed, Markdown, RSS, OPML, and self-contained HTML pages.',
   lang: 'en-US',
   cleanUrls: true,
   lastUpdated: true,
@@ -60,11 +60,11 @@ export default defineConfig({
         {
           text: 'Formats',
           items: [
+            { text: 'NWF', link: '/formats/nwf' },
             { text: 'Atom', link: '/formats/atom' },
             { text: 'JSON Feed', link: '/formats/json-feed' },
             { text: 'Markdown', link: '/formats/markdown' },
             { text: 'RSS 2.0', link: '/formats/rss' },
-            { text: 'nwf', link: '/formats/nwf' },
             { text: 'OPML', link: '/formats/opml' },
             { text: 'HTML page', link: '/formats/html' },
           ],

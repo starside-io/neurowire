@@ -100,7 +100,7 @@ console.log(FORMATS)        // ['atom', 'rss', 'json', 'md', 'nwf']
 console.log(MEDIA_TYPES.json) // 'application/feed+json; charset=utf-8'
 ```
 
-The direct serializers (`toAtom`, `toRss`, `toJsonFeed`, `toMarkdown`, `toNwf`) and the nwf round-trip helpers (`fromNwf`, `validateNwf`) are also exported. See [The model](/concepts/model) and the [core reference](/reference/core).
+The direct serializers (`toAtom`, `toRss`, `toJsonFeed`, `toMarkdown`, `toNwf`) and the NWF round-trip helpers (`fromNwf`, `validateNwf`) are also exported. See [The model](/concepts/model) and the [core reference](/reference/core).
 
 ## Render HTML
 

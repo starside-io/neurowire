@@ -5,8 +5,8 @@ hero:
   name: Neurowire
   text: Clean feeds from anything
   tagline: >-
-    Point it at a blog, website, RSS, or Atom feed and get back Atom, JSON Feed,
-    Markdown, RSS, nwf, OPML, and self-contained HTML pages. Library, CLI, and HTTP API.
+    Point it at a blog, website, RSS, or Atom feed and get back NWF, Atom, JSON Feed,
+    Markdown, RSS, OPML, and self-contained HTML pages. Library, CLI, and HTTP API.
   actions:
     - theme: brand
       text: Getting started
@@ -22,7 +22,7 @@ features:
   - title: One model, many formats
     details: >-
       Every parser produces a single canonical feed model; every serializer
-      consumes it. Emit Atom, JSON Feed 1.1, Markdown, RSS 2.0, or the compact nwf.
+      consumes it. Emit the compact NWF, Atom, JSON Feed 1.1, Markdown, or RSS 2.0.
   - title: Feeds for feed-less sites
     details: >-
       Taps are per-host CSS-selector recipes that turn a plain HTML listing page

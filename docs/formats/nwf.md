@@ -1,4 +1,4 @@
-# nwf (Neurowire Feed)
+# NWF (Neurowire Feed)
 
 `nwf` is Neurowire's own compact, line-oriented feed format. It round-trips the model and stays small by interning repeated values, relativizing links, and storing dates as deltas. The serializer, parser, and validator live in `packages/core/src/serialize/nwf.ts`.
 

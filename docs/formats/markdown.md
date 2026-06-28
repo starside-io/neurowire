@@ -15,7 +15,7 @@ import { toMarkdown } from '@neurowire/core'
 const md = toMarkdown(feed)
 ```
 
-This is a presentation-oriented digest, meant to be read or pasted into a document. It is not round-trippable like [nwf](/formats/nwf): it carries the list essentials in a friendly layout, not every model field.
+This is a presentation-oriented digest, meant to be read or pasted into a document. It is not round-trippable like [NWF](/formats/nwf): it carries the list essentials in a friendly layout, not every model field.
 
 ## Field mapping
 

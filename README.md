@@ -6,7 +6,7 @@ Turn any blog into a modern feed. Point Neurowire at a website that lists articl
 
 | Package | What it does |
 |---------|--------------|
-| `@neurowire/core` | Canonical model + serializers: Atom, JSON Feed 1.1, Markdown, and the compact Neurowire Feed (`nwf`). |
+| `@neurowire/core` | Canonical model + serializers: the compact Neurowire Feed (`nwf`), Atom, JSON Feed 1.1, and Markdown. |
 | `@neurowire/ingest` | Fetch + detect + parse: RSS / Atom / JSON Feed, plus HTML auto-detect with a per-site template fallback. |
 | `@neurowire/taps` | Curated "taps" (`FeedTemplate`s) for sites worth following that ship no RSS/Atom feed (e.g. `claude.com/blog`). Bring your own via `NEUROWIRE_TAPS` or `--taps`. |
 | `@neurowire/cli` | `neurowire <url>` to print a feed in the terminal or emit any format. |
@@ -18,11 +18,11 @@ Turn any blog into a modern feed. Point Neurowire at a website that lists articl
 - `atom`: Atom 1.0 (`application/atom+xml`), the primary output.
 - `json`: JSON Feed 1.1 (`application/feed+json`).
 - `md`: Markdown digest.
-- `nwf`: Neurowire Feed, a compact line format (interned authors, tags and sources, relative links, delta timestamps). Round-trippable, see [the nwf format](#the-nwf-format) below.
+- `nwf`: Neurowire Feed, a compact line format (interned authors, tags and sources, relative links, delta timestamps). Round-trippable, see [the NWF format](#the-nwf-format) below.
 
 A styled **HTML news page** for publishing is a separate concern handled by `@neurowire/web` (see [Publishing a page](#publishing-a-page)), not a core feed format.
 
-## The nwf format
+## The NWF format
 
 `nwf` (Neurowire Feed) is a compact, line-oriented format: lines are LF-separated, cells within a line are TAB-separated.
 
@@ -131,7 +131,7 @@ pnpm install
 pnpm build        # build all packages (topological order)
 pnpm test         # run unit tests
 pnpm cli <url>          # run the CLI in dev (positional argument)
-pnpm validate <file|url> # validate an nwf document
+pnpm validate <file|url> # validate an NWF document
 pnpm page -- --mesh <file> --out <html>   # generate an HTML news page
 pnpm api                # start the API in dev
 ```

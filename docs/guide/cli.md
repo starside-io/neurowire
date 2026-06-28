@@ -52,7 +52,7 @@ neurowire --mesh ai-news.json -f json -o ai-news.json
 ```
 
 ::: tip Formats
-`atom` and `rss` both produce XML. `json` is JSON Feed 1.1. `md` is Markdown. `nwf` is the compact Neurowire format. See [Atom](/formats/atom), [RSS](/formats/rss), [JSON Feed](/formats/json-feed), [Markdown](/formats/markdown), and [nwf](/formats/nwf).
+`atom` and `rss` both produce XML. `json` is JSON Feed 1.1. `md` is Markdown. `nwf` is the compact Neurowire format. See [Atom](/formats/atom), [RSS](/formats/rss), [JSON Feed](/formats/json-feed), [Markdown](/formats/markdown), and [NWF](/formats/nwf).
 :::
 
 ## Shaping the output
@@ -160,7 +160,7 @@ You can also set the `NEUROWIRE_TAPS` env var (a path or `:`-separated list), or
 
 ### validate
 
-Check that an nwf document is well-formed. Prints line-numbered warnings and errors to stderr; on success prints a summary, on failure exits non-zero.
+Check that an NWF document is well-formed. Prints line-numbered warnings and errors to stderr; on success prints a summary, on failure exits non-zero.
 
 ```bash
 neurowire validate feed.nwf

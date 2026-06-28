@@ -84,7 +84,7 @@ interface FetchedConstruct {
 
 This is what the grouped HTML rendering uses (a per-mesh section per part).
 
-**`flattenConstruct(fetched, options)`** collapses a `FetchedConstruct` into one `NeurowireFeed`, tagging every entry with the mesh it came from. The grouping is dropped (Atom, JSON Feed, and nwf cannot express it), so this is the path the feed serializers and the API use.
+**`flattenConstruct(fetched, options)`** collapses a `FetchedConstruct` into one `NeurowireFeed`, tagging every entry with the mesh it came from. The grouping is dropped (NWF, Atom, and JSON Feed cannot express it), so this is the path the feed serializers and the API use.
 
 ```ts
 const fetched = await fetchConstruct(construct, { resolver })
