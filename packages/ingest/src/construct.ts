@@ -32,6 +32,30 @@ export interface FetchConstructOptions {
    * within a mesh are still fetched together.
    */
   concurrency?: number
+  /** Per-attempt fetch deadline in milliseconds. Default 15000. Set 0 to disable. */
+  timeoutMs?: number
+  /** Max additional fetch attempts after the first. Default 2. */
+  retries?: number
+  /** Base delay in milliseconds for exponential backoff with jitter. Default 500. */
+  backoffMs?: number
+  /**
+   * Called for each source (within any mesh) that failed to fetch. Defaults to a
+   * one-line warning on stderr. A failed source is always skipped, never fatal
+   * (unless every source in its mesh fails, which then skips the whole mesh).
+   */
+  onSourceError?: FetchMeshOptions['onSourceError']
+  /**
+   * Called for each mesh that failed to fetch entirely (no source succeeded).
+   * Defaults to a one-line warning on stderr. A failed mesh is skipped, never
+   * fatal (unless every mesh fails).
+   */
+  onMeshError?: (mesh: Mesh, error: unknown) => void
+}
+
+/** Default per-mesh failure handler: a non-fatal warning on stderr. */
+function warnMeshError(mesh: Mesh, error: unknown): void {
+  const reason = error instanceof Error ? error.message : String(error)
+  process.stderr.write(`neurowire: construct mesh "${mesh.name}" failed: ${reason}\n`)
 }
 
 /** One mesh of a fetched construct, paired with the single feed it merged into. */
@@ -112,7 +136,12 @@ export async function fetchConstruct(
     signal: options.signal,
     limit: options.limit,
     cache: options.cache,
+    timeoutMs: options.timeoutMs,
+    retries: options.retries,
+    backoffMs: options.backoffMs,
+    onSourceError: options.onSourceError,
   }
+  const onMeshError = options.onMeshError ?? warnMeshError
   const results = await settledPool(
     meshes.map(
       (mesh) => async (): Promise<ConstructPart> => ({
@@ -124,9 +153,14 @@ export async function fetchConstruct(
   )
 
   const parts: ConstructPart[] = []
-  for (const result of results) {
-    if (result.status === 'fulfilled') parts.push(result.value)
-  }
+  results.forEach((result, index) => {
+    if (result.status === 'fulfilled') {
+      parts.push(result.value)
+    } else {
+      // Partial failure: log which mesh failed and why, then skip it (non-fatal).
+      onMeshError(meshes[index], result.reason)
+    }
+  })
   if (!parts.length) {
     throw new Error(`Construct "${construct.name}": no meshes could be fetched`)
   }

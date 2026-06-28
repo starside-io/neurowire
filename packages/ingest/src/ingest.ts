@@ -16,6 +16,12 @@ export interface FetchFeedOptions {
   maxDepth?: number
   /** A conditional (ETag/Last-Modified) response cache, owned by the caller. */
   cache?: ConditionalCache
+  /** Per-attempt fetch deadline in milliseconds. Default 15000. Set 0 to disable. */
+  timeoutMs?: number
+  /** Max additional fetch attempts after the first. Default 2. */
+  retries?: number
+  /** Base delay in milliseconds for exponential backoff with jitter. Default 500. */
+  backoffMs?: number
 }
 
 /** Fetch a URL (website, RSS, or Atom) and normalize it to a NeurowireFeed. */
@@ -31,7 +37,13 @@ async function ingest(
   options: FetchFeedOptions,
   depth: number,
 ): Promise<NeurowireFeed> {
-  const doc = await fetchDocument(url, { signal: options.signal, cache: options.cache })
+  const doc = await fetchDocument(url, {
+    signal: options.signal,
+    cache: options.cache,
+    timeoutMs: options.timeoutMs,
+    retries: options.retries,
+    backoffMs: options.backoffMs,
+  })
   return ingestDocument(doc, options, depth)
 }
 
