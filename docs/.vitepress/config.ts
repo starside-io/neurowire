@@ -19,6 +19,7 @@ export default defineConfig({
       { text: 'Concepts', link: '/concepts/model' },
       { text: 'Formats', link: '/formats/nwf' },
       { text: 'API Reference', link: '/reference/core' },
+      { text: 'Catalog', link: '/reference/taps-pack' },
       {
         text: 'npm',
         items: [
