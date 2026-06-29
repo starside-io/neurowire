@@ -37,7 +37,7 @@ import {
 } from './pipeline'
 import { deliver } from './sinks'
 
-const VERSION = '0.6.0'
+const VERSION = '0.8.0'
 
 const HELP = `Neurowire ${VERSION} - turn any blog or feed into Atom and friends.
 
@@ -55,6 +55,8 @@ Options:
   -c, --construct <file> Fetch a construct: a bundle of meshes. Terminal view keeps the
                          per-mesh grouping; --format flattens it into one feed.
       --taps <path>      Load extra taps: a .json file or a directory. Repeatable.
+      --tap-pack <theme> Register themes from @neurowire/taps-pack (e.g. gaming,space),
+                         or "all". Repeatable. Needs @neurowire/taps-pack installed.
   -h, --help             Show this help.
   -v, --version          Show the version.
 
@@ -488,6 +490,50 @@ async function runWatch(values: CliValues, positionals: string[]): Promise<void>
   }
 }
 
+/**
+ * Register taps from the optional `@neurowire/taps-pack` catalog. Each `--tap-pack`
+ * value is a comma-separated list of theme keys (or "all"). If the package is not
+ * installed, print an install hint and continue without it.
+ */
+async function registerTapPacks(values: string[]): Promise<void> {
+  const keys = values.flatMap((v) =>
+    v
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean),
+  )
+  if (!keys.length) return
+
+  let pack: typeof import('@neurowire/taps-pack')
+  try {
+    pack = await import('@neurowire/taps-pack')
+  } catch {
+    process.stderr.write(
+      'error: --tap-pack needs @neurowire/taps-pack. Install it: pnpm add @neurowire/taps-pack\n',
+    )
+    process.exitCode = 1
+    return
+  }
+
+  if (keys.includes('all')) {
+    await pack.registerAll()
+    process.stderr.write(`Registered all ${pack.THEME_KEYS.length} taps-pack themes\n`)
+    return
+  }
+
+  const valid = new Set<string>(pack.THEME_KEYS)
+  let count = 0
+  for (const key of keys) {
+    if (!valid.has(key)) {
+      process.stderr.write(`warning: unknown tap-pack theme "${key}" (skipped)\n`)
+      continue
+    }
+    await pack.registerTheme(key as (typeof pack.THEME_KEYS)[number])
+    count++
+  }
+  if (count) process.stderr.write(`Registered ${count} taps-pack theme(s)\n`)
+}
+
 async function main(): Promise<void> {
   // Tolerate a leading `--` that `pnpm run` and tsx can inject when forwarding args.
   const argv = process.argv.slice(2)
@@ -502,6 +548,7 @@ async function main(): Promise<void> {
       mesh: { type: 'string', short: 'm' },
       construct: { type: 'string', short: 'c' },
       taps: { type: 'string', multiple: true },
+      'tap-pack': { type: 'string', multiple: true },
       filter: { type: 'string', multiple: true },
       exclude: { type: 'string', multiple: true },
       sort: { type: 'string' },
@@ -553,6 +600,9 @@ async function main(): Promise<void> {
   // Built-in taps plus any from --taps, NEUROWIRE_TAPS, or ~/.config/neurowire/taps.
   const { user } = registerAllTaps(values.taps ?? [])
   if (user.length) process.stderr.write(`Loaded ${user.length} custom tap(s)\n`)
+
+  // Optional: register taps from @neurowire/taps-pack themes via --tap-pack.
+  if (values['tap-pack']?.length) await registerTapPacks(values['tap-pack'])
 
   if (values.watch) {
     await runWatch(values, positionals)

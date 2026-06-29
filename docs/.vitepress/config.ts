@@ -78,6 +78,7 @@ export default defineConfig({
             { text: '@neurowire/core', link: '/reference/core' },
             { text: '@neurowire/ingest', link: '/reference/ingest' },
             { text: '@neurowire/taps', link: '/reference/taps' },
+            { text: '@neurowire/taps-pack', link: '/reference/taps-pack' },
             { text: '@neurowire/web', link: '/reference/web' },
             { text: '@neurowire/api', link: '/reference/api' },
           ],

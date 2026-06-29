@@ -9,6 +9,7 @@ Turn any blog into a modern feed. Point Neurowire at a website that lists articl
 | `@neurowire/core` | Canonical model + serializers: the compact Neurowire Feed (`nwf`), Atom, JSON Feed 1.1, and Markdown. |
 | `@neurowire/ingest` | Fetch + detect + parse: RSS / Atom / JSON Feed, plus HTML auto-detect with a per-site template fallback. |
 | `@neurowire/taps` | Curated "taps" (`FeedTemplate`s) for sites worth following that ship no RSS/Atom feed (e.g. `claude.com/blog`). Bring your own via `NEUROWIRE_TAPS` or `--taps`. |
+| `@neurowire/taps-pack` | Optional themed catalog of 270+ sources across 24 themes (tech and general-interest), with per-theme conditional imports. Register from the CLI with `--tap-pack`. |
 | `@neurowire/cli` | `neurowire <url>` to print a feed in the terminal or emit any format. |
 | `@neurowire/api` | Tiny HTTP service: `GET /feed?url=...&format=atom`. |
 | `@neurowire/web` | Renders a feed, mesh, or construct to self-contained HTML (`neurowire-web` bin + `toHtml`/`toConstructHtml`), for scheduled static publishing. |
