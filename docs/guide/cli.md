@@ -385,7 +385,7 @@ https://hub.example.com
 26 new entries from 1 peer (4.1 KB, 0 errors)
 ```
 
-Cursors are recorded per peer and journal in `~/.config/neurowire/peers-state.json`, and only after the entries have been appended, so an interrupted sync costs one re-pull rather than a hole. Re-syncing is idempotent: the store drops entries it already holds.
+Cursors are recorded per peer and journal in `~/.config/neurowire/peers-state.json` (or `$NEUROWIRE_PEERS_STATE`), and only after the entries have been appended, so an interrupted sync costs one re-pull rather than a hole. Re-syncing is idempotent: the store drops entries it already holds.
 
 A line can also carry `bootstrapped from snapshot` (the cursor predated the peer's retention, so the pull restarted from what it still keeps) or `peer journal diverged, cursor reset` (the peer's journal was rebuilt or restored, so the cursor no longer meant anything and the pull started over).
 

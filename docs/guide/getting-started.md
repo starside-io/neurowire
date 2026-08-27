@@ -114,6 +114,18 @@ neurowire https://example.com/blog --taps example.json --format atom
 
 Drop the tap into `~/.config/neurowire/taps/` (where the wizard writes by default) and the `--taps` flag becomes unnecessary. No model is involved and no API key is needed, at any point.
 
+## Pull from a peer instead of fetching
+
+If someone already runs a Neurowire node that journals these sources, you do not have to fetch them yourself. Register the peer once and pull:
+
+```bash
+neurowire peers add https://hub.example.com
+neurowire sync --peers
+#   ai: 1284 new, cursor 1284, 4 requests, 812.0 KB
+```
+
+Later syncs move only what is new, and cost one request when nothing is. What you get back is an ordinary [journal](/concepts/journals), so `neurowire journal cat ai -f json` and friends work on it immediately. This matters most for a laptop that is closed most of the day: a live fetch can only show you what is on the front page right now, while a node that stayed awake recorded everything you missed. See [Sync](/concepts/sync) for why, and [Federation](/guide/federation) for how to run the node.
+
 ## Where to next
 
 - [CLI reference](/guide/cli): every flag and subcommand.
@@ -121,5 +133,6 @@ Drop the tap into `~/.config/neurowire/taps/` (where the wizard writes by defaul
 - [Atom format](/formats/atom): the default serializer.
 - [Journals](/concepts/journals): keep an append-only archive of what a source publishes, and query it back.
 - [Tail](/concepts/tail): follow a source as a live stream, in the terminal or over SSE.
+- [Sync](/concepts/sync): pull journal deltas from a peer instead of re-fetching every source yourself.
 - [Recipes](/guide/recipes): practical end-to-end workflows.
 - [Taps](/concepts/taps): read sites that ship no feed, and keep those readers working when the site is redesigned.
