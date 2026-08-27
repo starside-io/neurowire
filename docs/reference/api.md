@@ -127,10 +127,12 @@ Events: `init` (target, format, effective interval, `resume` of `journal` or `li
 plus `X-Accel-Buffering: no`); `400` (no target, or an unknown tail format); `404` (unknown
 mesh or construct). Every error is decided before the stream opens.
 
-`packages/api/src/tail.ts` keeps a registry of poll loops keyed by target, so all clients
-following one target share a single upstream poll; the loop starts with the first subscriber
-and is torn down when the last one leaves. With a journal attached the loop appends what it
-sees, which is what makes event ids real cursors and `Last-Event-ID` a lossless resume.
+`packages/api/src/tail.ts` keeps a registry of poll loops keyed by target, interval, and
+journal id, so all clients asking for the same thing share a single upstream poll; the loop
+starts with the first subscriber and is torn down when the last one leaves. A late joiner is
+handed the newest items the loop has already broadcast (up to 50) so it is not behind. With a
+journal attached the loop appends what it sees and seeds its seen-set from the journal, which
+is what makes event ids real cursors and `Last-Event-ID` a lossless resume.
 
 | Export | Description |
 |--------|-------------|
@@ -142,6 +144,10 @@ sees, which is what makes event ids real cursors and `Last-Event-ID` a lossless 
 | `subscribeTail(key, options, listener)` | Attach to (or start) the shared poll loop for a target. |
 | `tailLoopCount()` / `stopAllTails()` | Inspect and tear down the running loops. |
 | `heartbeatMs()` | The keep-alive comment interval. |
+| `TailTarget`, `TailItem`, `TailBroadcast`, `TailJournal`, `TailLoopOptions`, `TailSubscription` | The registry's types. |
+
+See the [Tail concept page](/concepts/tail) for the polling semantics this route inherits from
+[`pollFeed`](/reference/ingest#poll-engine).
 
 ## Mesh resolution
 

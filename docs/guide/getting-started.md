@@ -64,7 +64,25 @@ Then fetch it:
 neurowire --mesh ai-news.json --format json --limit 10
 ```
 
-### 4. Render an HTML page
+### 4. Follow it live
+
+A mesh does not have to be something you re-run. `tail` polls it and prints each new entry the moment it appears, until you stop it:
+
+```bash
+neurowire tail --mesh ai-news.json --interval 60s
+```
+
+The first tick prints what is on the front page right now, one entry per line, then the command goes quiet and only speaks when something new lands:
+
+```
+09:41:02  Claude Code 2.0
+          Claude Blog · 2026-08-27
+          https://claude.com/blog/claude-code-2
+```
+
+Add `-f nwf` to stream raw [NWFJ](/formats/nwfj) records instead, which is what you want when the output is going into another tool rather than your eyes. See [Tail](/concepts/tail).
+
+### 5. Render an HTML page
 
 Install the page generator and turn a mesh into a self-contained HTML page (all CSS inline, no external requests):
 
@@ -88,4 +106,5 @@ neurowire-web --mesh ai-news.json --out index.html
 - [The model](/concepts/model): the canonical feed shape.
 - [Atom format](/formats/atom): the default serializer.
 - [Journals](/concepts/journals): keep an append-only archive of what a source publishes, and query it back.
+- [Tail](/concepts/tail): follow a source as a live stream, in the terminal or over SSE.
 - [Recipes](/guide/recipes): practical end-to-end workflows.

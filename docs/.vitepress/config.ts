@@ -55,6 +55,7 @@ export default defineConfig({
             { text: 'Meshes', link: '/concepts/meshes' },
             { text: 'Constructs', link: '/concepts/constructs' },
             { text: 'Journals', link: '/concepts/journals' },
+            { text: 'Tail', link: '/concepts/tail' },
             { text: 'Sinks', link: '/concepts/sinks' },
           ],
         },

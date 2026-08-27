@@ -444,7 +444,12 @@ function pollFeed(
 The first tick runs immediately, then the interval applies. Every successful tick is
 yielded, including ones with no fresh entries, so a caller can report cadence without a
 second timer. Dedupe uses core's `entryKey` and `newEntries`; the engine owns no I/O, so
-pass a `load` that already does whatever fetching, filtering, and merging you want.
+pass a `load` that already does whatever fetching, filtering, and merging you want. Pair it
+with a [conditional cache](#conditional-cache) so an unchanged source costs a 304 per tick.
+
+See the [Tail concept page](/concepts/tail) for what these semantics mean in practice, and
+[CLI tail mode](/guide/cli#tail-mode) and [`GET /tail`](/guide/http-api#get-tail) for the
+surfaces built on them.
 
 | Export | Description |
 |--------|-------------|

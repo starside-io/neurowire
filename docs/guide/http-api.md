@@ -151,17 +151,21 @@ Follow a feed, mesh, or construct as a live [server-sent events](https://develop
 curl -N "http://localhost:8787/tail?src=ai-news&interval=120"
 ```
 
+With `format=nwf` the events carry journal lines rather than JSON, so concatenating their `data` payloads gives a valid NWFJ document. Against a journaled target the `E` line's sequence number and the SSE event id are the same number.
+
 Events:
 
 | Event | Payload |
 |-------|---------|
 | `init` | JSON: the target, the format, the effective interval, whether resume is `journal` or `live`, the journal head, and how many entries were replayed. |
-| `entry` | One entry: a JSON object, or its NWFJ lines when `format=nwf`. The event `id` is the entry's cursor. |
+| `entry` | One entry: a JSON object, or its NWFJ lines when `format=nwf`. The event `id` is the entry's cursor: a journal cursor when the target is journaled, otherwise a counter local to the stream. |
 | (comment) | `: ping` every 25 seconds, so buffering proxies keep the connection open. |
 
-A missing target is a `400` and an unknown mesh or construct a `404`, both plain JSON: errors are decided before the stream opens, never mid-stream. Responses also carry `X-Accel-Buffering: no` for nginx.
+A missing target is a `400` and an unknown mesh or construct a `404`, both plain JSON: errors are decided before the stream opens, never mid-stream. An unknown `format` is a `400` too; `/tail` serves `json` and `nwf` only, not the feed formats the other routes take. Responses also carry `X-Accel-Buffering: no` for nginx.
 
-**One poll loop per target.** Every client following the same target shares a single upstream poll, so fifty browsers on `ai-news` cost one fetch per tick. The loop starts with the first subscriber and stops when the last one disconnects.
+The [Tail concept page](/concepts/tail) covers the polling semantics behind all of this: what counts as new, the interval floors, and how a failed tick is handled.
+
+**One poll loop per target.** Every client following the same target shares a single upstream poll, so fifty browsers on `ai-news` cost one fetch per tick. The loop starts with the first subscriber and stops when the last one disconnects. Sharing is keyed by the target, the effective interval, and the journal, so a client that asks for a different cadence or a different journal gets its own loop rather than quietly riding someone else's.
 
 **Resume.** Pass `journal=<id>` naming a journal that already exists on the server (created by `neurowire --journal <id>`, see [Journals](/concepts/journals)). The route then appends what it sees to that journal, so event ids are real cursors, and a client that reconnects with `Last-Event-ID` (or `?since=`) is replayed everything after that cursor before going live. Without a journal the tail is live-only, event ids are stream-local, and `init` reports `"resume": "live"`. The route never creates a journal of its own; an unknown id simply falls back to live-only.
 

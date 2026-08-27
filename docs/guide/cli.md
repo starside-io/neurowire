@@ -129,7 +129,11 @@ Status lines (the interval, poll errors) go to stderr, so `-f nwf` pipes cleanly
 
 With another `-f` (`atom`, `rss`, `json`, `md`) each tick serializes just its new entries, which is the batch shape watch mode uses.
 
-`--from` expects the remote stream's default `format=json`. It reconnects on its own with exponential backoff, resuming from the last event id it saw.
+`--from` expects the remote stream's default `format=json`. It reconnects on its own with exponential backoff, resuming from the last event id it saw, and reports each failed attempt on stderr rather than retrying silently. `--journal` and `--sink` still apply to what arrives; the shaping flags (`--filter`, `--exclude`, `--sort`, `--order`, `--limit`, `--since`, `--max-age`, `--between`) do not, because the server decides what the stream contains, so passing them prints a warning.
+
+::: tip Tail is the concept page
+[Tail](/concepts/tail) covers what "new" means, why the interval has a floor, and how tail, watch, and a one-shot fetch differ.
+:::
 
 ## Watch mode
 

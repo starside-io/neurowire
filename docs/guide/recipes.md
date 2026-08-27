@@ -122,6 +122,43 @@ neurowire journal cat ai -f json > ai-archive.json
 
 See [CLI journals](/guide/cli#journals).
 
+## Pipe a live tail into other tools
+
+`neurowire tail -f nwf` streams [NWFJ](/formats/nwfj) records to stdout as entries arrive: one line per record, TAB-separated, nothing else on the stream. Status output goes to stderr, so the pipe stays clean.
+
+Watch for something specific as it lands. Records are plain lines, so `grep` works, and `--line-buffered` keeps it from sitting on a buffer while it waits for more:
+
+```bash
+neurowire tail --mesh ai-news.json -f nwf \
+  | grep --line-buffered -i 'release'
+```
+
+::: warning A grepped stream is not a document
+Filtering by line drops the header and the dictionary lines the entry records point at, which makes the result unparseable as NWFJ. Grep it to look at it; keep the whole stream when you want to read it back.
+:::
+
+To keep a file you can query later, write the whole stream and watch a copy:
+
+```bash
+neurowire tail --mesh ai-news.json -f nwf \
+  | tee -a ~/feeds/ai-news.nwfj \
+  | grep --line-buffered '^E'
+```
+
+A long-running tail can also archive into a proper [journal](/concepts/journals) as it goes, which is the better option when you want cursors, segments, and `journal query` rather than one growing file:
+
+```bash
+neurowire tail --mesh ai-news.json --interval 5m --journal ai
+```
+
+Follow a [self-hosted API](/guide/http-api#get-tail) instead of polling the sources yourself, so one machine does the fetching for all your terminals:
+
+```bash
+neurowire tail --from 'http://localhost:8787/tail?src=ai-news'
+```
+
+See [CLI tail mode](/guide/cli#tail-mode) and the [Tail concept](/concepts/tail).
+
 ## Convert any feed to RSS 2.0
 
 Normalize any source (RSS, Atom, JSON Feed, or an HTML page) and re-emit it as RSS 2.0.

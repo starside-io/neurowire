@@ -97,4 +97,4 @@ A journal stores a feed's history rather than rendering it, so `nwfj` is deliber
 
 It is also not a database (no indexes beside the files, no query language), and not a sync protocol yet: exchanging journal deltas between machines is [planned separately](https://github.com/starside-io/neurowire/blob/main/docs/plans/13-nwf-sync.md).
 
-See the [NWFJ format](/formats/nwfj) for the line grammar, and the [CLI journal commands](/guide/cli#journals) for day-to-day use.
+See the [NWFJ format](/formats/nwfj) for the line grammar, and the [CLI journal commands](/guide/cli#journals) for day-to-day use. A journal is also what makes a live [tail](/concepts/tail) resumable: cursors let a reader that dropped off the stream be replayed exactly what it missed.
