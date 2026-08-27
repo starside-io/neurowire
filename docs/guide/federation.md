@@ -184,6 +184,7 @@ No push, no gossip, no discovery, no DHT. No signatures. No conflict resolution,
 
 ## See also
 
+- [Sync](/concepts/sync), the concept behind this guide: the three cases it solves, and what the hash chain does and does not prove.
 - [`nwf-sync/1`](/formats/nwf-sync), the protocol.
 - [NWFJ](/formats/nwfj), the payload format.
 - [Journals](/concepts/journals), the concept.

@@ -122,6 +122,56 @@ neurowire journal cat ai -f json > ai-archive.json
 
 See [CLI journals](/guide/cli#journals).
 
+## Share one archive across two machines
+
+A laptop that is closed most of the day cannot fetch what it missed: those entries scrolled off the front page hours ago. Let an always-on machine do the fetching and journaling, then pull the deltas when the laptop wakes.
+
+### On the hub (a VPS, a home server, anything always on)
+
+Journal the mesh on a timer. Re-running adds only what is new, so the interval is not critical:
+
+```bash
+# crontab: every 30 minutes
+*/30 * * * * neurowire --mesh ai-news.json --journal ai
+```
+
+Then publish that journal over [`nwf-sync/1`](/formats/nwf-sync). Nothing is published unless you name it, and the token is optional but wanted on anything reachable from the internet:
+
+```bash
+export NEUROWIRE_SYNC_PUBLISH=ai
+export NEUROWIRE_SYNC_TOKEN=$(openssl rand -hex 32)
+neurowire-api
+```
+
+Put it behind a reverse proxy with a real certificate. Neurowire serves plain HTTP and leaves transport security to you.
+
+### On the laptop
+
+Register the hub once:
+
+```bash
+neurowire peers add https://hub.example.com --token <the token from above>
+```
+
+Then sync on wake, or on a short timer. Being up to date costs one request that returns a number, so checking often is cheap:
+
+```bash
+neurowire sync --peers
+#   ai: 26 new, cursor 1310, 2 requests, 4.1 KB
+```
+
+The result is an ordinary journal, so everything in [Archive a mesh and research it later](#archive-a-mesh-and-research-it-later) applies unchanged:
+
+```bash
+neurowire journal query ai --filter tag:rust --since 7d -f md
+```
+
+The laptop never fetches the sources, so it never has to keep taps current, and it sees exactly the corpus the hub saw rather than a different snapshot per machine.
+
+::: tip Add a third machine and nothing changes
+A node that pulled from the hub can publish `/sync` itself, and a third machine can peer with *that*, even if it never touches the internet. Merges are deduplicated by entry key, so a diamond stores one copy and a cycle terminates. See [Federation](/guide/federation) for the three-node walkthrough and [Sync](/concepts/sync) for the trust model: the hash chain detects corruption, it does not prove authorship, so peer with nodes you trust.
+:::
+
 ## Convert any feed to RSS 2.0
 
 Normalize any source (RSS, Atom, JSON Feed, or an HTML page) and re-emit it as RSS 2.0.

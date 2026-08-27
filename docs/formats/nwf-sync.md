@@ -196,8 +196,9 @@ B: GET /sync/snapshot?journal=ai&cursor=1200-> 200, segment 3, complete 1
 
 ## See also
 
+- [Sync](/concepts/sync), the concept: why delta exchange beats fan-out fetching, and the trust model.
 - [NWFJ](./nwfj), the payload format.
-- [Journals](/concepts/journals), the concept.
+- [Journals](/concepts/journals), the archive underneath it.
 - [Federation](/guide/federation), the three-node setup guide.
 - [`@neurowire/api`](/reference/api), the server reference.
 - [`@neurowire/ingest`](/reference/ingest), the client reference.

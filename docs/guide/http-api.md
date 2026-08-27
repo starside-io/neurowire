@@ -24,6 +24,8 @@ It listens on `http://localhost:8787` by default and prints the bound URL on sta
 
 ::: warning No built-in auth or rate limiting
 The API ships with no authentication and no rate limiting. If you expose it publicly, put it behind a proxy, gateway, or auth layer of your own. That is the operator's responsibility.
+
+The one exception is the peer sync surface: `/sync/*` takes an optional bearer token, and publishes nothing at all unless you name the journals. That is access control for a surface that hands out whole archives, not a general auth layer for the service.
 :::
 
 ## Configuration
@@ -37,6 +39,10 @@ All configuration is via environment variables:
 | `NEUROWIRE_MESHES` | (unset) | Extra mesh directories (`:` or `,` separated), searched before `~/.config/neurowire/meshes`. |
 | `NEUROWIRE_CONSTRUCTS` | (unset) | Extra construct directories, searched before `~/.config/neurowire/constructs`. |
 | `NEUROWIRE_TAPS` | (unset) | Extra taps (path or `:`-separated list); built-ins always load. |
+| `NEUROWIRE_JOURNAL` | `~/.config/neurowire/journal` | Journal store the `/sync/*` routes read. |
+| `NEUROWIRE_SYNC_PUBLISH` | (unset) | Journal ids to publish over `/sync/*` (`:` or `,` separated), or `*` for all. Nothing is published without it. |
+| `NEUROWIRE_SYNC_TOKEN` | (unset) | Bearer token required on every `/sync/*` request. Unset means those routes are open. |
+| `NEUROWIRE_SYNC_CONFIG` | `~/.config/neurowire/sync.json` | File holding `{ "publish": [...], "token": "..." }`, if you prefer it to the env. |
 
 ## Caching
 
@@ -133,6 +139,17 @@ curl -X POST "http://localhost:8787/construct?format=atom" \
       ] }
     ]
   }'
+```
+
+### GET /sync/*
+
+Peer delta exchange over [`nwf-sync/1`](/formats/nwf-sync): `/sync/journals`, `/sync/head`, `/sync/since`, and `/sync/snapshot`, so another node can pull journal deltas instead of re-fetching every upstream source itself. These routes serve [journals](/concepts/journals), not feeds, so the `format` query does not apply to them.
+
+They are inert until you set `NEUROWIRE_SYNC_PUBLISH`. See [Federation](/guide/federation) to set up a node, [Sync](/concepts/sync) for the trust model, and the [API reference](/reference/api#sync-endpoints) for every status code.
+
+```bash
+curl "http://localhost:8787/sync/head?journal=ai"
+# {"journal":"ai","head":1284,"hash":"9f1c0f0b8ad0f0e3"}
 ```
 
 ## Bundled defaults
