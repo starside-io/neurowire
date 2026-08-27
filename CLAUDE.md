@@ -70,6 +70,34 @@ Notes:
   time, so publish in topological order (pnpm does this automatically).
 - Do not put the real token in any tracked file. `.npmrc.example` keeps the
   `${NPM_TOKEN}` placeholder; the real value lives only in `.env`.
+- Bumping `cli` means bumping the `VERSION` constant in `cli/src/index.ts` too,
+  or `neurowire --version` lies.
+
+**`workspace:*` publishes as an EXACT pin, so bump every dependent, not just the
+package you changed.** pnpm rewrites `workspace:*` to `"0.8.0"`, never `"^0.8.0"`.
+If `core`/`ingest` are bumped but `taps` is not, the already-published `taps` keeps
+pinning the old `ingest`, npm installs a second copy, and the module-level tap
+registry in `ingest/src/html/registry.ts` splits: `taps` registers into one copy
+while the CLI reads the other, so every curated tap silently stops resolving. A
+`core` or `ingest` release therefore means a patch bump and republish of `taps`,
+`taps-pack`, `cli`, `api`, and `web` as well. Verify before publishing with:
+
+```bash
+cd packages/cli && pnpm pack --pack-destination /tmp >/dev/null &&
+  tar -xzOf /tmp/neurowire-cli-*.tgz package/package.json | grep '@neurowire'
+```
+
+### Release order (do not improvise this)
+
+1. Bump versions + `CHANGELOG.md` entries + docs, in one change.
+2. `pnpm build && pnpm test && pnpm typecheck && pnpm lint && pnpm docs:build`.
+3. **Land it on `main` first.** Published artifacts must trace to mainline; never
+   publish from an unmerged branch.
+4. Publish to npm (the command above).
+5. **Deploy the docs (a separate, manual step, see below).** Merging does not do it.
+
+Steps 3 and 4 are in that order on purpose. Publishing first leaves the registry
+serving code that is not on `main`.
 
 **Always update the docs as part of a bump + publish.** A release is not done
 until the docs reflect it. Whenever you bump a version and publish, in the same
@@ -83,6 +111,45 @@ change:
 - follow the NWF naming/ordering convention in any docs you touch (write the
   format as `NWF` in prose, and lead every format list with NWF; code literals
   like the `nwf` key, `.nwf`, `toNwf` stay lowercase).
+
+## Deploying the docs site (read this before saying anything is "published")
+
+**https://neurowire.starside.io is hosted on Vercel, and the Vercel project has NO
+git integration. Pushing to `main` deploys nothing.** The docs go live only when
+someone runs, from the repo root:
+
+```bash
+vercel --prod --yes
+```
+
+Vercel builds it per `vercel.json`: `pnpm docs:build` (VitePress), serving
+`docs/.vitepress/dist`. Until that command runs, the live site keeps serving the
+previous build no matter how many commits land. It has silently drifted two months
+behind `main` this way.
+
+**`.github/workflows/pages.yml` does NOT build the VitePress docs.** Despite the
+name, it runs `scripts/build-docs.ts`, a separate hand-rolled 7-page site
+(`index/mesh/taps/packages...`), plus the `/example` construct, and deploys those to
+**GitHub Pages** (`starside-io.github.io/neurowire`). It never invokes VitePress.
+Its push trigger also filters on `packages/**`, `examples/*.json`, and `scripts/**`,
+with no `docs/**`, so editing `docs/` does not even rebuild that other site except
+on its 6-hourly cron.
+
+Two sites, two pipelines, neither driven by a plain `git push`:
+
+| Surface | Built by | Deployed by | Trigger |
+|---------|----------|-------------|---------|
+| neurowire.starside.io (the real docs) | `pnpm docs:build` (VitePress, `docs/`) | Vercel | **manual `vercel --prod`** |
+| starside-io.github.io/neurowire + `/example` | `scripts/build-docs.ts` | GitHub Pages | push to `main` (filtered paths) + 6h cron |
+
+So: after a docs change, verify the live URL, do not infer it from a green CI run.
+
+```bash
+curl -s -o /dev/null -w '%{http_code}\n' "https://neurowire.starside.io/<page>?cb=$RANDOM"
+```
+
+A cache-busting query is needed because Vercel serves `x-vercel-cache: HIT`; check
+the `age` header if a page looks stale (a large `age` means no redeploy happened).
 
 ## Git workflow
 
@@ -108,4 +175,4 @@ change:
 - **Adding an output format**: edit `core/src/serialize/` (the serializer + `FORMATS`/`MEDIA_TYPES`/`EXTENSIONS`/`serialize` switch/re-export) and add a test (core must stay 100%). Do not add presentation/page formats to core.
 - **Touching the line formats**: `nwf` and `nwfj` share one cell grammar in `core/src/serialize/cells.ts` (escaping, Unit-Separator sub-fields, interning keys, epoch helpers). Change it there, never in one format only, or the two drift apart. The journal chain uses core's FNV-1a `hashHex` on purpose: core stays free of `node:crypto`, so the chain detects corruption but is **not** a signature, and the `J` version cell is the upgrade path.
 - **Adding a tap**: inspect the real page first (a throwaway cheerio script over the saved HTML), then add `taps/src/sites/<host>.ts`, push it into the `taps` array, and add an offline fixture test plus an opt-in `*.live.test.ts`.
-- This repo is not a git repo by default and has no GitHub remote assumed. The `.github/workflows/pages.yml` workflow deploys the docs (site root) and the AI news example (`/example`) to GitHub Pages on push and daily; the generator (`neurowire-web` / `pnpm page`) runs from any cron or routine.
+- The remote is `origin` -> `github.com/starside-io/neurowire`, default branch `main`. `.github/workflows/pages.yml` deploys the **hand-rolled** `scripts/build-docs.ts` site plus the AI news example (`/example`) to GitHub Pages; it does **not** touch the VitePress docs, and the live docs site is a manual Vercel deploy. See "Deploying the docs site" above before claiming anything is published.
