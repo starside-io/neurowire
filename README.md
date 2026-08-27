@@ -1,6 +1,6 @@
 # Neurowire
 
-Turn any blog into a modern feed. Point Neurowire at a website that lists articles, an RSS feed, or an Atom feed, and get back **Atom** plus four more formats, or keep the whole history in an append-only **journal**. Everything is normalized to one canonical model, so the CLI, API, and UI all render the same data.
+Turn any blog into a modern feed. Point Neurowire at a website that lists articles, an RSS feed, or an Atom feed, and get back **Atom** plus four more formats, keep the whole history in an append-only **journal**, or follow it live with **tail**. Everything is normalized to one canonical model, so the CLI, API, and UI all render the same data.
 
 ## Packages
 
@@ -11,7 +11,7 @@ Turn any blog into a modern feed. Point Neurowire at a website that lists articl
 | `@neurowire/taps` | Curated "taps" (`FeedTemplate`s) for sites worth following that ship no RSS/Atom feed (e.g. `claude.com/blog`). Bring your own via `NEUROWIRE_TAPS` or `--taps`. |
 | `@neurowire/taps-pack` | Optional themed catalog of 270+ sources across 24 themes (tech and general-interest), with per-theme conditional imports. Register from the CLI with `--tap-pack`. |
 | `@neurowire/cli` | `neurowire <url>` to print a feed in the terminal or emit any format. |
-| `@neurowire/api` | Tiny HTTP service: `GET /feed?url=...&format=atom`. |
+| `@neurowire/api` | Tiny HTTP service: `GET /feed?url=...&format=atom`, plus `GET /tail` for live SSE streams. |
 | `@neurowire/web` | Renders a feed, mesh, or construct to self-contained HTML (`neurowire-web` bin + `toHtml`/`toConstructHtml`), for scheduled static publishing. |
 
 ## Output formats
@@ -72,6 +72,26 @@ C   1  f8ec59a5d7eeebdc                                  checkpoint: chain value
 Two properties make it queryable at size with no database beside it: `seq` is a dense primary index, and each segment's dictionaries act as skip filters, so a query for `tag:rust` never opens a segment whose tags cannot match. The store keeps a `<id>.manifest.json` sidecar for that planning; it is a cache and is rebuilt by rescanning if deleted. Records are one per line and TAB-separated, so `grep` works too, and `journal cat ai -f json` hands the archive to duckdb or pandas.
 
 `createJournalEncoder`, `parseJournal`, `queryJournal`, and friends live in `@neurowire/core`; `openJournalStore` lives in `@neurowire/ingest`. Full spec in [docs/formats/nwfj.md](docs/formats/nwfj.md).
+
+## Tail: a feed as a live wire
+
+A feed does not have to be something you re-fetch. `neurowire tail` polls a source forever and prints each new entry the moment it appears:
+
+```bash
+neurowire tail https://example.com/feed.xml            # one line per entry, forever
+neurowire tail --mesh ai-news.json --interval 60s      # a whole mesh
+neurowire tail --mesh ai-news.json -f nwf | grep -i release   # raw nwfj, pipeable
+```
+
+`-f nwf` makes the stream a journal being written in real time: valid NWFJ, header and checkpoints included, so downstream tools can parse it with the same reader that reads an archive. The filter, window, and sort flags apply per tick, `--journal` archives what goes by, and `--sink` pushes it to Slack, Discord, or a webhook. `--watch` is the batch-shaped sibling: one feed per tick instead of one line per entry.
+
+The API serves the same stream over SSE, with one upstream poll shared by every client following a target:
+
+```bash
+curl -N "http://localhost:8787/tail?src=ai-news&interval=120"
+```
+
+Reconnect with `Last-Event-ID` (against a journaled target) and you are replayed everything you missed, then put back on the live stream. Consume a remote stream from the terminal with `neurowire tail --from <api-url>`.
 
 ## Meshes
 

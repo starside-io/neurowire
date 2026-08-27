@@ -403,6 +403,70 @@ declares cannot match anything inside it, so the segment is never opened. The
 manifest is a cache: delete it and it is rebuilt by rescanning.
 :::
 
+## Poll engine
+
+The loop behind every live surface: the CLI's `tail` and `--watch`, and the API's
+`GET /tail`. It is an async generator, so a consumer is a `for await` and nothing else.
+
+```ts
+interface PollOptions {
+  intervalMs?: number
+  jitter?: number
+  seen?: Iterable<string>
+  signal?: AbortSignal
+  onError?: (error: unknown) => void
+  delay?: (ms: number, signal?: AbortSignal) => Promise<void>
+  random?: () => number
+}
+
+interface PollTick {
+  fresh: NeurowireEntry[]
+  feed: NeurowireFeed
+  at: number
+}
+
+function pollFeed(
+  load: () => Promise<NeurowireFeed>,
+  options?: PollOptions,
+): AsyncGenerator<PollTick>
+```
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `intervalMs` | `300000` | Base wait between ticks, clamped up to `MIN_POLL_INTERVAL_MS` (30s). |
+| `jitter` | `0.1` | Fraction of the interval added at random, so many pollers do not arrive together. Only ever added, so the interval stays a floor. |
+| `seen` | `[]` | Entry keys already reported, which is how a restart resumes without replaying. |
+| `signal` | none | Ends the generator, both between ticks and mid-sleep. |
+| `onError` | none | Called when a tick's `load` throws. The generator survives and waits for the next tick. |
+| `delay` | `setTimeout` | Injectable sleep, so tests never wait on a real timer. |
+| `random` | `Math.random` | Injectable source for the jitter. |
+
+The first tick runs immediately, then the interval applies. Every successful tick is
+yielded, including ones with no fresh entries, so a caller can report cadence without a
+second timer. Dedupe uses core's `entryKey` and `newEntries`; the engine owns no I/O, so
+pass a `load` that already does whatever fetching, filtering, and merging you want.
+
+| Export | Description |
+|--------|-------------|
+| `pollFeed(load, options?)` | The generator above. |
+| `resolvePollInterval(ms?)` | Apply the default and the floor to a requested interval. |
+| `nextPollDelay(intervalMs, jitter, random)` | The jittered wait for one tick, in `[interval, interval * (1 + jitter)]`. |
+| `MIN_POLL_INTERVAL_MS` | `30000`. |
+| `DEFAULT_POLL_INTERVAL_MS` | `300000`. |
+| `DEFAULT_POLL_JITTER` | `0.1`. |
+
+```ts
+import { fetchMesh, pollFeed } from '@neurowire/ingest'
+
+const controller = new AbortController()
+for await (const { fresh } of pollFeed(() => fetchMesh(mesh), {
+  intervalMs: 60_000,
+  signal: controller.signal,
+})) {
+  for (const entry of fresh) console.log(entry.title, entry.link)
+}
+```
+
 ## OPML import
 
 ```ts

@@ -22,6 +22,7 @@ import { type Context, Hono } from 'hono'
 import { createTtlCache } from './cache'
 import { listConstructNames, resolveConstruct } from './constructs'
 import { listMeshNames, resolveMesh } from './meshes'
+import { tailHandler } from './tail'
 
 // Built-in taps plus any from NEUROWIRE_TAPS or ~/.config/neurowire/taps.
 registerAllTaps()
@@ -57,6 +58,7 @@ app.get('/', (c) =>
       feed: 'GET /feed?url=<encoded-url>&format=atom|json|md|nwf',
       mesh: 'GET /mesh?src=<name>&format=...  or  POST /mesh (mesh JSON body)',
       construct: 'GET /construct?src=<name>&format=...  or  POST /construct (construct JSON body)',
+      tail: 'GET /tail?url=<encoded-url>|src=<mesh>|construct=<name>&format=json|nwf (SSE)',
     },
     meshes: listMeshNames(),
     constructs: listConstructNames(),
@@ -173,6 +175,10 @@ app.get('/construct', async (c) => {
     return c.json({ error: 'failed to build construct', detail }, 502)
   }
 })
+
+// A feed, mesh, or construct as a live SSE stream. One poll loop per distinct
+// target is shared by every client following it; see tail.ts.
+app.get('/tail', tailHandler)
 
 app.post('/construct', async (c) => {
   const format = c.req.query('format') ?? 'atom'

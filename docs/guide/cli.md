@@ -1,6 +1,6 @@
 # CLI reference
 
-The `neurowire` binary (from `@neurowire/cli`) turns a URL, mesh, or construct into a terminal view or a serialized feed, with filtering, sorting, time windows, a watch loop, and delivery sinks.
+The `neurowire` binary (from `@neurowire/cli`) turns a URL, mesh, or construct into a terminal view or a serialized feed, with filtering, sorting, time windows, a live tail, a watch loop, and delivery sinks.
 
 ## Synopsis
 
@@ -13,6 +13,7 @@ neurowire tap doctor <url>
 neurowire opml export --mesh <file>|--construct <file> [-o out.opml]
 neurowire opml import <file-or-url> [-o mesh.json] [--name <name>]
 neurowire journal head|cat|query <id> [options]
+neurowire tail [url] [options]
 ```
 
 With no `--format`, Neurowire prints a colorized terminal view. With `--format` it serializes the feed to stdout (or to `--out`).
@@ -104,22 +105,52 @@ neurowire --mesh ai-news.json --since 24h --sort date -f atom
 neurowire --mesh ai-news.json --between 2026-01-01..2026-02-01 -f json
 ```
 
+## Tail mode
+
+`neurowire tail` treats a source as a stream instead of a document: it polls forever and prints each new entry as it appears, one at a time. It takes the same sources and the same shaping flags as a normal run, applied per tick.
+
+| Flag | Description |
+|------|-------------|
+| `--interval <age>` | Poll interval, e.g. `30s`, `15m`, `6h`, `1d`. Default `5m`, floor `30s`. |
+| `--state <file>` | JSON file of seen entry keys, so restarts skip already-reported items. |
+| `-f nwf` | Stream raw [NWFJ](/formats/nwfj) journal lines instead of the terminal view. |
+| `--from <api-url>` | Render a remote [`GET /tail`](/guide/http-api#get-tail) SSE stream instead of polling locally. |
+| `--journal <id>` | Append everything seen to a journal, exactly as on a one-shot run. |
+| `--sink <url>` | Deliver each tick's new entries to a sink. |
+
+```bash
+neurowire tail https://example.com/feed.xml
+neurowire tail --mesh ai-news.json --interval 60s --filter tag:release
+neurowire tail --mesh ai-news.json -f nwf | grep -i release
+neurowire tail --from https://api.example.com/tail?src=ai-news
+```
+
+Status lines (the interval, poll errors) go to stderr, so `-f nwf` pipes cleanly: the whole stream is one valid NWFJ document, header and checkpoints included, and `neurowire validate` style tooling can read it back. A tick whose fetch fails prints `[tail] error: ...` and waits for the next one instead of ending the tail.
+
+With another `-f` (`atom`, `rss`, `json`, `md`) each tick serializes just its new entries, which is the batch shape watch mode uses.
+
+`--from` expects the remote stream's default `format=json`. It reconnects on its own with exponential backoff, resuming from the last event id it saw.
+
 ## Watch mode
 
-Long-poll a feed, mesh, or construct on an interval and emit only entries not seen yet.
+Watch is tail's batch-output sibling: the same poll loop, but each tick emits one feed of the new entries rather than a line per entry.
 
 | Flag | Description |
 |------|-------------|
 | `-w, --watch` | Enable the watch loop. Runs until the process is killed. |
-| `--interval <age>` | Poll interval, e.g. `30m`, `6h`, `1d`. Default `5m`. |
+| `--interval <age>` | Poll interval, e.g. `30s`, `30m`, `6h`, `1d`. Default `5m`, floor `30s`. |
 | `--state <file>` | JSON file of seen entry keys, so restarts skip already-reported items. |
 
-Each tick re-applies your filters and refinements, prints only the new entries (in `--format` when set), and writes a `[watch] N new (M seen)` line to stderr.
+Each tick re-applies your filters and refinements, prints only the new entries (in `--format` when set), and writes a `[watch] N new (M seen)` line to stderr. A failed fetch is reported as `[watch] error: ...` and retried on the next tick.
 
 ```bash
 neurowire --mesh ai-news.json --watch --interval 15m -f json
 neurowire --mesh ai-news.json --watch --state ~/.neurowire-seen.json
 ```
+
+::: tip Polling politeness
+Both loops clamp the interval to 30 seconds, add a little jitter so many pollers do not arrive together, and revalidate with conditional requests. Choose an interval that suits the source, not the floor.
+:::
 
 ## Journals
 
@@ -177,6 +208,14 @@ You can also set the `NEUROWIRE_TAPS` env var (a path or `:`-separated list), or
 | `-v, --version` | Show the version. |
 
 ## Subcommands
+
+### tail
+
+Follow a feed, mesh, or construct as a live stream. See [Tail mode](#tail-mode) above for the flags.
+
+```bash
+neurowire tail --mesh ai-news.json --interval 60s
+```
 
 ### validate
 
@@ -264,4 +303,5 @@ neurowire https://example.com/blog
 neurowire --construct daily.json
 neurowire --construct daily.json --format atom --limit 20
 neurowire --mesh ai-news.json --filter tag:release --exclude title:sponsored -f json
+neurowire tail --mesh ai-news.json --interval 60s --sink https://hooks.slack.com/services/...
 ```

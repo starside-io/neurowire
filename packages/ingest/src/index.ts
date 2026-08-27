@@ -49,6 +49,16 @@ export { applyTemplate, FeedTemplateSchema, type FeedTemplate } from './html/tem
 export { proposeTemplate, type TemplateProposal } from './html/propose'
 export { findTemplate, listTemplates, registerTemplate } from './html/registry'
 export {
+  DEFAULT_POLL_INTERVAL_MS,
+  DEFAULT_POLL_JITTER,
+  MIN_POLL_INTERVAL_MS,
+  type PollOptions,
+  type PollTick,
+  nextPollDelay,
+  pollFeed,
+  resolvePollInterval,
+} from './poll'
+export {
   type FeedDraft,
   finalizeFeed,
   normDate,

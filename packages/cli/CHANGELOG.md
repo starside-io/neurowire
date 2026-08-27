@@ -1,5 +1,12 @@
 # @neurowire/cli
 
+## Unreleased
+
+- Add `neurowire tail [url]`: follow a feed, mesh, or construct as a live stream, printing each new entry as it arrives. Honors the filter, window, sort, and limit flags per tick, plus `--interval`, `--state`, `--journal`, and `--sink`.
+- `tail -f nwf` streams raw NWFJ journal lines (header and checkpoints included), so `neurowire tail --mesh ai.json -f nwf | grep ...` is a real pipeline. Other `-f` values serialize each tick's new entries.
+- Add `tail --from <api-url>`: render a remote `GET /tail` SSE stream, reconnecting with exponential backoff and resuming from the last event id.
+- `--watch` is now implemented on ingest's poll engine, so there is one loop in the codebase. Flags, state file, journaling, and sinks are unchanged, with two additions: `--interval` accepts seconds (`30s`) and is clamped to a 30 second floor, and a failed fetch now prints `[watch] error: ...` and retries on the next tick instead of ending the run.
+
 ## 0.9.0
 
 - Add `--journal <id>` and `--journal-dir <dir>`: append fetched entries to an append-only journal, on the normal fetch path and on every `--watch` tick. Duplicates are dropped.

@@ -6,10 +6,10 @@ import {
   MeshSchema,
   type NeurowireFeed,
   constructToOpml,
+  entryKey,
   isFormat,
   journalToFeed,
   meshToOpml,
-  parseDuration,
   serialize,
   validateNwf,
 } from '@neurowire/core'
@@ -25,6 +25,7 @@ import {
   flattenConstruct,
   openJournalStore,
   opmlToMesh,
+  pollFeed,
   proposeTemplate,
 } from '@neurowire/ingest'
 import { registerAllTaps } from '@neurowire/taps'
@@ -38,9 +39,9 @@ import {
   buildSelectOptions,
   journalFeedMeta,
   parseJournalCursor,
-  partitionNew,
 } from './pipeline'
 import { deliver } from './sinks'
+import { TAIL_STOP, runRemoteTail, runTail, tailIntervalMs } from './tail'
 
 const VERSION = '0.9.0'
 
@@ -79,9 +80,17 @@ Shape the output (applied before --format):
       --this-week        Keep entries since Monday midnight UTC.
       --between <a>..<b> Keep entries between two dates, e.g. 2026-01-01..2026-02-01.
 
+Follow a feed as a stream (tail -f for the web):
+  tail <url>             Print entries as they appear, forever. Also takes --mesh
+                         and --construct, and honors the filter/shape flags per tick.
+      -f nwf             With tail: stream raw nwfj journal lines for piping.
+      --from <api-url>   With tail: render a remote /tail SSE stream instead of
+                         polling locally.
+
 Watch a feed or mesh and emit only new entries:
   -w, --watch            Long-poll on an interval, printing only entries not seen yet.
-      --interval <age>   Poll interval, e.g. 30m, 6h, 1d (default: 5m).
+                         A batch-output alias for tail: one feed per tick.
+      --interval <age>   Poll interval, e.g. 30s, 30m, 6h, 1d (default: 5m, floor 30s).
       --state <file>     JSON file of seen entry keys, so restarts skip old items.
 
 Keep an append-only archive (a journal):
@@ -96,6 +105,7 @@ Deliver to sinks (push entries to a destination):
                          only the new entries are delivered each tick.
 
 Commands:
+  tail [url]             Follow a feed, mesh, or construct as a live stream.
   validate <file-or-url> Check that an nwf document is well-formed (exits non-zero if not).
   tap doctor <url>       Propose a FeedTemplate (tap) for a feed-less page.
   opml export            Export a mesh/construct to OPML 2.0 (--mesh or --construct, -o optional).
@@ -127,6 +137,9 @@ Examples:
   neurowire --mesh ai-news.json --watch --sink https://hooks.slack.com/services/...
   neurowire --mesh ai-news.json --journal ai
   neurowire journal query ai --filter tag:release --since 30d -f md
+  neurowire tail --mesh ai-news.json --interval 60s
+  neurowire tail --mesh ai-news.json -f nwf | grep -i release
+  neurowire tail --from https://api.example.com/tail?src=ai-news
   neurowire validate feed.nwf
   neurowire tap doctor https://example.com/blog > ~/.config/neurowire/taps/example.com.json
   neurowire opml export --mesh ai-news.json > ai-news.opml
@@ -586,17 +599,31 @@ function loadSeenState(path: string): string[] {
 }
 
 /**
+ * One tick of the fetch pipeline: load the source, then apply the filter and
+ * refine flags exactly as a one-shot run would. Returns undefined once a flag
+ * error has been reported, which ends the loop without a second message.
+ */
+async function tickFeed(
+  values: CliValues,
+  positionals: string[],
+): Promise<NeurowireFeed | undefined> {
+  const feed = await loadFeed(values, positionals)
+  if (!feed) return undefined
+  const filtered = applyFilters(feed, values)
+  if (!filtered) return undefined
+  return refineFeed(filtered, values)
+}
+
+/**
  * Long-poll a feed or mesh on an interval, emitting only entries not seen yet.
  * Seen-state lives here in the CLI: an in-memory Set, optionally persisted to a
- * --state JSON file so restarts skip items already reported. The loop runs until
- * the process is killed.
+ * --state JSON file so restarts skip items already reported. The loop itself is
+ * ingest's poll engine, the same one `tail` and the API's /tail route use.
  */
 async function runWatch(values: CliValues, positionals: string[]): Promise<void> {
-  const intervalMs = parseDuration((values.interval as string | undefined) ?? '5m')
-  if (intervalMs === undefined) {
-    process.stderr.write(
-      `error: invalid --interval "${values.interval as string}" (use e.g. 30m, 6h, 1d)\n`,
-    )
+  const interval = tailIntervalMs(values.interval as string | undefined)
+  if (!interval.ok) {
+    process.stderr.write(`error: ${interval.error}\n`)
     process.exitCode = 1
     return
   }
@@ -604,26 +631,139 @@ async function runWatch(values: CliValues, positionals: string[]): Promise<void>
   const statePath = values.state as string | undefined
   const seen = new Set<string>(statePath ? loadSeenState(statePath) : [])
 
-  for (;;) {
-    const feed = await loadFeed(values, positionals)
-    if (!feed) return
-    const filtered = applyFilters(feed, values)
-    if (!filtered) return
-    const refined = refineFeed(filtered, values)
-    if (!refined) return
+  const controller = new AbortController()
+  const load = async (): Promise<NeurowireFeed> => {
+    const feed = await tickFeed(values, positionals)
+    if (!feed) {
+      controller.abort()
+      throw TAIL_STOP
+    }
+    return feed
+  }
 
-    const { fresh, keys } = partitionNew(refined, seen)
-    if (fresh.length > 0) emitFeed({ ...refined, entries: fresh }, values)
-    if (fresh.length > 0) appendToJournal({ ...refined, entries: fresh }, values)
-    await deliverToSinks({ ...refined, entries: fresh }, values)
+  const ticks = pollFeed(load, {
+    intervalMs: interval.value,
+    seen,
+    signal: controller.signal,
+    onError: (error) => {
+      process.stderr.write(
+        `[watch] error: ${error instanceof Error ? error.message : String(error)}\n`,
+      )
+    },
+  })
 
-    for (const key of keys) seen.add(key)
+  for await (const { fresh, feed } of ticks) {
+    if (fresh.length > 0) emitFeed({ ...feed, entries: fresh }, values)
+    if (fresh.length > 0) appendToJournal({ ...feed, entries: fresh }, values)
+    await deliverToSinks({ ...feed, entries: fresh }, values)
+
+    for (const entry of fresh) seen.add(entryKey(entry))
     if (statePath) writeFileSync(statePath, JSON.stringify([...seen]))
 
     process.stderr.write(`[watch] ${fresh.length} new (${seen.size} seen)\n`)
-
-    await new Promise((resolve) => setTimeout(resolve, intervalMs))
   }
+}
+
+/** Flags that shape a feed locally, and so have no meaning for a remote stream. */
+const SHAPE_FLAGS = [
+  'filter',
+  'exclude',
+  'sort',
+  'order',
+  'limit',
+  'since',
+  'max-age',
+  'between',
+] as const
+
+/**
+ * `neurowire tail`: the same poll engine as watch, printing entries one at a
+ * time as they arrive rather than a feed per tick. `-f nwf` streams raw NWFJ
+ * journal lines instead, and `--from` renders a remote /tail SSE stream.
+ */
+async function runTailCommand(values: CliValues, positionals: string[]): Promise<void> {
+  const format = typeof values.format === 'string' ? values.format : undefined
+  if (format !== undefined && !isFormat(format)) {
+    process.stderr.write(`error: unknown format "${format}". Use one of: ${FORMATS.join(', ')}\n`)
+    process.exitCode = 1
+    return
+  }
+  const raw = format === 'nwf'
+  const io = {
+    out: (text: string) => {
+      process.stdout.write(text)
+    },
+    err: (text: string) => {
+      process.stderr.write(text)
+    },
+  }
+  const journalId = typeof values.journal === 'string' ? values.journal : undefined
+
+  const from = typeof values.from === 'string' ? values.from : undefined
+  if (from) {
+    // Shaping happens on the server for a remote stream, so local shape flags
+    // would silently do nothing. Say so rather than pretend they applied.
+    const ignored = SHAPE_FLAGS.filter((flag) => values[flag] !== undefined)
+    if (ignored.length) {
+      process.stderr.write(
+        `warning: --from streams what the server sends, so ${ignored
+          .map((flag) => `--${flag}`)
+          .join(', ')} ${ignored.length === 1 ? 'is' : 'are'} ignored\n`,
+      )
+    }
+    await runRemoteTail(from, {
+      io,
+      color: useColor,
+      raw,
+      journalId,
+      onError: (error) => {
+        process.stderr.write(
+          `[tail] ${error instanceof Error ? error.message : String(error)}, reconnecting\n`,
+        )
+      },
+      onEntry: async (entry) => {
+        if (journalId === undefined && !(values.sink as string[] | undefined)?.length) return
+        const feed: NeurowireFeed = {
+          id: from,
+          title: from,
+          updated: entry.updated ?? entry.published ?? new Date().toISOString(),
+          entries: [entry],
+        }
+        appendToJournal(feed, values)
+        await deliverToSinks(feed, values)
+      },
+    })
+    return
+  }
+
+  const interval = tailIntervalMs(values.interval as string | undefined)
+  if (!interval.ok) {
+    process.stderr.write(`error: ${interval.error}\n`)
+    process.exitCode = 1
+    return
+  }
+
+  const statePath = values.state as string | undefined
+  const seen = new Set<string>(statePath ? loadSeenState(statePath) : [])
+
+  process.stderr.write(`[tail] polling every ${Math.round(interval.value / 1000)}s\n`)
+
+  await runTail({
+    tick: () => tickFeed(values, positionals),
+    intervalMs: interval.value,
+    seen,
+    raw,
+    journalId,
+    color: useColor,
+    emit: format && !raw ? (feed) => emitFeed(feed, values) : undefined,
+    io,
+    onFresh: async (feed) => {
+      appendToJournal(feed, values)
+      await deliverToSinks(feed, values)
+      for (const entry of feed.entries) seen.add(entryKey(entry))
+      if (statePath) writeFileSync(statePath, JSON.stringify([...seen]))
+    },
+  })
 }
 
 /**
@@ -698,6 +838,7 @@ async function main(): Promise<void> {
       watch: { type: 'boolean', short: 'w' },
       interval: { type: 'string' },
       state: { type: 'string' },
+      from: { type: 'string' },
       journal: { type: 'string' },
       'journal-dir': { type: 'string' },
       cursor: { type: 'string' },
@@ -747,6 +888,11 @@ async function main(): Promise<void> {
 
   // Optional: register taps from @neurowire/taps-pack themes via --tap-pack.
   if (values['tap-pack']?.length) await registerTapPacks(values['tap-pack'])
+
+  if (positionals[0] === 'tail') {
+    await runTailCommand(values, positionals.slice(1))
+    return
+  }
 
   if (values.watch) {
     await runWatch(values, positionals)

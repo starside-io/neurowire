@@ -1,7 +1,8 @@
 # @neurowire/api
 
 The Neurowire HTTP service (version 0.4.0): a [Hono](https://hono.dev) app that serves
-feeds, meshes, and constructs as NWF, Atom, RSS, JSON Feed, or Markdown. It registers the
+feeds, meshes, and constructs as NWF, Atom, RSS, JSON Feed, or Markdown, and streams them
+live over SSE. It registers the
 built-in [taps](/reference/taps) at startup and caches both the serialized response and the
 upstream fetches.
 
@@ -108,6 +109,40 @@ The API serves only flattened feed formats for constructs. The grouped, multi-pa
 lives in [`@neurowire/web`](/reference/web).
 :::
 
+### `GET /tail`
+
+Follow a target as a server-sent event stream, built on Hono's `streamSSE`.
+
+| Query | Required | Default | Description |
+|-------|----------|---------|-------------|
+| `url` / `src` / `construct` | one of | - | The target, same values as `/feed`, `/mesh`, and `/construct`. |
+| `format` | no | `json` | `json` (one entry object per event) or `nwf` (that entry's NWFJ lines). |
+| `interval` | no | `300` | Seconds, or a duration like `15m`. Clamped up to a 60 second floor. |
+| `journal` | no | - | A journal id already present in the store, which enables cursor resume. |
+| `since` | no | - | A journal cursor to replay from; `Last-Event-ID` carries the same value. |
+
+Events: `init` (target, format, effective interval, `resume` of `journal` or `live`, journal
+`head`, `replayed` count), `entry` per entry with its cursor as the event `id`, and a
+`: ping` comment every `NEUROWIRE_TAIL_HEARTBEAT_MS`. Responses: `200` (`text/event-stream`,
+plus `X-Accel-Buffering: no`); `400` (no target, or an unknown tail format); `404` (unknown
+mesh or construct). Every error is decided before the stream opens.
+
+`packages/api/src/tail.ts` keeps a registry of poll loops keyed by target, so all clients
+following one target share a single upstream poll; the loop starts with the first subscriber
+and is torn down when the last one leaves. With a journal attached the loop appends what it
+sees, which is what makes event ids real cursors and `Last-Event-ID` a lossless resume.
+
+| Export | Description |
+|--------|-------------|
+| `tailHandler(c)` | The route handler mounted at `GET /tail`. |
+| `resolveTailTarget(query)` | Resolve `url`/`src`/`construct` into a loadable target, or a `400`/`404` body. |
+| `resolveTailInterval(raw)` | Apply the default and the 60 second floor to a requested interval. |
+| `resolveTailJournal(id)` | The journal to replay from and write through, when the id exists. |
+| `parseTailCursor(value)` | Parse `42` or `42.<hash>` into a `JournalCursor`. |
+| `subscribeTail(key, options, listener)` | Attach to (or start) the shared poll loop for a target. |
+| `tailLoopCount()` / `stopAllTails()` | Inspect and tear down the running loops. |
+| `heartbeatMs()` | The keep-alive comment interval. |
+
 ## Mesh resolution
 
 `packages/api/src/meshes.ts` resolves a mesh name to a [`Mesh`](/reference/core#mesh). User
@@ -178,6 +213,8 @@ function createTtlCache(): TtlCache
 | `PORT` | `8787` | Port the standalone server listens on. |
 | `NEUROWIRE_CACHE_TTL` | `300` | Response cache TTL in seconds (matches the `Cache-Control: max-age=300`). |
 | `NEUROWIRE_MESHES` | - | `:`/`,`-separated directories searched for named meshes. |
+| `NEUROWIRE_JOURNAL` | - | Journal directory `GET /tail` replays from (else `~/.config/neurowire/journal`). |
+| `NEUROWIRE_TAIL_HEARTBEAT_MS` | `25000` | How often `GET /tail` writes its keep-alive comment. |
 | `NEUROWIRE_CONSTRUCTS` | - | `:`/`,`-separated directories searched for named constructs. |
 | `NEUROWIRE_TAPS` | - | Extra taps loaded at startup via `registerAllTaps()`. |
 | `XDG_CONFIG_HOME` | `~/.config` | Base for the default mesh/construct/tap directories. |

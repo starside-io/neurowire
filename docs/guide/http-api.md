@@ -37,6 +37,8 @@ All configuration is via environment variables:
 | `NEUROWIRE_MESHES` | (unset) | Extra mesh directories (`:` or `,` separated), searched before `~/.config/neurowire/meshes`. |
 | `NEUROWIRE_CONSTRUCTS` | (unset) | Extra construct directories, searched before `~/.config/neurowire/constructs`. |
 | `NEUROWIRE_TAPS` | (unset) | Extra taps (path or `:`-separated list); built-ins always load. |
+| `NEUROWIRE_JOURNAL` | (unset) | Journal directory `GET /tail` replays from. Defaults to `~/.config/neurowire/journal`. |
+| `NEUROWIRE_TAIL_HEARTBEAT_MS` | `25000` | How often `GET /tail` writes a keep-alive comment. |
 
 ## Caching
 
@@ -134,6 +136,38 @@ curl -X POST "http://localhost:8787/construct?format=atom" \
     ]
   }'
 ```
+
+### GET /tail
+
+Follow a feed, mesh, or construct as a live [server-sent events](https://developer.mozilla.org/docs/Web/API/Server-sent_events) stream. The server polls the target on an interval and pushes each new entry as it appears. Query params:
+
+- One target, same as the routes above: `url=<encoded-url>`, `src=<mesh name>`, or `construct=<name>`.
+- `format` (optional, default `json`): `json` sends one entry object per event, `nwf` sends the [NWFJ](/formats/nwfj) journal lines for that entry.
+- `interval` (optional, default `300`): seconds, or a duration like `15m`. Clamped up to a floor of 60 seconds.
+- `journal` (optional): the id of a journal on the server, which turns on replay (see below).
+- `since` (optional): a journal cursor to replay from, the same value `Last-Event-ID` carries.
+
+```bash
+curl -N "http://localhost:8787/tail?src=ai-news&interval=120"
+```
+
+Events:
+
+| Event | Payload |
+|-------|---------|
+| `init` | JSON: the target, the format, the effective interval, whether resume is `journal` or `live`, the journal head, and how many entries were replayed. |
+| `entry` | One entry: a JSON object, or its NWFJ lines when `format=nwf`. The event `id` is the entry's cursor. |
+| (comment) | `: ping` every 25 seconds, so buffering proxies keep the connection open. |
+
+A missing target is a `400` and an unknown mesh or construct a `404`, both plain JSON: errors are decided before the stream opens, never mid-stream. Responses also carry `X-Accel-Buffering: no` for nginx.
+
+**One poll loop per target.** Every client following the same target shares a single upstream poll, so fifty browsers on `ai-news` cost one fetch per tick. The loop starts with the first subscriber and stops when the last one disconnects.
+
+**Resume.** Pass `journal=<id>` naming a journal that already exists on the server (created by `neurowire --journal <id>`, see [Journals](/concepts/journals)). The route then appends what it sees to that journal, so event ids are real cursors, and a client that reconnects with `Last-Event-ID` (or `?since=`) is replayed everything after that cursor before going live. Without a journal the tail is live-only, event ids are stream-local, and `init` reports `"resume": "live"`. The route never creates a journal of its own; an unknown id simply falls back to live-only.
+
+::: tip Rate expectations
+The interval floor is 60 seconds server-side, and each tick is jittered slightly so many tails on one host do not arrive together. Conditional requests mean an unchanged source usually costs a `304`, but pick an interval that suits the source rather than the floor.
+:::
 
 ## Bundled defaults
 
