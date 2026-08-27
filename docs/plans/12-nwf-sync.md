@@ -1,4 +1,4 @@
-# Epic 13: NWF sync (delta exchange between peers)
+# Epic 12: NWF sync (delta exchange between peers)
 
 ## Goal
 
@@ -12,6 +12,129 @@ central hub.
 This is deliberately **pull-only HTTP** in v1: boring transport, novel payload.
 The value is the protocol spec plus the journal semantics, not exotic
 networking.
+
+## Why not just fetch the sources directly?
+
+The obvious objection: every node can already run `fetchMesh` itself, so why ask
+a peer? Because direct fetching does not scale across machines, and it cannot
+recover time you were not running.
+
+### Diagram 1: what fan-out actually costs
+
+```
+WITHOUT SYNC                                 WITH SYNC
+every device fetches every source            one node fetches, peers pull deltas
+
+  laptop ─┐                                    laptop ─┐
+  phone  ─┼─► 200 sources                      phone  ─┼─► hub ──► 200 sources
+  server ─┤   (× 3 devices                     CI     ─┘   │       (× 1 node
+  CI     ─┘    = 600 fetches/tick)                         │        = 200 fetches/tick)
+                                                     journal
+  · 600 HTTP requests hitting the same hosts    · 200 requests, one polite poller
+  · 3 different snapshots, none reproducible    · one corpus, identical everywhere
+  · every device needs every tap + taps-pack    · only the hub needs taps
+  · a rate-limited host bans all of you         · a laptop that was asleep still
+  · asleep 16h/day = those entries are gone       gets the entries it missed
+```
+
+### Diagram 2: the pull handshake
+
+A sync is three cheap calls, and usually stops after the first:
+
+```
+peer B (client)                                    node A (server)
+      │
+      │  GET /sync/head?journal=ai                       │
+      ├─────────────────────────────────────────────────►│
+      │◄─────────────────────────────  { head: 1284 }    │
+      │
+      │  local cursor is 1284? ──► done. one request, no body.
+      │  local cursor is 1201?
+      │
+      │  GET /sync/since?journal=ai&cursor=1201          │
+      ├─────────────────────────────────────────────────►│
+      │◄────────  200  E 1202 …  E 1284 …  C 1284 <hash> │   NWFJ lines only
+      │                                                   │
+      │  verify chain ──► append to local store ──► cursor = 1284
+      │
+      │  (cursor too old, segment compacted away)         │
+      │◄────────  410 Gone  { snapshot: "/sync/snapshot" }│
+      │  ──► bootstrap from snapshot, dedupe by entry key
+```
+
+The steady state is one request returning a number. That is the whole point: a
+device on a train wakes up, asks a question worth ~40 bytes, and usually goes
+straight back to sleep.
+
+### Diagram 3: store-and-forward, no central hub
+
+Peers are configured, not discovered, and journals forward through chains
+because merging is idempotent by entry key:
+
+```
+        ┌──────────────┐  fetches the open web, holds every tap
+        │  node A      │  (a VPS, always on, journals a construct)
+        │  hub         │
+        └──────┬───────┘
+               │ /sync
+        ┌──────┴───────┐
+        ▼              ▼
+  ┌───────────┐  ┌───────────┐        A ── B ── C  is fine: C pulls what B
+  │  node B   │  │  laptop   │        already pulled from A. Entry keys make
+  │  team box │  │  (asleep  │        the merge idempotent, so a diamond
+  └─────┬─────┘  │  all day) │        (C peers with both A and B) stores one
+        │ /sync  └───────────┘        copy, and a cycle terminates.
+        ▼
+  ┌───────────┐   air-gapped-ish: reaches node B on the LAN,
+  │  node C   │   never the open internet. Still gets the news.
+  └───────────┘   Provenance survives: entry.source still says
+                  which original outlet published it, after any
+                  number of hops.
+```
+
+## Real-life scenarios
+
+### 1. A team of eight following 200 sources
+
+Eight developers each run the same `daily` construct. Direct fetching means
+1,600 requests per tick against a couple hundred publishers, from eight IPs that
+look like a small scraping operation. Several of those hosts rate-limit; a few
+will eventually block. Each developer also has to keep taps current locally, and
+when a site redesigns, it breaks eight times.
+
+With sync: one VPS journals the construct every 30 minutes and publishes
+`/sync`. Eight laptops pull deltas. The publishers see one polite poller, the
+team sees one identical corpus, and a broken tap is fixed once on the hub.
+
+### 2. The laptop that is closed most of the day
+
+A feed is a snapshot of the front page. Open your laptop at 18:00 and
+`fetchMesh` truthfully reports what those sites are showing *now*, which for a
+busy outlet may be the last three hours. Everything published while the lid was
+shut has already scrolled off. No amount of direct fetching recovers it, because
+the data is simply not on the page any more.
+
+This is the case direct pulling **cannot** solve, only a journal can. The hub was
+awake and recorded every entry; the laptop pulls `?cursor=<where I left off>` and
+gets exactly the missed window, in order, with nothing duplicated.
+
+### 3. Research that has to be reproducible
+
+Someone analyzing six months of AI coverage needs every machine and every rerun
+to see the same corpus. Direct fetches give a different snapshot per machine and
+per hour, so results are not reproducible and cannot be checked by a colleague.
+
+A synced journal is content-addressed by sequence number and chain-verified: cite
+"journal `ai`, seq 1..48210, chain `9f1c…`" and anyone who syncs that journal can
+reproduce the analysis byte for byte, then keep pulling deltas as it grows. The
+`410 Gone` path matters here too: it makes retention explicit rather than letting
+an archive quietly develop holes.
+
+### When sync is the wrong tool
+
+One machine following twenty feeds should just fetch them. Sync earns its keep at
+device count, at intermittent connectivity, or when history matters, and adds an
+operational dependency (a node to run) otherwise.
 
 ## Protocol: `nwf-sync/1`
 

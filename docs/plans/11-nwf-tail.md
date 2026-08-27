@@ -1,4 +1,4 @@
-# Epic 12: `neurowire tail` (NWF as a live wire)
+# Epic 11: `neurowire tail` (NWF as a live wire)
 
 ## Goal
 
@@ -88,7 +88,7 @@ instead (one entry object per event).
 - No server-side push ingestion (WebSub subscriber is a possible later epic;
   this one is polling-based by design).
 - No persistence beyond the opt-in journal.
-- No multi-node coordination (that is Epic 13).
+- No multi-node coordination (that is Epic 12).
 
 ## Dependencies
 

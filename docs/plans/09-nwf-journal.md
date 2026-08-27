@@ -1,5 +1,16 @@
 # Epic 9: NWF journal (append-only log, the protocol substrate)
 
+> **Status: shipped** in `@neurowire/core` 0.8.0, `@neurowire/ingest` 0.7.0, and
+> `@neurowire/cli` 0.9.0. The format spec lives at
+> [docs/formats/nwfj.md](../formats/nwfj.md) and the concept page at
+> [docs/concepts/journals.md](../concepts/journals.md). What follows is the plan
+> as executed; it is kept for the reasoning, not as outstanding work.
+>
+> Two things changed during implementation and are corrected below: the chain
+> uses core's FNV-1a `hashHex` rather than sha256 (core stays free of
+> `node:crypto`), and the CLI reads a cursor with `--cursor`, because `--since`
+> already means a duration window everywhere else.
+
 ## Goal
 
 Turn NWF from a snapshot format into a **log**. An NWF journal is an append-only,
@@ -8,10 +19,10 @@ becomes something you can resume, replay, diff, and sync, not just re-download.
 
 The journal is the substrate both follow-up arcs stand on:
 
-- **Epic 12 (tail)** replays a journal from a cursor, then streams live appends.
-- **Epic 13 (sync)** exchanges journal deltas between peers ("send me everything
+- **Epic 11 (tail)** replays a journal from a cursor, then streams live appends.
+- **Epic 12 (sync)** exchanges journal deltas between peers ("send me everything
   after cursor X").
-- **Epic 10 (MCP)** answers "what is new since my last call" with a journal
+- **Epic 13 (MCP)** answers "what is new since my last call" with a journal
   cursor instead of a lossy time window.
 
 ## Why the current NWF document cannot be appended
@@ -48,9 +59,9 @@ Key differences from NWF1, each forced by append-only:
   dictionaries across the whole journal lifetime, which a snapshot cannot do.
 - **Every `E` line carries a sequence number** (`seq`, monotonically increasing
   from 1). A cursor is `<seq>` plus an optional integrity hash.
-- **Optional hash chain.** A `C` line records `hash = sha256(prevHash + line)`
+- **Optional hash chain.** A `C` line records `hash = hashHex(prevHash + line)` (core's FNV-1a)
   folded over all records since the previous checkpoint. Readers may verify or
-  ignore it. This gives tamper evidence for Epic 13 without requiring it here.
+  ignore it. This gives tamper evidence for Epic 12 without requiring it here.
 
 ### The format is its own index
 
@@ -125,7 +136,7 @@ registry are untouched. It gets its own constants: `JOURNAL_MEDIA_TYPE`
   - Maintains the `<id>.manifest.json` sidecar on append/rotation; rebuilds it
     by scanning when missing or stale.
 - **cli** (plumbing surface, deliberately small):
-  - `neurowire journal head <id>`, `neurowire journal cat <id> [--since <cursor>]`.
+  - `neurowire journal head <id>`, `neurowire journal cat <id> [--cursor <n>]`.
   - `neurowire journal query <id>` with the same filter/refine/format flags as
     the fetch path.
   - `--journal <id>` flag on the normal fetch path: after fetching and refining,
@@ -138,9 +149,9 @@ registry are untouched. It gets its own constants: `JOURNAL_MEDIA_TYPE`
   engine only. The format's own structure (seq ranges, per-segment
   dictionaries, the manifest cache) is the index; no separate index files
   (sqlite, inverted indexes) get built beside it.
-- No signing or peer identity (Epic 13 decides that).
+- No signing or peer identity (Epic 12 decides that).
 - No automatic journaling of every fetch; opt-in via `--journal`.
-- No API routes yet (Epics 12 and 13 add the network surface).
+- No API routes yet (Epics 11 and 12 add the network surface).
 
 ## Dependencies
 
