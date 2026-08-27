@@ -3,6 +3,9 @@
 ## Unreleased
 
 - Add the poll engine: `pollFeed`, an async generator that loads, dedupes with `entryKey`/`newEntries`, and waits, with a 30 second interval floor, jittered waits, a resumable seen-set, per-tick error isolation, and abort support. `resolvePollInterval` and `nextPollDelay` are exported alongside it. It is the single loop behind the CLI's `tail` and `--watch` and the API's `GET /tail`.
+- Add the `nwf-sync/1` pull client: `pullJournal` and `syncPeers` fetch journal deltas from configured peers, verify each response's hash chain before merging it, and append the entries to the local journal store.
+- Peer cursors live per `(peer url, journal id)` in `~/.config/neurowire/peers-state.json` (`openPeerState`, `createMemoryPeerState`, `peerStatePath`), and are written only after the append lands, so an interrupted sync costs one re-pull rather than a hole.
+- Handle the `410 Gone` too-old-cursor path by re-bootstrapping from `/sync/snapshot`; merges stay idempotent by entry key, so a diamond or a cycle of peers stores one copy.
 
 ## 0.7.0
 

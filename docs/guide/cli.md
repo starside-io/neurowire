@@ -361,6 +361,49 @@ neurowire journal query ai --filter source:Anthropic --sort date --limit 20
 Segments are one record per line, TAB-separated, so `grep` and `awk` work directly on them. Use `journal cat ai -f json` when you want to load an archive into duckdb, sqlite, or pandas. See the [NWFJ format](/formats/nwfj).
 :::
 
+### sync
+
+Pull journal deltas from a peer running the [`nwf-sync/1`](/formats/nwf-sync) endpoints, instead of re-fetching every upstream source yourself. Entries land in the local journal store and are then read back with the ordinary `journal` commands.
+
+| Flag | Description |
+|------|-------------|
+| `--peers` | Sync every peer in `~/.config/neurowire/peers.json` instead of one URL. |
+| `--journal <id>` | Sync only this journal. Omit it to sync everything the peer publishes. |
+| `--token <t>` | Bearer token, when the peer requires one. |
+| `--journal-dir <d>` | Where the local journals live. |
+
+```bash
+neurowire sync https://hub.example.com --journal ai --token secret
+neurowire sync --peers
+```
+
+Each line reports what moved, and the summary closes with the error count. Exits non-zero when any peer or journal failed, so a cron job notices.
+
+```
+https://hub.example.com
+  ai: 26 new, cursor 1310, 2 requests, 4.1 KB
+26 new entries from 1 peer (4.1 KB, 0 errors)
+```
+
+Cursors are recorded per peer and journal in `~/.config/neurowire/peers-state.json`, and only after the entries have been appended, so an interrupted sync costs one re-pull rather than a hole. Re-syncing is idempotent: the store drops entries it already holds.
+
+A line can also carry `bootstrapped from snapshot` (the cursor predated the peer's retention, so the pull restarted from what it still keeps) or `peer journal diverged, cursor reset` (the peer's journal was rebuilt or restored, so the cursor no longer meant anything and the pull started over).
+
+### peers
+
+Manage `~/.config/neurowire/peers.json` (or `$NEUROWIRE_PEERS`). Adding a URL already on the list replaces its entry, which is how you rotate a token. The file is written `0600`, since it holds bearer tokens, and a URL with no scheme is stored as `https://`. If the file cannot be parsed, `add` and `remove` refuse rather than overwriting it.
+
+```bash
+neurowire peers add https://hub.example.com --token secret
+neurowire peers add http://node-c.lan:8787 --journal ai
+neurowire peers list
+neurowire peers remove https://hub.example.com
+```
+
+::: tip Set up the whole topology
+The [Federation guide](/guide/federation) builds a three-node hub, laptop, and offline-relay setup from scratch with these commands.
+:::
+
 ## More examples
 
 ```bash
@@ -371,4 +414,5 @@ neurowire --mesh ai-news.json --filter tag:release --exclude title:sponsored -f 
 neurowire tail --mesh ai-news.json --interval 60s --sink https://hooks.slack.com/services/...
 neurowire tap wizard https://example.com/blog --yes
 neurowire tap check ~/.config/neurowire/taps --json
+neurowire sync --peers
 ```

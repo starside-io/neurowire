@@ -38,6 +38,25 @@ export {
   openJournalStore,
 } from './journal-store'
 export {
+  type Peer,
+  type PeerStateStore,
+  type PullOptions,
+  type PullResult,
+  type SyncJournalReport,
+  type SyncPeerReport,
+  type SyncReport,
+  type SyncStats,
+  SYNC_VERSION,
+  SyncError,
+  createMemoryPeerState,
+  listPeerJournals,
+  openPeerState,
+  peerStatePath,
+  pullJournal,
+  syncEndpoint,
+  syncPeers,
+} from './sync'
+export {
   parseAtom,
   parseFeedString,
   parseJsonFeed,

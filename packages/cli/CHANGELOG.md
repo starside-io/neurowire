@@ -10,6 +10,9 @@
 - Add `tap check [path] [--all] [--json] [--url <page>]`: do registered taps still match their pages? Reports healthy / degraded / broken / unknown and exits 1 on any broken tap, so it belongs in CI. A tap file may carry an optional `url` hint naming the listing page to check; a tap that names no page is reported `unknown` rather than guessed at, since fetching `https://<host>/` for a tap written against `<host>/blog` would call a healthy tap broken.
 - Add `tap heal <path> [--yes]`: re-author a broken tap against the page as it stands today. Fields that still match are kept, only the broken ones are walked, and the previous file is kept as `<path>.bak` (once, so a second heal cannot bury the original). A tap under `node_modules` is printed rather than written.
 - `tap doctor` is unchanged.
+- Add `neurowire sync <peer-url>` and `neurowire sync --peers`: pull journal deltas from peers over `nwf-sync/1`. Reports what moved per journal and exits non-zero when any pull failed.
+- Add the `peers` subcommand group: `peers list`, `peers add <url> [--token t] [--journal id]`, and `peers remove <url>`, managing `~/.config/neurowire/peers.json`.
+- Add `--peers` and `--token` flags.
 
 ## 0.9.0
 
