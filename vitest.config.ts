@@ -22,6 +22,8 @@ export default defineConfig({
         'packages/core/src/**': { statements: 100, functions: 100, lines: 100 },
         'packages/taps/src/**': { statements: 100, functions: 100, lines: 100 },
         'packages/ingest/src/**': { statements: 90, functions: 95, lines: 90 },
+        // Pure and fixture-driven: no network, no tty, nothing to excuse a gap.
+        'packages/tap-wizard/src/**': { statements: 95, functions: 95, lines: 95 },
         // The runnable surfaces, gated modestly (ratchet up later).
         'packages/api/src/**': { statements: 85, functions: 85, lines: 85 },
         'packages/cli/src/**': { statements: 80, functions: 85, lines: 80 },

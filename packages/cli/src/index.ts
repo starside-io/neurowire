@@ -1,4 +1,5 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
+import { createInterface } from 'node:readline/promises'
 import { parseArgs } from 'node:util'
 import {
   ConstructSchema,
@@ -41,6 +42,7 @@ import {
   partitionNew,
 } from './pipeline'
 import { deliver } from './sinks'
+import { type WizardIo, runTapCheck, runTapHeal, runTapWizard } from './tap-wizard'
 
 const VERSION = '0.9.0'
 
@@ -97,6 +99,11 @@ Deliver to sinks (push entries to a destination):
 
 Commands:
   validate <file-or-url> Check that an nwf document is well-formed (exits non-zero if not).
+  tap wizard <url>       Author a tap step by step: candidates, live preview, and a
+                         verification gate. --yes takes every top candidate.
+  tap check [path]       Do taps still match their pages? --all checks the registry,
+                         --json prints machine-readable results. Exits 1 on breakage.
+  tap heal <path>        Re-author a broken tap against the page as it stands today.
   tap doctor <url>       Propose a FeedTemplate (tap) for a feed-less page.
   opml export            Export a mesh/construct to OPML 2.0 (--mesh or --construct, -o optional).
   opml import <src>      Import an OPML file or URL into a mesh JSON (-o, --name optional).
@@ -128,6 +135,10 @@ Examples:
   neurowire --mesh ai-news.json --journal ai
   neurowire journal query ai --filter tag:release --since 30d -f md
   neurowire validate feed.nwf
+  neurowire tap wizard https://example.com/blog
+  neurowire tap wizard https://example.com/blog --yes -o ./example.json
+  neurowire tap check ~/.config/neurowire/taps --json
+  neurowire tap heal ~/.config/neurowire/taps/example.com.json
   neurowire tap doctor https://example.com/blog > ~/.config/neurowire/taps/example.com.json
   neurowire opml export --mesh ai-news.json > ai-news.opml
   neurowire opml import subscriptions.opml -o mesh.json --name "My Reader"
@@ -223,6 +234,82 @@ async function runTapDoctor(url: string | undefined): Promise<void> {
   process.stderr.write(
     dim(`# save this as ~/.config/neurowire/taps/${host}.json or pass with --taps\n`),
   )
+}
+
+/**
+ * Terminal IO for the tap walkthrough. The readline interface is created on the
+ * first prompt only, so the non-interactive paths (`--yes`, `check`, `heal --yes`)
+ * never take stdin hostage.
+ */
+function createTerminalIo(): { io: WizardIo; close(): void } {
+  let rl: ReturnType<typeof createInterface> | undefined
+  return {
+    io: {
+      out: (text: string) => {
+        process.stdout.write(text)
+      },
+      err: (text: string) => {
+        process.stderr.write(text)
+      },
+      ask: (prompt: string) => {
+        rl ??= createInterface({ input: process.stdin, output: process.stdout })
+        return rl.question(prompt)
+      },
+    },
+    close: () => rl?.close(),
+  }
+}
+
+/** Read a string flag, or undefined when it was not given. */
+const str = (value: CliValues[string]): string | undefined =>
+  typeof value === 'string' ? value : undefined
+
+/** Dispatch the `tap` subcommand group: `wizard`, `check`, `heal`, or `doctor`. */
+async function runTap(sub: string | undefined, rest: string[], values: CliValues): Promise<void> {
+  const terminal = createTerminalIo()
+  const deps = { io: terminal.io }
+  try {
+    if (sub === 'wizard') {
+      process.exitCode = await runTapWizard(
+        rest[0],
+        { yes: Boolean(values.yes), out: str(values.out) },
+        deps,
+      )
+      return
+    }
+    if (sub === 'check') {
+      process.exitCode = await runTapCheck(
+        rest[0],
+        {
+          all: Boolean(values.all),
+          json: Boolean(values.json),
+          url: str(values.url),
+          tapPaths: (values.taps as string[] | undefined) ?? [],
+        },
+        deps,
+      )
+      return
+    }
+    if (sub === 'heal') {
+      process.exitCode = await runTapHeal(
+        rest[0],
+        { yes: Boolean(values.yes), url: str(values.url) },
+        deps,
+      )
+      return
+    }
+    process.stderr.write(
+      'error: tap needs a subcommand: wizard, check, heal, or doctor\n\n' +
+        'Usage:\n' +
+        '  neurowire tap wizard <url> [-o file] [--yes]\n' +
+        '  neurowire tap check [path] [--all] [--json] [--url <page>]\n' +
+        '  neurowire tap heal <path> [--yes] [--url <page>]\n' +
+        '  neurowire tap doctor <url>\n',
+    )
+    process.exitCode = 1
+  } finally {
+    terminal.close()
+  }
 }
 
 /**
@@ -703,6 +790,10 @@ async function main(): Promise<void> {
       cursor: { type: 'string' },
       sink: { type: 'string', multiple: true },
       name: { type: 'string' },
+      yes: { type: 'boolean', short: 'y' },
+      all: { type: 'boolean' },
+      json: { type: 'boolean' },
+      url: { type: 'string' },
       help: { type: 'boolean', short: 'h' },
       version: { type: 'boolean', short: 'v' },
     },
@@ -734,6 +825,10 @@ async function main(): Promise<void> {
 
   if (positionals[0] === 'tap' && positionals[1] === 'doctor') {
     await runTapDoctor(positionals[2])
+    return
+  }
+  if (positionals[0] === 'tap') {
+    await runTap(positionals[1], positionals.slice(2), values)
     return
   }
   if (positionals[0] === 'doctor') {
