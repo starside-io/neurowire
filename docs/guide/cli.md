@@ -9,6 +9,9 @@ neurowire <url> [options]
 neurowire --mesh <file> [options]
 neurowire --construct <file> [options]
 neurowire validate <file-or-url>
+neurowire tap wizard <url> [-o file] [--yes]
+neurowire tap check [path] [--all] [--json] [--url <page>]
+neurowire tap heal <path> [--yes] [--url <page>]
 neurowire tap doctor <url>
 neurowire opml export --mesh <file>|--construct <file> [-o out.opml]
 neurowire opml import <file-or-url> [-o mesh.json] [--name <name>]
@@ -229,6 +232,62 @@ Check that an NWF document is well-formed. Prints line-numbered warnings and err
 neurowire validate feed.nwf
 neurowire validate https://example.com/feed.nwf
 ```
+
+### tap wizard
+
+Author a tap step by step. The page is fetched once, then each of the seven steps shows ranked candidate selectors, a live `matched:` count, and a sample of what the current pick extracts. Type a number to accept a candidate, paste a selector to override it, press Enter to skip an optional field (or to take the top candidate on a required one).
+
+```bash
+neurowire tap wizard https://example.com/blog
+neurowire tap wizard https://example.com/blog --yes -o ./example.json
+```
+
+| Flag | Description |
+|------|-------------|
+| `-o, --out <file>` | Where to write the tap. Default: `~/.config/neurowire/taps/<host>.json`. |
+| `-y, --yes` | Accept every top candidate without prompting. |
+
+Nothing is written unless the template passes [verification](/concepts/taps#the-verification-gate); on a failure the failed checks print and the command exits 1. That holds for `--yes` too: it is a shortcut past the prompts, not past the gate.
+
+The written file carries a `url` hint naming the page it was authored against, so `tap check` and `tap heal` know where to look later. The template engine ignores that key.
+
+### tap check
+
+Do taps still match the pages they were written for? Deterministic and network-cheap (one fetch per tap), so it belongs in CI: it exits 1 the day a redesign breaks a tap, instead of letting the feed quietly go empty.
+
+```bash
+neurowire tap check ~/.config/neurowire/taps
+neurowire tap check ./example.json --json
+neurowire tap check --all
+```
+
+| Flag | Description |
+|------|-------------|
+| `--all` | Check every registered tap instead of a file or directory. |
+| `--json` | Print machine-readable results instead of the table. |
+| `--url <page>` | Force the page to check against, instead of each tap's own `url` hint. |
+
+Each tap comes back:
+
+| Status | Meaning |
+|--------|---------|
+| `healthy` | Every check passed. |
+| `degraded` | Passed the gate with a soft check failing, e.g. off-host links. |
+| `broken` | A hard check failed, or the page could not be fetched. |
+| `unknown` | The tap names no page, so there was nothing to check. |
+
+The exit code is 1 if any tap is broken. A tap's `host` is deliberately never turned into a page to fetch: most listing pages live at a path (`example.com/blog`), so fetching the apex would report a perfectly good tap as broken. Give a tap a `url` hint, or pass `--url`, and it gets checked; otherwise it is honestly reported as `unknown`.
+
+### tap heal
+
+A site changed. Re-author the tap against the page as it stands today: fields whose selectors still match are kept verbatim, and only the broken ones are walked. `--yes` takes the top candidate for each broken field.
+
+```bash
+neurowire tap heal ~/.config/neurowire/taps/example.com.json
+neurowire tap heal ./example.json --yes
+```
+
+The healed template goes through the same gate as the wizard, and the previous file is kept as `<path>.bak`. Healing repairs the tap it was given rather than growing it: a field the tap never claimed stays unclaimed, and the tap's `host` and `feedTitle` survive. A tap under `node_modules` is code someone else ships, so its replacement is printed rather than written.
 
 ### tap doctor
 

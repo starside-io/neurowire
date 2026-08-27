@@ -84,6 +84,9 @@ importers:
       '@neurowire/ingest':
         specifier: workspace:*
         version: link:../ingest
+      '@neurowire/tap-wizard':
+        specifier: workspace:*
+        version: link:../tap-wizard
       '@neurowire/taps':
         specifier: workspace:*
         version: link:../taps
@@ -132,6 +135,28 @@ importers:
       zod:
         specifier: ^3.24.1
         version: 3.25.76
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.5
+        version: 22.19.19
+      tsup:
+        specifier: ^8.3.5
+        version: 8.5.1(postcss@8.5.15)(tsx@4.22.4)(typescript@5.9.3)
+      typescript:
+        specifier: ^5.7.3
+        version: 5.9.3
+
+  packages/tap-wizard:
+    dependencies:
+      '@neurowire/core':
+        specifier: workspace:*
+        version: link:../core
+      '@neurowire/ingest':
+        specifier: workspace:*
+        version: link:../ingest
+      cheerio:
+        specifier: ^1.0.0
+        version: 1.2.0
     devDependencies:
       '@types/node':
         specifier: ^22.10.5
