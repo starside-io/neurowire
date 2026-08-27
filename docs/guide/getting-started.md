@@ -100,6 +100,20 @@ neurowire-web --mesh ai-news.json --out index.html
 
 :::
 
+## Sites with no feed
+
+Some sites publish a blog and ship no feed at all. A [tap](/concepts/taps) teaches Neurowire to read one: a small set of CSS selectors saying where each article sits on the listing page. You do not write them by hand, `tap wizard` proposes them from the page's structure and verifies the result before saving:
+
+```bash
+# author a tap (--yes takes the top suggestion for every field)
+neurowire tap wizard https://example.com/blog --yes -o example.json
+
+# the site now reads like any feed
+neurowire https://example.com/blog --taps example.json --format atom
+```
+
+Drop the tap into `~/.config/neurowire/taps/` (where the wizard writes by default) and the `--taps` flag becomes unnecessary. No model is involved and no API key is needed, at any point.
+
 ## Where to next
 
 - [CLI reference](/guide/cli): every flag and subcommand.
@@ -108,3 +122,4 @@ neurowire-web --mesh ai-news.json --out index.html
 - [Journals](/concepts/journals): keep an append-only archive of what a source publishes, and query it back.
 - [Tail](/concepts/tail): follow a source as a live stream, in the terminal or over SSE.
 - [Recipes](/guide/recipes): practical end-to-end workflows.
+- [Taps](/concepts/taps): read sites that ship no feed, and keep those readers working when the site is redesigned.
