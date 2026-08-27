@@ -14,6 +14,11 @@ dependencies, files touched, step list, tests, risks, acceptance.
 | 5 | Tap pack: 100 curated taps, conditional import | new `@neurowire/taps-pack` | [05-taps-pack.md](05-taps-pack.md) |
 | 6 | HTML page client-side search | web | [06-html-search.md](06-html-search.md) |
 | 8 | Test the untested layers (api, cli, web) | api, cli, web | [08-testing.md](08-testing.md) |
+| 9 | NWF journal (append-only log, protocol substrate) | core, ingest, cli | [09-nwf-journal.md](09-nwf-journal.md) |
+| 10 | MCP server (feeds as agent tools) | new `@neurowire/mcp` | [10-mcp-server.md](10-mcp-server.md) |
+| 11 | Tapsmith (LLM tap forging and self-healing) | new `@neurowire/tapsmith`, cli | [11-tapsmith.md](11-tapsmith.md) |
+| 12 | `neurowire tail` (streaming NWF, SSE) | ingest, api, cli | [12-nwf-tail.md](12-nwf-tail.md) |
+| 13 | NWF sync (delta exchange between peers) | ingest, api, cli | [13-nwf-sync.md](13-nwf-sync.md) |
 
 ## Dependency graph
 
@@ -26,6 +31,33 @@ dependencies, files touched, step list, tests, risks, acceptance.
 4 (self-host) ───────────────┤
 5 (taps-pack) ───────────────┘
 ```
+
+## Next-step arcs (epics 9-13)
+
+Two arcs on one shared substrate. Both are additive; neither touches the
+existing epics' surfaces.
+
+```
+              ┌─> 12 (tail: replay + resume ride on journals)
+9 (journal) ──┼─> 13 (sync: journals ARE the payload; hard dep)
+              └─> 10 (MCP: whats_new cursors; soft dep, window fallback)
+
+Arc A (agent-native):  10 (MCP server)     11 (tapsmith)     [independent of each other]
+Arc B (live protocol): 9 -> 12 (tail) -> 13 (sync)
+```
+
+- **Epic 9 first.** It is the only root: 13 cannot exist without it, 12 ships
+  degraded without it, 10 merely improves with it. Its spec (`nwfj`) must be
+  frozen before 12/13 build on it.
+- **Epic 11 is fully parallel** to everything (new package, plus CLI
+  subcommands that touch no shared code paths).
+- **Epic 10 can start in parallel** with 9; only its `whats_new` cursor mode
+  waits.
+- **Epic 12 before 13** so sync nodes have a way to keep journals fresh, and
+  because 12 rebases the watch loop that 13's docs lean on.
+
+Suggested sequence: **9 -> 12 -> 10 -> 11 -> 13** (or run Arc A and Arc B as
+two parallel tracks after 9 lands).
 
 - **No epic blocks another at the code level.** They touch mostly disjoint files
   and can ship in parallel.
