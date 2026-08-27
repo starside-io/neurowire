@@ -2,7 +2,20 @@
 
 Many sites publish a blog but ship no RSS or Atom feed. A **tap** wiretaps such a site: it is a per-host recipe of CSS selectors (a `FeedTemplate`) that turns the site's listing page into a Neurowire [feed](/concepts/model).
 
-The template engine lives in [`packages/ingest/src/html/template.ts`](https://github.com/neurowire/neurowire); the curated taps and their loaders live in [`@neurowire/taps`](https://github.com/neurowire/neurowire).
+The template engine lives in [`packages/ingest/src/html/template.ts`](https://github.com/neurowire/neurowire); the curated taps and their loaders live in [`@neurowire/taps`](https://github.com/neurowire/neurowire); the authoring and healing tools live in [`@neurowire/tap-wizard`](/reference/tap-wizard).
+
+## The life of a tap
+
+A tap is the one part of Neurowire shaped by someone else's HTML, so it is the one part that rots. The concept therefore covers four things, not one:
+
+| Stage | What it answers | Where |
+|-------|-----------------|-------|
+| **Shape** | What is a tap, and how does the engine read one? | [A tap is a `FeedTemplate`](#a-tap-is-a-feedtemplate) |
+| **Author** | Which selectors describe this page? | [the wizard](#authoring-a-tap-with-the-wizard), [`tap wizard`](/guide/cli#tap-wizard) |
+| **Verify** | Is this set of selectors actually good? | [the verification gate](#the-verification-gate) |
+| **Maintain** | Does it still match, and how do I fix it? | [checking and healing](#checking-and-healing-taps), [`tap check`](/guide/cli#tap-check) / [`tap heal`](/guide/cli#tap-heal) |
+
+None of it involves a model, at any stage. Structure proposes, a human confirms, and a deterministic verifier decides. Agent-driven authoring, when it arrives, will drive these same primitives as tools rather than replace them.
 
 ## A tap is a `FeedTemplate`
 
@@ -107,7 +120,7 @@ $ neurowire tap wizard https://example.com/blog
   wrote   ~/.config/neurowire/taps/example.com.json
 ```
 
-Type a number to accept a candidate, paste a selector to override it, press Enter to skip an optional field. **One fetch per session:** every pick is re-applied against the document already in memory, which is what keeps the loop instant and the publisher unbothered.
+Type a number to accept a candidate, paste a selector to override it, press Enter to skip an optional field. **One fetch per session:** every pick is re-applied against the document already in memory, which is what keeps the loop instant and the publisher unbothered. See [`tap wizard`](/guide/cli#tap-wizard) for the flags, and [`createTapSession`](/reference/tap-wizard#the-session) to drive the same walkthrough from your own code.
 
 Nothing about this involves a model. Candidates come from structure, ranked by how a page is actually built:
 
@@ -121,11 +134,13 @@ Nothing about this involves a model. Candidates come from structure, ranked by h
 | `author` | `[class*=author\|byline]`, `[rel=author]`. |
 | `tags` | `[class*=tag\|category\|label]`, `[rel=tag]`. |
 
-Whatever `proposeTemplate` (the `tap doctor` heuristic) returns is seeded as candidate zero for each field, so the existing answer is always the default and the alternatives sit right behind it.
+Whatever `proposeTemplate` (the `tap doctor` heuristic) returns is seeded as candidate zero for each field, so the existing answer is always the default and the alternatives sit right behind it. The full ranking rules are in [`suggestCandidates`](/reference/tap-wizard#candidate-suggestion).
+
+What each pick extracts is previewed by running the real engine, not a lookalike: [`previewTemplate`](/reference/tap-wizard#preview) calls `ingestDocument` with the candidate template, so what the walkthrough shows you is exactly what a fetch will produce.
 
 ### The verification gate
 
-No tap is written without passing `verifyTemplate`, on the interactive path and on `--yes` alike. The checks are deterministic and give the same verdict every run:
+No tap is written without passing [`verifyTemplate`](/reference/tap-wizard#the-verification-gate), on the interactive path and on `--yes` alike. The same gate decides the verdicts `tap check` reports, so authoring and monitoring cannot disagree about what a healthy tap is. The checks are deterministic and give the same verdict every run:
 
 | Check | Hard | What it catches |
 |-------|------|-----------------|
@@ -148,7 +163,16 @@ neurowire tap check ~/.config/neurowire/taps     # a file or a directory
 neurowire tap check --all --json                  # every registered tap
 ```
 
-Each tap is fetched once and run through the same gate, then classified `healthy`, `degraded`, `broken`, or `unknown`. The command exits 1 if anything is broken, which is what makes it worth putting in CI.
+Each tap is fetched once and run through the same gate, then classified:
+
+| Verdict | Meaning | Exits 1 |
+|---------|---------|---------|
+| `healthy` | Every check passed. | no |
+| `degraded` | Passed the gate with a soft check failing, e.g. off-host links. | no |
+| `broken` | A hard check failed, or the page could not be fetched. | **yes** |
+| `unknown` | The tap names no page, so there was nothing to check. | no |
+
+That exit code is the point: it is what makes `tap check` worth putting on a CI schedule, and what stops a redesign from silently emptying a feed. See [the CI recipe](/guide/recipes#author-a-tap-and-keep-it-working) for a workflow file.
 
 A tap file may carry an optional `url` key naming the listing page to check. It is not part of the template schema (the engine ignores it), it just tells `check` and `heal` where to look. The wizard writes the hint for you.
 
@@ -163,7 +187,9 @@ A tap with no hint is reported `unknown` rather than checked. The `host` is not 
 }
 ```
 
-When a tap does break, `tap heal <path>` re-authors it against the live page: each old selector is re-applied first, the ones that still match are kept, and only the broken fields are walked. The previous file is kept as `<path>.bak`. Bundled taps in `@neurowire/taps` and `@neurowire/taps-pack` are code rather than user files, so a tap under `node_modules` has its replacement printed instead of written.
+When a tap does break, [`tap heal <path>`](/guide/cli#tap-heal) re-authors it against the live page: each old selector is re-applied first, the ones that still match are kept, and only the broken fields are walked. A class rename, which is what most redesigns amount to, usually needs one answer.
+
+Healing repairs the tap it was given rather than growing it. A field the tap never claimed stays unclaimed, and the tap's `host` and `feedTitle` survive, since those are the author's decisions and not the site's. The replacement goes through the same gate as the wizard, and the file it replaces is kept as `<path>.bak` (written once, so a second heal cannot bury the hand-written original). Bundled taps in `@neurowire/taps` and `@neurowire/taps-pack` are code rather than user files, so a tap under `node_modules` has its replacement printed instead of written.
 
 Nothing in this loop calls a model or needs an API key. Heuristics propose, a human confirms, and a deterministic verifier decides.
 
@@ -179,3 +205,11 @@ Nothing in this loop calls a model or needs an API key. Heuristics propose, a hu
 | `mistralNews` | `mistral.ai` | Mistral AI News |
 
 `cursorBlog` omits `link` because each post card is itself an `<a href="/blog/...">`, so the matched item element is the anchor.
+
+## Where to next
+
+- [tap wizard / check / heal](/guide/cli#tap-wizard): every flag and exit code.
+- [Author a tap and keep it working](/guide/recipes#author-a-tap-and-keep-it-working): the whole lifecycle as a runnable recipe, including a CI workflow.
+- [`@neurowire/tap-wizard`](/reference/tap-wizard): the library behind the commands, for driving the same walkthrough from your own code.
+- [`@neurowire/taps`](/reference/taps): the bundled taps and the loaders that register them.
+- [`@neurowire/taps-pack`](/reference/taps-pack): the optional themed catalog of ready-made sources.

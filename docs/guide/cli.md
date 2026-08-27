@@ -170,6 +170,8 @@ Taps teach Neurowire to read sites with no RSS/Atom feed. The built-in taps load
 
 You can also set the `NEUROWIRE_TAPS` env var (a path or `:`-separated list), or drop `*.json` files into `~/.config/neurowire/taps/`. When custom taps load, the CLI writes `Loaded N custom tap(s)` to stderr. See [Taps](/concepts/taps).
 
+You do not have to write the selectors yourself. [`tap wizard`](#tap-wizard) authors a tap interactively, [`tap check`](#tap-check) tells you when one stops matching, and [`tap heal`](#tap-heal) repairs it after a redesign.
+
 `--tap-pack` needs `@neurowire/taps-pack` installed (`pnpm add @neurowire/taps-pack`); if it is absent the CLI prints an install hint and continues. Unknown theme keys are skipped with a warning. Example: `neurowire --tap-pack gaming https://www.pcgamer.com/rss/ -f json`.
 
 ## Global flags
@@ -323,4 +325,6 @@ neurowire https://example.com/blog
 neurowire --construct daily.json
 neurowire --construct daily.json --format atom --limit 20
 neurowire --mesh ai-news.json --filter tag:release --exclude title:sponsored -f json
+neurowire tap wizard https://example.com/blog --yes
+neurowire tap check ~/.config/neurowire/taps --json
 ```

@@ -14,18 +14,19 @@ Neurowire is published as a set of scoped npm packages. Install only the ones yo
 | `@neurowire/core` | 0.7.0 | Canonical model, serializers (NWF, atom, rss, json, md), `validateNwf`, `mergeFeeds`, mesh/construct types. Pure, no network. |
 | `@neurowire/ingest` | 0.6.0 | Fetch + detect + parse, HTML auto-detect, the CSS-template engine, `fetchFeed`/`fetchMesh`/`fetchConstruct`. |
 | `@neurowire/taps` | 0.3.0 | Curated per-host templates for feed-less sites plus loaders. |
+| `@neurowire/tap-wizard` | 0.1.0 | Tap authoring and healing: candidate selectors, preview, and the verification gate. No model, no API key. |
 | `@neurowire/cli` | 0.7.0 | The `neurowire` binary. |
 | `@neurowire/web` | 0.5.0 | HTML page generator: `toHtml` plus the `neurowire-web` binary. |
 
 ::: tip Dependency direction
-Dependencies flow strictly one way: `core` <- `ingest` <- `taps` <- (`cli`, `web`). Higher packages pull in everything below them, so you rarely install more than one for a given job.
+Dependencies flow strictly one way: `core` <- `ingest` <- (`taps`, `tap-wizard`) <- (`cli`, `web`). Higher packages pull in everything below them, so you rarely install more than one for a given job. `taps` and `tap-wizard` are siblings and know nothing of each other: one carries taps, the other authors them.
 :::
 
 ## Which package do I install?
 
 ### CLI users
 
-Install the CLI globally and use the `neurowire` command. It bundles core, ingest, and taps.
+Install the CLI globally and use the `neurowire` command. It bundles core, ingest, taps, and tap-wizard, so `tap wizard`, `tap check`, and `tap heal` work out of the box with nothing else to install.
 
 ::: code-group
 
@@ -70,6 +71,22 @@ npm install @neurowire/core @neurowire/ingest
 ```
 
 :::
+
+Add `@neurowire/tap-wizard` when your own code needs to author, verify, or heal taps rather than just use them. It is what the CLI's tap commands are built on, and it pulls in nothing beyond `core`, `ingest`, and cheerio:
+
+::: code-group
+
+```bash [pnpm]
+pnpm add @neurowire/tap-wizard
+```
+
+```bash [npm]
+npm install @neurowire/tap-wizard
+```
+
+:::
+
+See [`@neurowire/tap-wizard`](/reference/tap-wizard) for the API.
 
 Add `@neurowire/taps` when you want curated recipes for feed-less sites (call `registerAllTaps()`), and `@neurowire/web` when you want HTML rendering:
 
