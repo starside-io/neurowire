@@ -40,6 +40,7 @@ export default defineConfig({
             { text: 'CLI', link: '/guide/cli' },
             { text: 'Library', link: '/guide/library' },
             { text: 'HTTP API', link: '/guide/http-api' },
+            { text: 'Federation', link: '/guide/federation' },
             { text: 'Recipes', link: '/guide/recipes' },
           ],
         },
@@ -65,6 +66,7 @@ export default defineConfig({
           items: [
             { text: 'NWF', link: '/formats/nwf' },
             { text: 'NWFJ (journal)', link: '/formats/nwfj' },
+            { text: 'nwf-sync (protocol)', link: '/formats/nwf-sync' },
             { text: 'Atom', link: '/formats/atom' },
             { text: 'JSON Feed', link: '/formats/json-feed' },
             { text: 'Markdown', link: '/formats/markdown' },

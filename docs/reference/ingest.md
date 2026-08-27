@@ -403,6 +403,78 @@ declares cannot match anything inside it, so the segment is never opened. The
 manifest is a cache: delete it and it is rebuilt by rescanning.
 :::
 
+## Peer sync
+
+The client half of [`nwf-sync/1`](/formats/nwf-sync): pull journal deltas from peers you
+chose to trust, verify each response's hash chain, and append the entries to the local
+[journal store](#journal-store). The server half lives in
+[`@neurowire/api`](/reference/api#sync-endpoints).
+
+```ts
+interface Peer {
+  url: string
+  token?: string
+  journals?: string[]
+}
+
+function pullJournal(peer, journalId, store, options?): Promise<PullResult>
+function syncPeers(peers, store, options?): Promise<SyncReport>
+function listPeerJournals(peer, options?): Promise<string[]>
+```
+
+| Export | Description |
+|--------|-------------|
+| `pullJournal(peer, id, store, options?)` | Pull one journal. Polls the peer's head first and stops there when the recorded cursor matches, otherwise walks segments until the peer reports the transfer complete. Returns `{ added, skipped, head, remoteHead, requests, bytes, bootstrapped, reset }`. |
+| `syncPeers(peers, store, options?)` | Pull every selected journal from every peer, collecting failures into a `SyncReport` rather than throwing: one unreachable peer must not cost you the others' deltas. |
+| `listPeerJournals(peer, options?)` | The journal ids a peer publishes. |
+| `SyncError` | A sync failure, carrying `peer` and (when known) `journal`. |
+| `syncEndpoint(base, name, params?)` | Build a `/sync/<name>` URL against a peer's base URL. |
+| `SYNC_VERSION` | The protocol version this client implements. A response naming another version is refused rather than merged. |
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `state` | the file at `peerStatePath()` | Where peer cursors are recorded. |
+| `fetch` | `globalThis.fetch` | Injectable, so tests never touch the network. |
+| `signal` | - | Caller-driven cancellation. |
+| `timeoutMs` | `15000` | Per-request deadline, covering the body read. `0` disables it. |
+| `retries` | `2` | Extra attempts on a network failure, a timeout, a 5xx, or a 429. |
+| `backoffMs` | `500` | Base for full-jitter exponential backoff. |
+| `delay` | a `setTimeout` sleep | Injectable, so tests need no real waits. |
+| `maxSegments` | `500` | Safety valve on how many segments one pull may transfer. |
+| `stats` | - | A mutable `{ requests, bytes }` counter, so the cost of a pull survives a throw. |
+
+### Peer state
+
+```ts
+interface PeerStateStore {
+  get(peer: string, journal: string): JournalCursor | undefined
+  set(peer: string, journal: string, cursor: JournalCursor): void
+  entries(): Record<string, JournalCursor>
+}
+
+function peerStatePath(): string
+function openPeerState(path?: string): PeerStateStore
+function createMemoryPeerState(initial?): PeerStateStore
+```
+
+A sequence number is meaningful only inside one journal on one node: when this node appends
+pulled entries, its own store assigns its own numbering and computes its own chain. So the
+local head means nothing to the protocol, and what gets recorded is the **peer's** cursor,
+keyed by `(peer url, journal id)` in `~/.config/neurowire/peers-state.json` (or
+`$NEUROWIRE_PEERS_STATE`).
+
+::: tip Written only after the append lands
+A crash between the pull and the state write costs one re-pull, which the store's entry-key
+dedupe absorbs. The reverse order would silently lose entries. Every response is chain-
+verified **before** anything from it is appended, so a flipped byte merges nothing.
+:::
+
+A peer's journal can be rebuilt, restored, or repointed, leaving the recorded cursor
+pointing at a journal that no longer exists. A head that moved backwards, or a chain hash
+that disagrees at the recorded sequence number, is treated as divergence: the cursor resets
+to zero, the pull starts over, and `PullResult.reset` says so. Without that check every
+later sync would report "0 new" forever with a clean exit code.
+
 ## OPML import
 
 ```ts

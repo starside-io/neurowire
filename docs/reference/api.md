@@ -108,6 +108,57 @@ The API serves only flattened feed formats for constructs. The grouped, multi-pa
 lives in [`@neurowire/web`](/reference/web).
 :::
 
+## Sync endpoints
+
+`packages/api/src/sync.ts` serves [`nwf-sync/1`](/formats/nwf-sync), the peer delta-exchange
+protocol: four read-only routes that let another node pull journal deltas instead of
+re-fetching every upstream source itself. They are mounted at `/sync/*`, and every response
+carries `NWF-Sync-Version: 1`.
+
+**Nothing is published by default.** A node exposes journals explicitly, via
+`NEUROWIRE_SYNC_PUBLISH` or `~/.config/neurowire/sync.json`. An unpublished id and a
+nonexistent id answer the same `404`.
+
+| Endpoint | Returns |
+|----------|---------|
+| `GET /sync/journals` | JSON: the published journals, each with `id`, `title`, `head`, `entries`, `segments`, `bytes`, `updated`. |
+| `GET /sync/head?journal=<id>` | JSON `{ journal, head, hash? }`. The cheap poll target. |
+| `GET /sync/since?journal=<id>&cursor=<c>` | One NWFJ segment after `c` (`application/x-nwf-journal`); `204` when up to date, `410` when the cursor predates retention. |
+| `GET /sync/snapshot?journal=<id>&cursor=<c>` | The same, except a too-old cursor is clamped instead of failing. Bootstrap and `410` recovery. |
+
+A `200` from `since` or `snapshot` adds `NWF-Sync-Journal`, `NWF-Sync-Head`,
+`NWF-Sync-Range` (`<firstSeq>-<lastSeq>`), `NWF-Sync-Segment`, and `NWF-Sync-Complete`
+(`1` when the response reaches the head). Responses hand back **one whole segment**, never a
+concatenation: NWFJ dictionary indices are per segment and the chain reseeds at each `J`
+header, so glued segments would decode and verify wrongly.
+
+Statuses: `200`; `204` (cursor at or past the head); `400` (missing `journal`, path-like id,
+or an unparseable `cursor`); `401` (a token is configured and was not presented); `404`
+(not published); `410` (`since` only, body points at `/sync/snapshot`).
+
+### Module exports
+
+`packages/api/src/sync.ts` exports the sub-app and its helpers for anyone assembling a
+custom server around them. The published package's entrypoint exports only `app`.
+
+| Export | Description |
+|--------|-------------|
+| `sync` | The `Hono` sub-app holding the four routes, mounted by `app.ts` at `/sync`. |
+| `SYNC_VERSION` / `SYNC_VERSION_HEADER` | `1` and `NWF-Sync-Version`. |
+| `loadSyncConfig()` | The publish list and token: `sync.json` first, environment on top. A corrupt file publishes nothing rather than crashing. |
+| `publishedJournalIds(config, store)` | The ids this node serves: every explicitly named id, plus every journal on disk when the list contains `*`. |
+| `isPublished(id, config, store)` | Whether one id is exposed. |
+| `describeJournal(store, id)` | One journal's listing entry. Everything but the title comes from the manifest. |
+| `headCursor(store, id)` | The head cursor including its chain hash, read from the tail of the newest segment (the store's own `head()` reports only the sequence number). |
+| `parseSyncCursor(raw)` | Parse a `cursor` query value (`42` or `42.<hash>`); `undefined` when unparseable. |
+
+::: warning The chain is a checksum, not a signature
+The bearer token gates access and the hash chain detects corruption. Nothing here
+authenticates content origin, and `nwf-sync/1` does not sign anything. You sync from peers
+you chose to trust, over TLS your proxy terminates. See the
+[trust model](/formats/nwf-sync#integrity) and the [federation guide](/guide/federation).
+:::
+
 ## Mesh resolution
 
 `packages/api/src/meshes.ts` resolves a mesh name to a [`Mesh`](/reference/core#mesh). User
@@ -180,4 +231,8 @@ function createTtlCache(): TtlCache
 | `NEUROWIRE_MESHES` | - | `:`/`,`-separated directories searched for named meshes. |
 | `NEUROWIRE_CONSTRUCTS` | - | `:`/`,`-separated directories searched for named constructs. |
 | `NEUROWIRE_TAPS` | - | Extra taps loaded at startup via `registerAllTaps()`. |
+| `NEUROWIRE_JOURNAL` | `~/.config/neurowire/journal` | Journal store directory the `/sync/*` routes read. |
+| `NEUROWIRE_SYNC_PUBLISH` | - | `:`/`,`-separated journal ids to publish over `/sync/*`, or `*` for all. Nothing is published without it. |
+| `NEUROWIRE_SYNC_TOKEN` | - | Static bearer token required on every `/sync/*` request. Unset means open. |
+| `NEUROWIRE_SYNC_CONFIG` | `~/.config/neurowire/sync.json` | Path to the `{ publish, token }` config file. |
 | `XDG_CONFIG_HOME` | `~/.config` | Base for the default mesh/construct/tap directories. |

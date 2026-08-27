@@ -11,7 +11,7 @@ Turn any blog into a modern feed. Point Neurowire at a website that lists articl
 | `@neurowire/taps` | Curated "taps" (`FeedTemplate`s) for sites worth following that ship no RSS/Atom feed (e.g. `claude.com/blog`). Bring your own via `NEUROWIRE_TAPS` or `--taps`. |
 | `@neurowire/taps-pack` | Optional themed catalog of 270+ sources across 24 themes (tech and general-interest), with per-theme conditional imports. Register from the CLI with `--tap-pack`. |
 | `@neurowire/cli` | `neurowire <url>` to print a feed in the terminal or emit any format. |
-| `@neurowire/api` | Tiny HTTP service: `GET /feed?url=...&format=atom`. |
+| `@neurowire/api` | Tiny HTTP service: `GET /feed?url=...&format=atom`, plus the `nwf-sync/1` peer endpoints. |
 | `@neurowire/web` | Renders a feed, mesh, or construct to self-contained HTML (`neurowire-web` bin + `toHtml`/`toConstructHtml`), for scheduled static publishing. |
 
 ## Output formats
@@ -72,6 +72,24 @@ C   1  f8ec59a5d7eeebdc                                  checkpoint: chain value
 Two properties make it queryable at size with no database beside it: `seq` is a dense primary index, and each segment's dictionaries act as skip filters, so a query for `tag:rust` never opens a segment whose tags cannot match. The store keeps a `<id>.manifest.json` sidecar for that planning; it is a cache and is rebuilt by rescanning if deleted. Records are one per line and TAB-separated, so `grep` works too, and `journal cat ai -f json` hands the archive to duckdb or pandas.
 
 `createJournalEncoder`, `parseJournal`, `queryJournal`, and friends live in `@neurowire/core`; `openJournalStore` lives in `@neurowire/ingest`. Full spec in [docs/formats/nwfj.md](docs/formats/nwfj.md).
+
+## Federation
+
+Journals are the payload of a small pull protocol, **`nwf-sync/1`**. One node fetches the open web, journals it, and publishes the archive; other nodes pull deltas instead of hammering the same 200 publishers from every laptop they own. Chains of nodes form a store-and-forward news mesh with no central hub.
+
+```bash
+# On the hub: publish the journal the API already has
+NEUROWIRE_SYNC_PUBLISH=ai NEUROWIRE_SYNC_TOKEN=secret neurowire-api
+
+# On a laptop: register the peer and pull
+neurowire peers add https://hub.example.com --token secret
+neurowire sync --peers
+#   ai: 26 new, cursor 1310, 2 requests, 4.1 KB
+```
+
+Four read-only `GET`s (`/sync/journals`, `/sync/head`, `/sync/since`, `/sync/snapshot`), NWFJ segments on the wire, cursors per peer, and merges deduped by entry key so a diamond or a cycle of peers stores one copy. The hash chain is verified on every pull. It detects corruption, it is **not** a signature: you sync from peers you chose to trust. Nothing is published without saying so.
+
+The real payoff is the case direct fetching cannot solve. A laptop that was closed all day cannot recover what scrolled off the front page, but the node that stayed awake recorded every entry, and `sync` hands over exactly the missed window. Protocol spec in [docs/formats/nwf-sync.md](docs/formats/nwf-sync.md); the three-node setup is in [docs/guide/federation.md](docs/guide/federation.md).
 
 ## Meshes
 

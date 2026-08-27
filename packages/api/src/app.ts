@@ -22,6 +22,7 @@ import { type Context, Hono } from 'hono'
 import { createTtlCache } from './cache'
 import { listConstructNames, resolveConstruct } from './constructs'
 import { listMeshNames, resolveMesh } from './meshes'
+import { sync } from './sync'
 
 // Built-in taps plus any from NEUROWIRE_TAPS or ~/.config/neurowire/taps.
 registerAllTaps()
@@ -194,3 +195,7 @@ app.post('/construct', async (c) => {
     return c.json({ error: 'failed to build construct', detail }, 502)
   }
 })
+
+// Peer delta exchange (nwf-sync/1). Nothing is published by default; see
+// packages/api/src/sync.ts and docs/formats/nwf-sync.md.
+app.route('/sync', sync)

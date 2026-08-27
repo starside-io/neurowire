@@ -1,5 +1,11 @@
 # @neurowire/cli
 
+## Unreleased
+
+- Add `neurowire sync <peer-url>` and `neurowire sync --peers`: pull journal deltas from peers over `nwf-sync/1`. Reports what moved per journal and exits non-zero when any pull failed.
+- Add the `peers` subcommand group: `peers list`, `peers add <url> [--token t] [--journal id]`, and `peers remove <url>`, managing `~/.config/neurowire/peers.json`.
+- Add `--peers` and `--token` flags.
+
 ## 0.9.0
 
 - Add `--journal <id>` and `--journal-dir <dir>`: append fetched entries to an append-only journal, on the normal fetch path and on every `--watch` tick. Duplicates are dropped.

@@ -1,4 +1,5 @@
-import { existsSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { dirname } from 'node:path'
 import { parseArgs } from 'node:util'
 import {
   ConstructSchema,
@@ -17,6 +18,7 @@ import {
   type FeedTemplate,
   FeedTemplateSchema,
   type FetchedConstruct,
+  type Peer,
   createConfigMeshResolver,
   fetchConstruct,
   fetchDocument,
@@ -26,6 +28,7 @@ import {
   openJournalStore,
   opmlToMesh,
   proposeTemplate,
+  syncPeers,
 } from '@neurowire/ingest'
 import { registerAllTaps } from '@neurowire/taps'
 import {
@@ -41,6 +44,16 @@ import {
   partitionNew,
 } from './pipeline'
 import { deliver } from './sinks'
+import {
+  addPeer,
+  formatPeersConfig,
+  formatPeersList,
+  formatSyncReport,
+  peerFromArgs,
+  peersConfigPath,
+  readPeersConfig,
+  removePeer,
+} from './sync'
 
 const VERSION = '0.9.0'
 
@@ -90,6 +103,10 @@ Keep an append-only archive (a journal):
       --journal-dir <d>  Where journals live (default: ~/.config/neurowire/journal
                          or $NEUROWIRE_JOURNAL).
 
+Sync journals from peers (nwf-sync/1):
+      --peers            Sync every peer in ~/.config/neurowire/peers.json.
+      --token <t>        Bearer token for a peer that requires one.
+
 Deliver to sinks (push entries to a destination):
       --sink <url>       POST entries to a destination. Repeatable. Slack, Discord,
                          or a generic webhook, auto-detected by URL. With --watch,
@@ -103,6 +120,8 @@ Commands:
   journal head <id>      Print the journal's head cursor.
   journal cat <id>       Print a journal, all of it or the tail after --cursor <n>.
   journal query <id>     Query a journal with the same --filter/--since/--sort flags.
+  sync <peer-url>        Pull journal deltas from a peer (or --peers for all).
+  peers list|add|remove  Manage ~/.config/neurowire/peers.json.
 
 A mesh bundles many sources into one feed:
   { "name": "AI News", "sources": [{ "name": "...", "url": "..." }] }
@@ -127,6 +146,9 @@ Examples:
   neurowire --mesh ai-news.json --watch --sink https://hooks.slack.com/services/...
   neurowire --mesh ai-news.json --journal ai
   neurowire journal query ai --filter tag:release --since 30d -f md
+  neurowire peers add https://hub.example.com --token secret
+  neurowire sync https://hub.example.com --journal ai
+  neurowire sync --peers
   neurowire validate feed.nwf
   neurowire tap doctor https://example.com/blog > ~/.config/neurowire/taps/example.com.json
   neurowire opml export --mesh ai-news.json > ai-news.opml
@@ -423,6 +445,127 @@ function runJournal(sub: string | undefined, rest: string[], values: CliValues):
 }
 
 /**
+ * Read the configured peers. A missing file is an empty list; an unreadable one
+ * is an error, never an empty list, so nothing later overwrites it.
+ */
+function readPeersFile(): { ok: true; peers: Peer[] } | { ok: false; error: string } {
+  const path = peersConfigPath()
+  if (!existsSync(path)) return { ok: true, peers: [] }
+  return readPeersConfig(readFileSync(path, 'utf8'))
+}
+
+/** Narrow every peer to one journal when --journal is set on a sync run. */
+function scopePeers(peers: Peer[], journal: string | undefined): Peer[] {
+  if (!journal) return peers
+  return peers.map((peer) => ({ ...peer, journals: [journal] }))
+}
+
+/**
+ * Pull journal deltas from a peer URL, or from every configured peer with
+ * --peers. Prints one line per journal plus a summary, and exits non-zero when
+ * any peer or journal failed, so a cron job notices.
+ */
+async function runSync(rest: string[], values: CliValues): Promise<void> {
+  const token = typeof values.token === 'string' ? values.token : undefined
+  const journal = typeof values.journal === 'string' ? values.journal : undefined
+
+  let peers: Peer[]
+  if (values.peers) {
+    const configured = readPeersFile()
+    if (!configured.ok) {
+      process.stderr.write(`error: cannot read ${peersConfigPath()}: ${configured.error}\n`)
+      process.exitCode = 1
+      return
+    }
+    peers = scopePeers(configured.peers, journal)
+    if (peers.length === 0) {
+      process.stderr.write(
+        `error: no peers configured in ${peersConfigPath()}\n\nAdd one: neurowire peers add https://hub.example.com\n`,
+      )
+      process.exitCode = 1
+      return
+    }
+  } else {
+    const url = rest[0]
+    if (!url) {
+      process.stderr.write(
+        'error: sync needs a peer url (or --peers)\n\n' +
+          'Usage: neurowire sync <peer-url> [--journal <id>] [--token <t>]\n' +
+          '       neurowire sync --peers\n',
+      )
+      process.exitCode = 1
+      return
+    }
+    peers = [peerFromArgs(url, token, journal)]
+  }
+
+  const report = await syncPeers(peers, journalStore(values))
+  for (const line of formatSyncReport(report)) process.stdout.write(`${line}\n`)
+  if (report.errors) process.exitCode = 1
+}
+
+/** Dispatch the `peers` subcommand group: `list`, `add <url>`, or `remove <url>`. */
+function runPeers(sub: string | undefined, rest: string[], values: CliValues): void {
+  const usage =
+    'Usage:\n' +
+    '  neurowire peers list\n' +
+    '  neurowire peers add <url> [--token <t>] [--journal <id>]\n' +
+    '  neurowire peers remove <url>\n'
+
+  if (sub !== 'list' && sub !== 'add' && sub !== 'remove') {
+    process.stderr.write(`error: peers needs a subcommand: list, add, or remove\n\n${usage}`)
+    process.exitCode = 1
+    return
+  }
+
+  const path = peersConfigPath()
+  const configured = readPeersFile()
+  if (!configured.ok) {
+    // Refusing here is the point: rewriting the file would drop every peer and
+    // token the operator cannot see because the file no longer parses.
+    process.stderr.write(`error: cannot read ${path}: ${configured.error}\n`)
+    process.exitCode = 1
+    return
+  }
+  const peers = configured.peers
+
+  if (sub === 'list') {
+    for (const line of formatPeersList(peers)) process.stdout.write(`${line}\n`)
+    return
+  }
+
+  const url = rest[0]
+  if (!url) {
+    process.stderr.write(`error: peers ${sub} needs a url\n\n${usage}`)
+    process.exitCode = 1
+    return
+  }
+
+  const write = (next: Peer[]): void => {
+    mkdirSync(dirname(path), { recursive: true })
+    // 0600: this file holds bearer tokens.
+    writeFileSync(path, formatPeersConfig(next), { mode: 0o600 })
+  }
+
+  if (sub === 'add') {
+    const token = typeof values.token === 'string' ? values.token : undefined
+    const journal = typeof values.journal === 'string' ? values.journal : undefined
+    write(addPeer(peers, peerFromArgs(url, token, journal)))
+    process.stderr.write(`Added ${url} to ${path}\n`)
+    return
+  }
+
+  const { peers: kept, removed } = removePeer(peers, url)
+  if (!removed) {
+    process.stderr.write(`error: no peer matching ${url} in ${path}\n`)
+    process.exitCode = 1
+    return
+  }
+  write(kept)
+  process.stderr.write(`Removed ${url} from ${path}\n`)
+}
+
+/**
  * Apply the --filter (include) and --exclude rules to a feed. Returns the
  * filtered feed, or undefined after writing an error and setting a non-zero
  * exit code when a rule has an unknown field. Pure parsing lives in pipeline.ts;
@@ -701,6 +844,8 @@ async function main(): Promise<void> {
       journal: { type: 'string' },
       'journal-dir': { type: 'string' },
       cursor: { type: 'string' },
+      peers: { type: 'boolean' },
+      token: { type: 'string' },
       sink: { type: 'string', multiple: true },
       name: { type: 'string' },
       help: { type: 'boolean', short: 'h' },
@@ -729,6 +874,16 @@ async function main(): Promise<void> {
 
   if (positionals[0] === 'journal') {
     runJournal(positionals[1], positionals.slice(2), values)
+    return
+  }
+
+  if (positionals[0] === 'sync') {
+    await runSync(positionals.slice(1), values)
+    return
+  }
+
+  if (positionals[0] === 'peers') {
+    runPeers(positionals[1], positionals.slice(2), values)
     return
   }
 
