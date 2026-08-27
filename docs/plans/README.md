@@ -37,13 +37,21 @@ dependencies, files touched, step list, tests, risks, acceptance.
 Two arcs on one shared substrate. Both are additive; neither touches the
 existing epics' surfaces.
 
-```
-9 (journal) ──┬─> 11 (tail: replay + resume ride on journals)
-   [SHIPPED]  └─> 12 (sync: journals ARE the payload; hard dep)
+```mermaid
+flowchart LR
+  J["9 · NWF journal<br/>SHIPPED"]
+  T["11 · tail<br/>replay and resume"]
+  S["12 · sync<br/>journals are the payload"]
+  W["10 · tap wizard<br/>independent, no LLM"]
+  M["13 · MCP + marketplace<br/>wraps whatever has landed"]
 
-10 (tap wizard) ─── independent, parallel to everything
-
-                    all of the above ──> 13 (MCP: wraps whatever has landed)
+  J -->|cursors| T
+  J -->|hard dep| S
+  T --> S
+  J -.->|cursors| M
+  W -.->|verify gate| M
+  T -.-> M
+  S -.-> M
 ```
 
 - **Epic 9 is done**, shipped in core 0.8.0 / ingest 0.7.0 / cli 0.9.0. It was

@@ -19,78 +19,89 @@ The obvious objection: every node can already run `fetchMesh` itself, so why ask
 a peer? Because direct fetching does not scale across machines, and it cannot
 recover time you were not running.
 
-### Diagram 1: what fan-out actually costs
+### Diagram 1: what fan-out costs
 
+```mermaid
+flowchart TB
+  subgraph noSync["WITHOUT SYNC · 600 fetches per tick"]
+    direction LR
+    L1[laptop] --> S1[("200 sources<br/>the open web")]
+    P1[phone] --> S1
+    C1[CI] --> S1
+  end
+  subgraph viaSync["WITH SYNC · 200 fetches per tick"]
+    direction LR
+    L2[laptop] -->|pull deltas| H[["hub<br/>journal"]]
+    P2[phone] -->|pull deltas| H
+    C2[CI] -->|pull deltas| H
+    H -->|fetches| S2[("200 sources<br/>the open web")]
+  end
+  noSync ~~~ viaSync
 ```
-WITHOUT SYNC                                 WITH SYNC
-every device fetches every source            one node fetches, peers pull deltas
 
-  laptop ─┐                                    laptop ─┐
-  phone  ─┼─► 200 sources                      phone  ─┼─► hub ──► 200 sources
-  server ─┤   (× 3 devices                     CI     ─┘   │       (× 1 node
-  CI     ─┘    = 600 fetches/tick)                         │        = 200 fetches/tick)
-                                                     journal
-  · 600 HTTP requests hitting the same hosts    · 200 requests, one polite poller
-  · 3 different snapshots, none reproducible    · one corpus, identical everywhere
-  · every device needs every tap + taps-pack    · only the hub needs taps
-  · a rate-limited host bans all of you         · a laptop that was asleep still
-  · asleep 16h/day = those entries are gone       gets the entries it missed
-```
+Three devices following the same 200 sources make 600 requests a tick against
+those publishers, from three IPs that together look like a small scraping
+operation. Routing through one hub makes it 200, and the devices pull compact
+deltas instead. Only the hub needs the taps, and every device sees the same
+corpus rather than three different snapshots.
 
 ### Diagram 2: the pull handshake
 
-A sync is three cheap calls, and usually stops after the first:
+```mermaid
+sequenceDiagram
+    autonumber
+    participant B as peer B (client)
+    participant A as node A (server)
 
-```
-peer B (client)                                    node A (server)
-      │
-      │  GET /sync/head?journal=ai                       │
-      ├─────────────────────────────────────────────────►│
-      │◄─────────────────────────────  { head: 1284 }    │
-      │
-      │  local cursor is 1284? ──► done. one request, no body.
-      │  local cursor is 1201?
-      │
-      │  GET /sync/since?journal=ai&cursor=1201          │
-      ├─────────────────────────────────────────────────►│
-      │◄────────  200  E 1202 …  E 1284 …  C 1284 <hash> │   NWFJ lines only
-      │                                                   │
-      │  verify chain ──► append to local store ──► cursor = 1284
-      │
-      │  (cursor too old, segment compacted away)         │
-      │◄────────  410 Gone  { snapshot: "/sync/snapshot" }│
-      │  ──► bootstrap from snapshot, dedupe by entry key
+    rect rgba(14,124,134,0.10)
+    Note over B,A: up to date · the steady state
+    B->>A: GET /sync/head?journal=ai
+    A-->>B: { head: 1284 }
+    Note over B: local cursor already 1284, stop.<br/>one request, no body
+    end
+
+    rect rgba(14,124,134,0.10)
+    Note over B,A: behind
+    B->>A: GET /sync/since?journal=ai&cursor=1201
+    A-->>B: 200 · E 1202 … E 1284, C 1284 hash
+    Note over B: verify chain, append, cursor = 1284
+    end
+
+    rect rgba(169,85,15,0.10)
+    Note over B,A: cursor too old, compaction dropped it
+    B->>A: GET /sync/since?journal=ai&cursor=12
+    A-->>B: 410 Gone, { snapshot }
+    Note over B: bootstrap from snapshot,<br/>dedupe by entry key
+    end
 ```
 
-The steady state is one request returning a number. That is the whole point: a
-device on a train wakes up, asks a question worth ~40 bytes, and usually goes
-straight back to sleep.
+The steady state is the first case: one request that returns a number. A device
+on a train wakes up, asks a question worth about 40 bytes, and usually goes
+straight back to sleep. Entries move only when the cursor is actually behind,
+and a cursor older than retention fails loudly (`410`) instead of quietly
+returning a partial answer.
 
 ### Diagram 3: store-and-forward, no central hub
 
-Peers are configured, not discovered, and journals forward through chains
-because merging is idempotent by entry key:
+```mermaid
+flowchart TD
+  A[["node A · hub<br/>always on, holds the taps"]]
+  W[("the open web<br/>200 sources")]
+  B["node B · team box<br/>republishes /sync"]
+  L["laptop<br/>asleep most of the day"]
+  C["node C<br/>LAN only, never the internet"]
 
+  A -->|fetches| W
+  A -->|/sync| B
+  A -->|/sync| L
+  B -->|/sync over LAN| C
 ```
-        ┌──────────────┐  fetches the open web, holds every tap
-        │  node A      │  (a VPS, always on, journals a construct)
-        │  hub         │
-        └──────┬───────┘
-               │ /sync
-        ┌──────┴───────┐
-        ▼              ▼
-  ┌───────────┐  ┌───────────┐        A ── B ── C  is fine: C pulls what B
-  │  node B   │  │  laptop   │        already pulled from A. Entry keys make
-  │  team box │  │  (asleep  │        the merge idempotent, so a diamond
-  └─────┬─────┘  │  all day) │        (C peers with both A and B) stores one
-        │ /sync  └───────────┘        copy, and a cycle terminates.
-        ▼
-  ┌───────────┐   air-gapped-ish: reaches node B on the LAN,
-  │  node C   │   never the open internet. Still gets the news.
-  └───────────┘   Provenance survives: entry.source still says
-                  which original outlet published it, after any
-                  number of hops.
-```
+
+Peers are configured, not discovered. `A -> B -> C` is fine: C gets what B
+already pulled from A. Because merging is idempotent by entry key, a diamond (C
+peering with both A and B) stores one copy and a cycle terminates. Provenance
+survives every hop: `entry.source` still names the outlet that published the
+story, not the peer it arrived through.
 
 ## Real-life scenarios
 

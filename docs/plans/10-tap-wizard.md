@@ -129,6 +129,42 @@ One fetch per session. Choosing a field never refetches; the document is held
 and re-applied. That is what makes the walkthrough feel instant and keeps a
 noisy site from being hammered.
 
+## What the walkthrough looks like
+
+The point of the epic in one screen: candidates ranked by structure, a live
+match count, and a sample of what the current pick actually extracts.
+
+```
+$ neurowire tap wizard https://example.com/blog
+
+  step 1/6  article block                       matched: 24
+    1) article.post-card       24 matches
+    2) li.entry                 9 matches
+    3) div.card                61 matches   (includes nav)
+  > 1
+
+  step 2/6  title                               matched: 24
+    1) h3.post-title           24/24 non-empty
+    2) a                       24/24, but 3 duplicate links
+  > 1
+    preview  Rust 1.94 released        /posts/rust-194
+             Announcing the new API    /posts/new-api
+             Notes from the offsite    /posts/offsite
+
+  step 3/6  link            (optional, Enter to use the title anchor)
+  > 
+
+  ...
+
+  verify  24 items · titles 24/24 · links unique · dates 22/24 · ancestor ok
+  wrote   ~/.config/neurowire/taps/example.com.json
+```
+
+Type a number to accept, paste a selector to override, Enter to skip an
+optional field. One fetch per session: choosing a field re-applies against the
+held document rather than hitting the site again, which is what keeps the loop
+instant and the publisher unbothered.
+
 ## CLI surface
 
 ```
