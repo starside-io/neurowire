@@ -15,7 +15,7 @@ dependencies, files touched, step list, tests, risks, acceptance.
 | 6 | HTML page client-side search | web | [06-html-search.md](06-html-search.md) |
 | 8 | Test the untested layers (api, cli, web) | api, cli, web | [08-testing.md](08-testing.md) |
 | 9 | NWF journal (append-only log, protocol substrate) **[shipped]** | core, ingest, cli | [09-nwf-journal.md](09-nwf-journal.md) |
-| 10 | Tap Studio (deterministic tap authoring and repair) | new `@neurowire/tap-studio`, cli | [10-tap-studio.md](10-tap-studio.md) |
+| 10 | Tap Wizard (deterministic tap authoring and healing) | new `@neurowire/tap-wizard`, cli | [10-tap-wizard.md](10-tap-wizard.md) |
 | 11 | `neurowire tail` (streaming NWF, SSE) | ingest, api, cli | [11-nwf-tail.md](11-nwf-tail.md) |
 | 12 | NWF sync (delta exchange between peers) | ingest, api, cli | [12-nwf-sync.md](12-nwf-sync.md) |
 | 13 | MCP server + the `starside` plugin marketplace | new `@neurowire/mcp` | [13-mcp-server.md](13-mcp-server.md) |
@@ -41,7 +41,7 @@ existing epics' surfaces.
 9 (journal) ──┬─> 11 (tail: replay + resume ride on journals)
    [SHIPPED]  └─> 12 (sync: journals ARE the payload; hard dep)
 
-10 (tap studio) ─── independent, parallel to everything
+10 (tap wizard) ─── independent, parallel to everything
 
                     all of the above ──> 13 (MCP: wraps whatever has landed)
 ```
@@ -56,7 +56,7 @@ existing epics' surfaces.
 - **Epic 11 before 12**, so sync nodes have a way to keep journals fresh, and
   because 11 rebases the watch loop that 12's docs lean on.
 - **Epic 13 is last on purpose.** It is a thin wrapper whose tool surface widens
-  with every epic before it: journals give it cursors, Tap Studio gives it a
+  with every epic before it: journals give it cursors, Tap Wizard gives it a
   verification gate to put an LLM behind, tail gives it subscriptions, sync gives
   it peer archives. Building it first would mean revising it four times.
 

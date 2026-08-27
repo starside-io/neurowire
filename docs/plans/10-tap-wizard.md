@@ -1,4 +1,4 @@
-# Epic 10: Tap Studio (deterministic tap authoring and repair)
+# Epic 10: Tap Wizard (deterministic tap authoring and healing)
 
 ## Goal
 
@@ -8,12 +8,12 @@ silently). Do it with **no AI in the loop**: heuristics propose, a step-by-step
 walkthrough lets a human confirm, and a deterministic verifier decides whether a
 tap is good.
 
-- `neurowire tap studio <url>`: an interactive terminal walkthrough. It analyzes
+- `neurowire tap wizard <url>`: an interactive terminal walkthrough. It analyzes
   the page, suggests candidate selectors per field, previews what each choice
   extracts, and writes a verified tap.
 - `neurowire tap check`: does a registered tap still match? Deterministic, no
   network beyond the fetch, CI-safe, exits non-zero on breakage.
-- `neurowire tap repair <tap>`: a site changed. Re-run the analyzer against the
+- `neurowire tap heal <tap>`: a site changed. Re-run the analyzer against the
   live page, show what the old selectors used to match versus what the
   candidates match now, and let a human pick the replacement.
 
@@ -39,11 +39,11 @@ implementation instead of three.
 
 ## Package design
 
-New workspace package `@neurowire/tap-studio`.
+New workspace package `@neurowire/tap-wizard`.
 
 - Runtime deps: `@neurowire/core`, `@neurowire/ingest`, `cheerio`. **No LLM SDK,
   no HTTP client beyond ingest's**, no API keys anywhere.
-- Chain position: `core` <- `ingest` <- `tap-studio` <- (`cli`, and later `mcp`).
+- Chain position: `core` <- `ingest` <- `tap-wizard` <- (`cli`, and later `mcp`).
   `taps` and `taps-pack` are untouched.
 - Everything except the fetch is pure and synchronous over an HTML string, so it
   tests against saved fixtures with no network.
@@ -108,7 +108,7 @@ selector that grabs one nav anchor per item fails here); date extraction rate
 when a date selector is claimed; and a **nav/footer probe**, that matched items
 share a near common ancestor rather than being scattered across the chrome.
 
-Nothing writes a tap without passing this gate: not the wizard, not repair, not
+Nothing writes a tap without passing this gate: not the wizard, not heal, not
 the MCP tool in Epic 13.
 
 ### 4. Session state (`session.ts`)
@@ -132,12 +132,12 @@ noisy site from being hammered.
 ## CLI surface
 
 ```
-neurowire tap studio <url> [-o file] [--yes]
+neurowire tap wizard <url> [-o file] [--yes]
 neurowire tap check [path|--all] [--json]
-neurowire tap repair <path> [--yes]
+neurowire tap heal <path> [--yes]
 ```
 
-- **studio**: renders each step with numbered candidates, a `matched: N` line,
+- **wizard**: renders each step with numbered candidates, a `matched: N` line,
   and a 3-entry sample. Type a number to accept, paste a selector to override,
   Enter to skip an optional field. Refuses to save a template that fails
   `verifyTemplate`, printing which checks failed. `--yes` accepts every top
@@ -146,28 +146,28 @@ neurowire tap repair <path> [--yes]
 - **check**: LLM-free and network-cheap, so it belongs in CI. Reports a health
   table (healthy / degraded / broken) and exits 1 on any broken tap. This is
   what stops `taps-pack` rotting silently.
-- **repair**: shows the old template's report beside fresh candidates, marks
+- **heal**: shows the old template's report beside fresh candidates, marks
   which fields still match, and walks only the broken ones. Writes user taps
   back to `~/.config/neurowire/taps/` with a `.bak`. Bundled taps in
-  `taps`/`taps-pack` are code, not user files, so repair prints the proposed
+  `taps`/`taps-pack` are code, not user files, so heal prints the proposed
   JSON diff and never writes into the repo or `node_modules`.
 
-`tap doctor` stays as the existing one-shot proposal printer; `studio` is its
+`tap doctor` stays as the existing one-shot proposal printer; `wizard` is its
 interactive successor and `doctor` may become an alias later.
 
 ## Reuse in `neurowire-app`
 
 The app's `tapHelper.ts` becomes a thin wrapper: keep `assertPublicUrl` (the
 SSRF guard is app policy and stays there), delegate `analyzeSource` and
-`previewTap` to `@neurowire/tap-studio`, and delete the duplicated candidate
+`previewTap` to `@neurowire/tap-wizard`, and delete the duplicated candidate
 logic. `TapWizard.tsx` keeps its UI and calls the same session API. One engine,
 two front ends, and the app stops drifting from the library.
 
 ## Non-goals
 
-- **No LLM anywhere in this package.** Not for suggestion, not for repair, not
+- **No LLM anywhere in this package.** Not for suggestion, not for healing, not
   behind a flag. Agent-driven authoring is Epic 13's job, through these tools.
-- No autonomous background repair daemon. `check` reports; a human runs `repair`.
+- No autonomous background healing daemon. `check` reports; a human runs `heal`.
 - No headless browser. Static HTML only, so a JS-rendered site remains out of
   scope (and `check` will honestly report it as unmatched).
 - No bundled-tap auto-editing; repo taps get a printed diff.
@@ -180,17 +180,17 @@ None. Fully parallel to Epics 11 and 12. Epic 13 consumes it.
 
 | File | Change |
 |------|--------|
-| `packages/tap-studio/package.json`, `tsconfig.json`, `tsup.config.ts` | new package |
-| `packages/tap-studio/src/suggest.ts` + test | candidate selectors from structure |
-| `packages/tap-studio/src/preview.ts` + test | preview via the real engine |
-| `packages/tap-studio/src/verify.ts` + test | the deterministic gate |
-| `packages/tap-studio/src/session.ts` + test | the pure step machine |
-| `packages/tap-studio/src/index.ts` | exports |
-| `packages/cli/src/tap-studio.ts` + test | prompt rendering, pure input parsing |
-| `packages/cli/src/index.ts` | `tap studio` / `tap check` / `tap repair` routing |
-| `vitest.config.ts` | thresholds for `tap-studio` (95/95/95: it is pure and fixture-driven) |
-| `docs/guide/taps.md`, `docs/concepts/taps.md` | authoring and repair workflow |
-| `docs/reference/tap-studio.md` | new reference page; nav entry |
+| `packages/tap-wizard/package.json`, `tsconfig.json`, `tsup.config.ts` | new package |
+| `packages/tap-wizard/src/suggest.ts` + test | candidate selectors from structure |
+| `packages/tap-wizard/src/preview.ts` + test | preview via the real engine |
+| `packages/tap-wizard/src/verify.ts` + test | the deterministic gate |
+| `packages/tap-wizard/src/session.ts` + test | the pure step machine |
+| `packages/tap-wizard/src/index.ts` | exports |
+| `packages/cli/src/tap-wizard.ts` + test | prompt rendering, pure input parsing |
+| `packages/cli/src/index.ts` | `tap wizard` / `tap check` / `tap heal` routing |
+| `vitest.config.ts` | thresholds for `tap-wizard` (95/95/95: it is pure and fixture-driven) |
+| `docs/guide/taps.md`, `docs/concepts/taps.md` | authoring and healing workflow |
+| `docs/reference/tap-wizard.md` | new reference page; nav entry |
 | `README.md` | package table row |
 
 ## Steps
@@ -198,9 +198,9 @@ None. Fully parallel to Epics 11 and 12. Epic 13 consumes it.
 1. `suggest.ts` + `verify.ts` against saved-HTML fixtures, reusing the fixture
    style in ingest's autodetect tests. Both are useful standalone.
 2. `preview.ts` and `session.ts` on top.
-3. CLI `tap studio` with a `--yes` non-interactive path (that path is what the
+3. CLI `tap wizard` with a `--yes` non-interactive path (that path is what the
    tests drive; interactive prompting stays a thin uncovered shell).
-4. `tap check`, then `tap repair`.
+4. `tap check`, then `tap heal`.
 5. Point `neurowire-app`'s `tapHelper.ts` at the package, delete the duplicate.
 6. Docs, changelog, `pnpm docs:build`.
 
@@ -232,9 +232,9 @@ None. Fully parallel to Epics 11 and 12. Epic 13 consumes it.
 
 ## Acceptance
 
-- `neurowire tap studio <feed-less site>` produces a tap that `neurowire <url>
+- `neurowire tap wizard <feed-less site>` produces a tap that `neurowire <url>
   --taps <file>` then serves correctly, with zero model calls and no API key.
-- Breaking a fixture's markup makes `tap check` exit 1 and `tap repair` walk the
+- Breaking a fixture's markup makes `tap check` exit 1 and `tap heal` walk the
   broken field to a passing template.
 - `neurowire-app`'s wizard runs on the shared package with its candidate logic
   deleted, behavior unchanged.

@@ -12,7 +12,7 @@ other arcs build, and every epic that lands before it widens its tool surface:
 | Earlier epic | What it gives the agent |
 |---|---|
 | 9, journal (shipped) | `whats_new` answers with a real cursor, not a lossy time window |
-| 10, tap studio | `propose_tap` / `verify_tap` become real tools, and the **only** place an LLM touches tap authoring |
+| 10, tap wizard | `propose_tap` / `verify_tap` become real tools, and the **only** place an LLM touches tap authoring |
 | 11, tail | an agent can subscribe rather than poll |
 | 12, sync | an agent can read a peer's archive without fetching the open web |
 
@@ -37,7 +37,7 @@ sources*, not shipping `llms.txt` would be a bad look.
 New workspace package `@neurowire/mcp`, bin `neurowire-mcp`.
 
 - Runtime deps: `@neurowire/core`, `ingest`, `taps`, `taps-pack`,
-  `@neurowire/tap-studio` (Epic 10), `@modelcontextprotocol/sdk`, `zod`.
+  `@neurowire/tap-wizard` (Epic 10), `@modelcontextprotocol/sdk`, `zod`.
 - Transport: stdio. HTTP is a non-goal; the existing api package already serves
   HTTP for anyone who wants it.
 - Shape mirrors the api package: `mcp/src/server.ts` is pure and testable over an
