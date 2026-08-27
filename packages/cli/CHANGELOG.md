@@ -1,5 +1,10 @@
 # @neurowire/cli
 
+## 0.9.0
+
+- Add `--journal <id>` and `--journal-dir <dir>`: append fetched entries to an append-only journal, on the normal fetch path and on every `--watch` tick. Duplicates are dropped.
+- Add the `journal` subcommand group: `journal head <id>`, `journal cat <id> [--cursor <n>]`, and `journal query <id>`, the last accepting the same filter, window, sort, and limit flags as the fetch path.
+
 ## 0.8.0
 
 - Add `--tap-pack <theme[,theme...]|all>`: register themes from the optional `@neurowire/taps-pack` catalog (repeatable). Prints an install hint if the package is absent.

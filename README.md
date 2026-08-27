@@ -1,13 +1,13 @@
 # Neurowire
 
-Turn any blog into a modern feed. Point Neurowire at a website that lists articles, an RSS feed, or an Atom feed, and get back **Atom** plus three more formats. Everything is normalized to one canonical model, so the CLI, API, and UI all render the same data.
+Turn any blog into a modern feed. Point Neurowire at a website that lists articles, an RSS feed, or an Atom feed, and get back **Atom** plus four more formats, or keep the whole history in an append-only **journal**. Everything is normalized to one canonical model, so the CLI, API, and UI all render the same data.
 
 ## Packages
 
 | Package | What it does |
 |---------|--------------|
-| `@neurowire/core` | Canonical model + serializers: the compact Neurowire Feed (`nwf`), Atom, JSON Feed 1.1, and Markdown. |
-| `@neurowire/ingest` | Fetch + detect + parse: RSS / Atom / JSON Feed, plus HTML auto-detect with a per-site template fallback. |
+| `@neurowire/core` | Canonical model + serializers: the compact Neurowire Feed (`nwf`), Atom, RSS 2.0, JSON Feed 1.1, and Markdown, plus the append-only journal format (`nwfj`). |
+| `@neurowire/ingest` | Fetch + detect + parse: RSS / Atom / JSON Feed, plus HTML auto-detect with a per-site template fallback, and the on-disk journal store. |
 | `@neurowire/taps` | Curated "taps" (`FeedTemplate`s) for sites worth following that ship no RSS/Atom feed (e.g. `claude.com/blog`). Bring your own via `NEUROWIRE_TAPS` or `--taps`. |
 | `@neurowire/taps-pack` | Optional themed catalog of 270+ sources across 24 themes (tech and general-interest), with per-theme conditional imports. Register from the CLI with `--tap-pack`. |
 | `@neurowire/cli` | `neurowire <url>` to print a feed in the terminal or emit any format. |
@@ -19,9 +19,10 @@ Turn any blog into a modern feed. Point Neurowire at a website that lists articl
 - `atom`: Atom 1.0 (`application/atom+xml`), the primary output.
 - `json`: JSON Feed 1.1 (`application/feed+json`).
 - `md`: Markdown digest.
+- `rss`: RSS 2.0 (`application/rss+xml`).
 - `nwf`: Neurowire Feed, a compact line format (interned authors, tags and sources, relative links, delta timestamps). Round-trippable, see [the NWF format](#the-nwf-format) below.
 
-A styled **HTML news page** for publishing is a separate concern handled by `@neurowire/web` (see [Publishing a page](#publishing-a-page)), not a core feed format.
+A styled **HTML news page** for publishing is a separate concern handled by `@neurowire/web` (see [Publishing a page](#publishing-a-page)), not a core feed format. The append-only journal (`nwfj`) is likewise not an output format: it stores a feed's history rather than rendering it, see [Journals](#journals).
 
 ## The NWF format
 
@@ -38,6 +39,39 @@ E  id  delta  link  authorRefs  tagRefs  title  summary  sourceRef   one line pe
 ```
 
 It stays small by interning authors, tags and sources (referenced by index), storing each link relative to `B`, and storing each entry's date as a delta in seconds before the feed's `updated`. `authorRefs` / `tagRefs` are comma-separated indices into `A` / `T`; `sourceRef` is a single index into `S` (the per-source label, set when merging a [mesh](#meshes)). Text cells escape backslash, TAB, CR and LF. It round-trips back to the model via `fromNwf`, and the `sourceRef` column is appended last so older documents without it still parse.
+
+## Journals
+
+A feed is a snapshot: whatever a site is showing right now. A **journal** is the append-only archive behind it, so entries that scroll off the front page are still there months later. Add `--journal <id>` to any fetch:
+
+```bash
+neurowire --mesh ai-news.json --journal ai              # archive on a timer
+neurowire --mesh ai-news.json --journal ai --watch      # or every watch tick
+```
+
+Entries the journal already holds are dropped on append, so re-running adds only what is new. Journals live in `~/.config/neurowire/journal` (or `$NEUROWIRE_JOURNAL`, or `--journal-dir`).
+
+Read one back with the same filter, window, sort, and limit flags a live fetch takes, in any output format:
+
+```bash
+neurowire journal head ai                                    # 128
+neurowire journal cat ai --cursor 128 -f json                # only what arrived since
+neurowire journal query ai --filter tag:rust --since 30d -f md
+```
+
+The storage format is **NWFJ**, the append-only sibling of NWF: one record per line, dictionaries that grow as they are used, absolute timestamps, a sequence number on every entry, and an optional hash chain.
+
+```
+J   1  ai  1787771856                                    journal header (one per segment)
+F   feedId  title  home  self                            feed identity, re-emitted on change
+T+  0  rust                                              dictionary growth, interned on first use
+E   1  updated  published  id  link  authorRefs  tagRefs  title  summary  sourceRef
+C   1  f8ec59a5d7eeebdc                                  checkpoint: chain value at seq 1
+```
+
+Two properties make it queryable at size with no database beside it: `seq` is a dense primary index, and each segment's dictionaries act as skip filters, so a query for `tag:rust` never opens a segment whose tags cannot match. The store keeps a `<id>.manifest.json` sidecar for that planning; it is a cache and is rebuilt by rescanning if deleted. Records are one per line and TAB-separated, so `grep` works too, and `journal cat ai -f json` hands the archive to duckdb or pandas.
+
+`createJournalEncoder`, `parseJournal`, `queryJournal`, and friends live in `@neurowire/core`; `openJournalStore` lives in `@neurowire/ingest`. Full spec in [docs/formats/nwfj.md](docs/formats/nwfj.md).
 
 ## Meshes
 

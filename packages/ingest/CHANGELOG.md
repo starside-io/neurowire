@@ -1,5 +1,10 @@
 # @neurowire/ingest
 
+## 0.7.0
+
+- Add the journal store: `openJournalStore` and `journalConfigDir` persist NWFJ journals as size-capped segments plus a rebuildable `<id>.manifest.json` sidecar, with append-time dedupe, cursor reads (`since`), chain verification, and compaction.
+- Journal queries plan against the manifest: segments whose date range or dictionary vocabulary cannot match are skipped without being opened.
+
 ## 0.6.0
 
 - Add OPML import: `opmlToMesh` parses an OPML subscription list into a validated mesh.

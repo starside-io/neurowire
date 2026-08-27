@@ -1,6 +1,6 @@
 {
   "name": "@neurowire/taps-pack",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "A large, themed catalog of Neurowire taps and feed sources (tech and general-interest), with per-theme conditional imports.",
   "type": "module",
   "main": "./dist/index.js",

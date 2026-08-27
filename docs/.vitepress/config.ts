@@ -54,6 +54,7 @@ export default defineConfig({
             { text: 'Taps', link: '/concepts/taps' },
             { text: 'Meshes', link: '/concepts/meshes' },
             { text: 'Constructs', link: '/concepts/constructs' },
+            { text: 'Journals', link: '/concepts/journals' },
             { text: 'Sinks', link: '/concepts/sinks' },
           ],
         },
@@ -63,6 +64,7 @@ export default defineConfig({
           text: 'Formats',
           items: [
             { text: 'NWF', link: '/formats/nwf' },
+            { text: 'NWFJ (journal)', link: '/formats/nwfj' },
             { text: 'Atom', link: '/formats/atom' },
             { text: 'JSON Feed', link: '/formats/json-feed' },
             { text: 'Markdown', link: '/formats/markdown' },

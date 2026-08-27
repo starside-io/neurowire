@@ -102,6 +102,53 @@ console.log(MEDIA_TYPES.json) // 'application/feed+json; charset=utf-8'
 
 The direct serializers (`toAtom`, `toRss`, `toJsonFeed`, `toMarkdown`, `toNwf`) and the NWF round-trip helpers (`fromNwf`, `validateNwf`) are also exported. See [The model](/concepts/model) and the [core reference](/reference/core).
 
+## Archive to a journal
+
+A [journal](/concepts/journals) is an append-only archive of what a source has published. `openJournalStore` persists one per id as [NWFJ](/formats/nwfj) segments; entries the journal already holds are dropped on append, so archiving on a timer is safe.
+
+```ts
+import { openJournalStore } from '@neurowire/ingest'
+
+const store = openJournalStore() // ~/.config/neurowire/journal, or { dir }
+
+const { added, head } = store.append('ai', feed.entries, {
+  id: feed.id,
+  title: feed.title,
+  home: feed.home,
+})
+console.log(`added ${added}, head is now ${head.seq}`)
+```
+
+Read it back from a cursor to get only what arrived since last time:
+
+```ts
+const { entries, tooOld } = store.since('ai', head)
+```
+
+`tooOld` is true when compaction dropped the entries the cursor pointed past, so the delta cannot be complete and you should re-read the whole journal.
+
+Query an archive with the same filter, window, sort, and limit semantics a live feed uses:
+
+```ts
+const { entries, scanned, skipped } = store.query('ai', {
+  filter: { include: [{ field: 'tag', pattern: 'rust' }] },
+  from: Date.now() - 30 * 86_400_000,
+  sort: 'date',
+  limit: 20,
+})
+```
+
+`skipped` lists segment files the plan ruled out from the manifest alone and never opened. To hand the result to a serializer, wrap it back into a feed:
+
+```ts
+import { journalToFeed, serialize } from '@neurowire/core'
+
+const records = store.read('ai')
+const md = serialize(journalToFeed({ records, head: store.head('ai'), issues: [] }), 'md')
+```
+
+The format itself (`createJournalEncoder`, `parseJournal`, `readJournalSince`, `journalHead`, `verifyJournal`, `queryJournal`) is pure and lives in core, so you can journal to something other than the filesystem. See the [core](/reference/core#journal) and [ingest](/reference/ingest#journal-store) references.
+
 ## Render HTML
 
 `@neurowire/web` is the only package that emits HTML (core stays format-pure). All three functions return self-contained pages with inline CSS and no external requests.

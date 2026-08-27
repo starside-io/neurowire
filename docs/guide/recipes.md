@@ -76,6 +76,52 @@ neurowire https://example.com/blog --format atom
 
 You can also load a tap ad hoc with `--taps <path>` or via the `NEUROWIRE_TAPS` env var. See [tap doctor](/guide/cli#tap-doctor).
 
+## Archive a mesh and research it later
+
+Front pages scroll away. Keep everything a mesh publishes in an append-only [journal](/concepts/journals), then query the archive months later.
+
+Archive on a timer (cron, a systemd timer, a CI schedule). Re-running adds only what is new, so the interval does not have to be precise:
+
+```bash
+neurowire --mesh ai-news.json --journal ai
+```
+
+Or let a single long-running watch loop do both jobs, archiving every tick while it notifies:
+
+```bash
+neurowire --mesh ai-news.json \
+  --watch --interval 30m \
+  --state ~/.neurowire-seen.json \
+  --journal ai \
+  --sink https://hooks.slack.com/services/T000/B000/XXXX
+```
+
+Then research it with the same flags a live fetch takes:
+
+```bash
+# everything tagged rust in the last 30 days, as Markdown
+neurowire journal query ai --filter tag:rust --since 30d -f md
+
+# one source, newest first
+neurowire journal query ai --filter source:Anthropic --sort date --limit 20
+```
+
+Pull just the delta since a position you recorded earlier:
+
+```bash
+cursor=$(neurowire journal head ai)
+# ...later...
+neurowire journal cat ai --cursor "$cursor" -f json
+```
+
+To take the archive somewhere else, dump it as JSON and load it into duckdb, sqlite, or pandas:
+
+```bash
+neurowire journal cat ai -f json > ai-archive.json
+```
+
+See [CLI journals](/guide/cli#journals).
+
 ## Convert any feed to RSS 2.0
 
 Normalize any source (RSS, Atom, JSON Feed, or an HTML page) and re-emit it as RSS 2.0.

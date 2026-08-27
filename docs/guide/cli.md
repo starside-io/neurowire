@@ -12,6 +12,7 @@ neurowire validate <file-or-url>
 neurowire tap doctor <url>
 neurowire opml export --mesh <file>|--construct <file> [-o out.opml]
 neurowire opml import <file-or-url> [-o mesh.json] [--name <name>]
+neurowire journal head|cat|query <id> [options]
 ```
 
 With no `--format`, Neurowire prints a colorized terminal view. With `--format` it serializes the feed to stdout (or to `--out`).
@@ -120,6 +121,22 @@ neurowire --mesh ai-news.json --watch --interval 15m -f json
 neurowire --mesh ai-news.json --watch --state ~/.neurowire-seen.json
 ```
 
+## Journals
+
+Keep an append-only archive of everything a source has published, so you can come back to it later. Entries the journal already holds are dropped, which makes journaling safe to run on a timer.
+
+| Flag | Description |
+|------|-------------|
+| `--journal <id>` | Append the fetched entries to the journal `<id>`. |
+| `--journal-dir <dir>` | Where journals live. Default `$NEUROWIRE_JOURNAL`, else `~/.config/neurowire/journal`. |
+
+```bash
+neurowire --mesh ai-news.json --journal ai
+neurowire --mesh ai-news.json --journal ai --watch --interval 30m
+```
+
+Each run reports what it added: `Journaled 4 new entries to ai (head 128)`. Journals are stored as [NWFJ](/formats/nwfj) segments plus a rebuildable manifest, and are read back with the `journal` subcommands below.
+
 ## Sinks
 
 Push entries to a destination over HTTP POST. Repeatable. The destination kind is auto-detected from the URL host: Slack (`slack.com`), Discord (`discord.com`/`discordapp.com`), or a generic webhook (everything else, which receives the JSON Feed as `application/feed+json`).
@@ -203,6 +220,42 @@ Import an OPML file or URL into a mesh JSON. The mesh name comes from `--name`, 
 ```bash
 neurowire opml import subscriptions.opml -o mesh.json --name "My Reader"
 ```
+
+### journal head
+
+Print the journal's head cursor, the position to resume from next time.
+
+```bash
+neurowire journal head ai
+```
+
+### journal cat
+
+Print a journal as a feed, in any output format. With `--cursor <n>` it prints only the entries after that sequence number, which is how you pull a delta rather than the whole archive. A cursor older than the oldest retained entry prints a warning, since compaction means the delta cannot be complete.
+
+| Flag | Description |
+|------|-------------|
+| `--cursor <n>` | Only entries after this sequence number. Accepts `42` or `42.<hash>`. |
+| `-f, --format <fmt>` | Any output format. Omit for the terminal view. |
+| `-o, --out <file>` | Write to a file instead of stdout (with `--format`). |
+
+```bash
+neurowire journal cat ai -f md
+neurowire journal cat ai --cursor 128 -f json
+```
+
+### journal query
+
+Query an archive with the same `--filter`, `--exclude`, date-window, `--sort`, and `--limit` flags the fetch path uses, so a journal answers exactly what a live feed answers. Segments that provably cannot match are skipped without being read, and a note goes to stderr when that happens.
+
+```bash
+neurowire journal query ai --filter tag:rust --since 30d -f md
+neurowire journal query ai --filter source:Anthropic --sort date --limit 20
+```
+
+::: tip Journals are plain text
+Segments are one record per line, TAB-separated, so `grep` and `awk` work directly on them. Use `journal cat ai -f json` when you want to load an archive into duckdb, sqlite, or pandas. See the [NWFJ format](/formats/nwfj).
+:::
 
 ## More examples
 

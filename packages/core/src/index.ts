@@ -1,6 +1,7 @@
 export * from './diff'
 export * from './filter'
 export * from './id'
+export * from './journal'
 export * from './merge'
 export * from './model'
 export * from './opml'

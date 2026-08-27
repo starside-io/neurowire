@@ -1,6 +1,6 @@
 # Getting started
 
-Neurowire turns any blog, website, RSS, or Atom feed into clean, modern feeds. Point it at a URL and get back **NWF** (a compact custom format), **Atom**, **RSS 2.0**, **JSON Feed 1.1**, or **Markdown**. Bundle many sources into one **mesh**, group meshes into a **construct**, and render any feed, mesh, or construct into a self-contained **HTML news page**.
+Neurowire turns any blog, website, RSS, or Atom feed into clean, modern feeds. Point it at a URL and get back **NWF** (a compact custom format), **Atom**, **RSS 2.0**, **JSON Feed 1.1**, or **Markdown**. Bundle many sources into one **mesh**, group meshes into a **construct**, keep the history in an append-only **journal**, and render any feed, mesh, or construct into a self-contained **HTML news page**.
 
 ## Three surfaces
 
@@ -87,4 +87,5 @@ neurowire-web --mesh ai-news.json --out index.html
 - [CLI reference](/guide/cli): every flag and subcommand.
 - [The model](/concepts/model): the canonical feed shape.
 - [Atom format](/formats/atom): the default serializer.
+- [Journals](/concepts/journals): keep an append-only archive of what a source publishes, and query it back.
 - [Recipes](/guide/recipes): practical end-to-end workflows.

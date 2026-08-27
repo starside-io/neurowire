@@ -360,6 +360,49 @@ function createConfigMeshResolver(options?: ConfigResolverOptions): MeshResolver
 | `loadMeshFromConfig(name, options?)` | Read a mesh by name (tries `<name>.mesh.json` then `<name>.json`). Returns `undefined` when absent. Rejects path-like names. |
 | `createConfigMeshResolver(options?)` | A `MeshResolver` backed by the config directories. Pass to `fetchConstruct({ resolver })`. |
 
+## Journal store
+
+The on-disk side of [NWFJ](/formats/nwfj): one journal per feed or mesh id, stored as
+size-capped `<id>.<nnnnn>.nwfj` segments plus a `<id>.manifest.json` sidecar. The
+format itself lives in [`@neurowire/core`](/reference/core#journal).
+
+```ts
+interface JournalStoreOptions {
+  dir?: string
+  maxSegmentBytes?: number
+}
+
+function journalConfigDir(): string
+function openJournalStore(options?: JournalStoreOptions): JournalStore
+```
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `dir` | `journalConfigDir()` | Where segments and manifests are written. Created on demand. |
+| `maxSegmentBytes` | `5242880` | Rotate to a new segment once the active one reaches this size. |
+
+| Method | Description |
+|--------|-------------|
+| `append(id, entries, feed?)` | Append entries, dropping ones the journal already holds. Rotates when the active segment is full. Returns `{ added, skipped, head, segment, rotated }`. |
+| `since(id, cursor)` | Records after a cursor, plus `tooOld` when compaction dropped what came before it. |
+| `read(id)` | Every record in the journal. |
+| `query(id, query)` | Run a `JournalQuery`, reporting which segment files were `scanned` and which were `skipped`. |
+| `head(id)` | The journal's head cursor. |
+| `manifest(id)` | The segment index, rebuilt automatically when missing or stale. |
+| `verify(id)` | Recompute every segment's chain. |
+| `compact(id, keep)` | Drop all but the newest `keep` segments. Returns the removed file names. |
+| `list()` | Journal ids present in the directory. |
+
+`journalConfigDir()` resolves `$NEUROWIRE_JOURNAL`, else `~/.config/neurowire/journal`
+(honoring `XDG_CONFIG_HOME`), matching the mesh and tap config directories.
+
+::: tip Why queries can skip whole segments
+The manifest records each segment's sequence range, date range, and dictionary
+vocabulary. A query filtering on a tag, author, or source that a segment never
+declares cannot match anything inside it, so the segment is never opened. The
+manifest is a cache: delete it and it is rebuilt by rescanning.
+:::
+
 ## OPML import
 
 ```ts

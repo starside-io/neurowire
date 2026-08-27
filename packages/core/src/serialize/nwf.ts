@@ -1,4 +1,20 @@
 import type { NeurowireEntry, NeurowireFeed, Person } from '../model'
+import {
+  type EntrySource,
+  SEP,
+  dec,
+  decPerson,
+  decSource,
+  enc,
+  encPerson,
+  encSource,
+  fromEpoch,
+  hasSource,
+  parseRefs,
+  personKey,
+  sourceKey,
+  toEpoch,
+} from './cells'
 
 /**
  * Neurowire Feed v1 (`nwf`): a compact, line-oriented feed format.
@@ -23,64 +39,6 @@ import type { NeurowireEntry, NeurowireFeed, Person } from '../model'
  * appended last, so older NWF1 documents that omit it still parse.
  */
 
-const SEP = '\t'
-const UNIT = String.fromCharCode(31)
-
-type EntrySource = NonNullable<NeurowireEntry['source']>
-
-const enc = (s: string): string =>
-  s.replace(/\\/g, '\\\\').replace(/\t/g, '\\t').replace(/\r/g, '\\r').replace(/\n/g, '\\n')
-
-const dec = (s: string): string =>
-  s.replace(/\\(.)/g, (_, c: string) =>
-    c === 't' ? '\t' : c === 'r' ? '\r' : c === 'n' ? '\n' : c,
-  )
-
-function toEpoch(iso: string | undefined): number | undefined {
-  if (!iso) return undefined
-  const ms = Date.parse(iso)
-  return Number.isNaN(ms) ? undefined : Math.floor(ms / 1000)
-}
-
-const fromEpoch = (sec: number): string => new Date(sec * 1000).toISOString()
-
-function encPerson(p: Person): string {
-  const parts = [p.name]
-  if (p.url !== undefined || p.email !== undefined) parts.push(p.url ?? '')
-  if (p.email !== undefined) parts.push(p.email ?? '')
-  return parts.map(enc).join(UNIT)
-}
-
-function decPerson(cell: string): Person {
-  const [name = '', url, email] = cell.split(UNIT).map(dec)
-  const person: Person = { name }
-  if (url) person.url = url
-  if (email) person.email = email
-  return person
-}
-
-function encSource(source: EntrySource): string {
-  const name = enc(source.name ?? '')
-  return source.url ? `${name}${UNIT}${enc(source.url)}` : name
-}
-
-function decSource(cell: string): EntrySource {
-  const [name = '', url] = cell.split(UNIT).map(dec)
-  const source: EntrySource = {}
-  if (name) source.name = name
-  if (url) source.url = url
-  return source
-}
-
-function hasSource(source: EntrySource | undefined): source is EntrySource {
-  return source !== undefined && (Boolean(source.name) || Boolean(source.url))
-}
-
-function parseRefs(cell: string | undefined): number[] {
-  if (!cell) return []
-  return cell.split(',').map((n) => Number.parseInt(n, 10))
-}
-
 /** Longest shared link prefix, trimmed to a path boundary (keeps scheme + host). */
 function commonBase(links: string[]): string {
   if (links.length < 2) return ''
@@ -103,7 +61,7 @@ export function toNwf(feed: NeurowireFeed): string {
   const authors: Person[] = []
   const authorKeys = new Map<string, number>()
   const internAuthor = (p: Person): number => {
-    const key = `${p.name}${UNIT}${p.url ?? ''}${UNIT}${p.email ?? ''}`
+    const key = personKey(p)
     const existing = authorKeys.get(key)
     if (existing !== undefined) return existing
     const index = authors.length
@@ -126,7 +84,7 @@ export function toNwf(feed: NeurowireFeed): string {
   const sources: EntrySource[] = []
   const sourceKeys = new Map<string, number>()
   const internSource = (source: EntrySource): number => {
-    const key = `${source.name ?? ''}${UNIT}${source.url ?? ''}`
+    const key = sourceKey(source)
     const existing = sourceKeys.get(key)
     if (existing !== undefined) return existing
     const index = sources.length

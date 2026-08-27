@@ -1,5 +1,9 @@
 # @neurowire/web
 
+## 0.5.1
+
+- Republish so the pinned `@neurowire/core`, `@neurowire/ingest`, and `@neurowire/taps` versions match the current release. No behavior change.
+
 ## 0.5.0
 
 - Add a client-side search box to generated HTML pages (feed pages and per-mesh construct pages): live filter, "N of M shown" count, empty state, debounced, reduced-motion aware. Pages stay fully self-contained.

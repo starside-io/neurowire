@@ -7,6 +7,7 @@ import {
   type NeurowireFeed,
   constructToOpml,
   isFormat,
+  journalToFeed,
   meshToOpml,
   parseDuration,
   serialize,
@@ -22,6 +23,7 @@ import {
   fetchFeed,
   fetchMesh,
   flattenConstruct,
+  openJournalStore,
   opmlToMesh,
   proposeTemplate,
 } from '@neurowire/ingest'
@@ -32,12 +34,15 @@ import {
   applyFilterSpec,
   applySelectOptions,
   buildFilterSpec,
+  buildJournalQuery,
   buildSelectOptions,
+  journalFeedMeta,
+  parseJournalCursor,
   partitionNew,
 } from './pipeline'
 import { deliver } from './sinks'
 
-const VERSION = '0.8.0'
+const VERSION = '0.9.0'
 
 const HELP = `Neurowire ${VERSION} - turn any blog or feed into Atom and friends.
 
@@ -79,6 +84,12 @@ Watch a feed or mesh and emit only new entries:
       --interval <age>   Poll interval, e.g. 30m, 6h, 1d (default: 5m).
       --state <file>     JSON file of seen entry keys, so restarts skip old items.
 
+Keep an append-only archive (a journal):
+      --journal <id>     Append fetched entries to the journal <id>. Duplicates are
+                         dropped, so re-running adds only what is new.
+      --journal-dir <d>  Where journals live (default: ~/.config/neurowire/journal
+                         or $NEUROWIRE_JOURNAL).
+
 Deliver to sinks (push entries to a destination):
       --sink <url>       POST entries to a destination. Repeatable. Slack, Discord,
                          or a generic webhook, auto-detected by URL. With --watch,
@@ -89,6 +100,9 @@ Commands:
   tap doctor <url>       Propose a FeedTemplate (tap) for a feed-less page.
   opml export            Export a mesh/construct to OPML 2.0 (--mesh or --construct, -o optional).
   opml import <src>      Import an OPML file or URL into a mesh JSON (-o, --name optional).
+  journal head <id>      Print the journal's head cursor.
+  journal cat <id>       Print a journal, all of it or the tail after --cursor <n>.
+  journal query <id>     Query a journal with the same --filter/--since/--sort flags.
 
 A mesh bundles many sources into one feed:
   { "name": "AI News", "sources": [{ "name": "...", "url": "..." }] }
@@ -111,6 +125,8 @@ Examples:
   neurowire --mesh ai-news.json --filter tag:release --exclude title:sponsored --format json
   neurowire --mesh ai-news.json --watch --interval 15m --format json
   neurowire --mesh ai-news.json --watch --sink https://hooks.slack.com/services/...
+  neurowire --mesh ai-news.json --journal ai
+  neurowire journal query ai --filter tag:release --since 30d -f md
   neurowire validate feed.nwf
   neurowire tap doctor https://example.com/blog > ~/.config/neurowire/taps/example.com.json
   neurowire opml export --mesh ai-news.json > ai-news.opml
@@ -285,6 +301,125 @@ async function runOpml(sub: string | undefined, rest: string[], values: CliValue
       '  neurowire opml import <file-or-url> [-o mesh.json] [--name <name>]\n',
   )
   process.exitCode = 1
+}
+
+/** Open the journal store for this invocation, honoring --journal-dir. */
+function journalStore(values: CliValues) {
+  const dir = values['journal-dir']
+  return openJournalStore(typeof dir === 'string' ? { dir } : {})
+}
+
+/**
+ * Append a feed's entries to a journal when --journal is set. The store drops
+ * entries it already holds, so re-running the same fetch appends nothing.
+ */
+function appendToJournal(feed: NeurowireFeed, values: CliValues): void {
+  const id = values.journal
+  if (typeof id !== 'string') return
+  const { added, head } = journalStore(values).append(id, feed.entries, journalFeedMeta(feed))
+  process.stderr.write(
+    `Journaled ${added} new entr${added === 1 ? 'y' : 'ies'} to ${id} (head ${head.seq})\n`,
+  )
+}
+
+/** Write a journal-derived feed, honoring --format, --out, and the terminal view. */
+function emitJournalFeed(feed: NeurowireFeed, values: CliValues): void {
+  if (typeof values.format === 'string' && typeof values.out === 'string') {
+    if (!isFormat(values.format)) {
+      process.stderr.write(
+        `error: unknown format "${values.format}". Use one of: ${FORMATS.join(', ')}\n`,
+      )
+      process.exitCode = 1
+      return
+    }
+    writeFileSync(values.out, serialize(feed, values.format))
+    process.stderr.write(`Wrote ${feed.entries.length} entries to ${values.out}\n`)
+    return
+  }
+  emitFeed(feed, values)
+}
+
+/**
+ * Dispatch the `journal` subcommand group: `head`, `cat`, or `query`. Reading
+ * an archive goes through the same filter, window, sort, and format flags the
+ * fetch path uses, so a journal answers what a live feed answers.
+ */
+function runJournal(sub: string | undefined, rest: string[], values: CliValues): void {
+  const usage =
+    'Usage:\n' +
+    '  neurowire journal head <id>\n' +
+    '  neurowire journal cat <id> [--cursor <n>] [-f <fmt>]\n' +
+    '  neurowire journal query <id> [--filter f:p] [--since 30d] [-f <fmt>]\n'
+
+  if (sub !== 'head' && sub !== 'cat' && sub !== 'query') {
+    process.stderr.write(`error: journal needs a subcommand: head, cat, or query\n\n${usage}`)
+    process.exitCode = 1
+    return
+  }
+
+  const id = rest[0]
+  if (!id) {
+    process.stderr.write(`error: journal ${sub} needs a journal id\n\n${usage}`)
+    process.exitCode = 1
+    return
+  }
+
+  const store = journalStore(values)
+
+  if (sub === 'head') {
+    const head = store.head(id)
+    process.stdout.write(`${head.hash ? `${head.seq}.${head.hash}` : head.seq}\n`)
+    return
+  }
+
+  const asFeed = (entries: NeurowireFeed['entries']): NeurowireFeed =>
+    journalToFeed(
+      {
+        records: entries.map((entry, index) => ({ seq: index + 1, entry })),
+        head: store.head(id),
+        issues: [],
+      },
+      { id, title: id },
+    )
+
+  if (sub === 'cat') {
+    let entries: NeurowireFeed['entries']
+    if (typeof values.cursor === 'string') {
+      const cursor = parseJournalCursor(values.cursor)
+      if (!cursor) {
+        process.stderr.write(
+          `error: invalid --cursor "${values.cursor}" (use a sequence number, e.g. 42 or 42.<hash>)\n`,
+        )
+        process.exitCode = 1
+        return
+      }
+      const result = store.since(id, cursor)
+      if (result.tooOld) {
+        process.stderr.write(
+          `warning: cursor ${cursor.seq} is older than the oldest retained entry, the delta is incomplete\n`,
+        )
+      }
+      entries = result.entries
+    } else {
+      entries = store.read(id).map((record) => record.entry)
+    }
+    emitJournalFeed(asFeed(entries), values)
+    return
+  }
+
+  const query = buildJournalQuery(values, Date.now())
+  if (!query.ok) {
+    process.stderr.write(`error: ${query.error}\n`)
+    process.exitCode = 1
+    return
+  }
+  const result = store.query(id, query.value)
+  if (result.skipped.length) {
+    process.stderr.write(
+      dim(`Scanned ${result.scanned.length} segment(s), skipped ${result.skipped.length}\n`),
+    )
+  }
+  emitJournalFeed(asFeed(result.entries), values)
 }
 
 /**
@@ -479,6 +614,7 @@ async function runWatch(values: CliValues, positionals: string[]): Promise<void>
 
     const { fresh, keys } = partitionNew(refined, seen)
     if (fresh.length > 0) emitFeed({ ...refined, entries: fresh }, values)
+    if (fresh.length > 0) appendToJournal({ ...refined, entries: fresh }, values)
     await deliverToSinks({ ...refined, entries: fresh }, values)
 
     for (const key of keys) seen.add(key)
@@ -562,6 +698,9 @@ async function main(): Promise<void> {
       watch: { type: 'boolean', short: 'w' },
       interval: { type: 'string' },
       state: { type: 'string' },
+      journal: { type: 'string' },
+      'journal-dir': { type: 'string' },
+      cursor: { type: 'string' },
       sink: { type: 'string', multiple: true },
       name: { type: 'string' },
       help: { type: 'boolean', short: 'h' },
@@ -585,6 +724,11 @@ async function main(): Promise<void> {
 
   if (positionals[0] === 'opml') {
     await runOpml(positionals[1], positionals.slice(2), values)
+    return
+  }
+
+  if (positionals[0] === 'journal') {
+    runJournal(positionals[1], positionals.slice(2), values)
     return
   }
 
@@ -623,7 +767,9 @@ async function main(): Promise<void> {
     }
     const refinedConstruct: FetchedConstruct = { ...construct, parts }
     renderConstructTerminal(refinedConstruct)
-    await deliverToSinks(flattenConstruct(refinedConstruct), values)
+    const flat = flattenConstruct(refinedConstruct)
+    appendToJournal(flat, values)
+    await deliverToSinks(flat, values)
     return
   }
 
@@ -649,11 +795,13 @@ async function main(): Promise<void> {
     } else {
       process.stdout.write(output)
     }
+    appendToJournal(feed, values)
     await deliverToSinks(feed, values)
     return
   }
 
   renderTerminal(feed)
+  appendToJournal(feed, values)
   await deliverToSinks(feed, values)
 }
 

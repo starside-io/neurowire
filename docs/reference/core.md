@@ -435,6 +435,49 @@ function newEntries(feed: NeurowireFeed, seen: Iterable<string>): NeurowireEntry
 | `entryKey(entry)` | Stable identity for dedup: the entry `id` when present, else its `link`. |
 | `newEntries(feed, seen)` | The feed's entries whose `entryKey` is not in `seen`, in original order. `seen` is any iterable of keys, read once. |
 
+## Journal
+
+The append-only side of NWF: an [NWFJ](/formats/nwfj) journal encoder, decoder,
+cursor helpers, and the query path. Pure, no fs; the segmented on-disk store
+lives in [`@neurowire/ingest`](/reference/ingest#journal-store).
+
+```ts
+const JOURNAL_VERSION: number
+const JOURNAL_MEDIA_TYPE: string
+const JOURNAL_EXTENSION: string
+
+interface JournalCursor { seq: number; hash?: string }
+interface JournalFeedMeta { id: string; title: string; home?: string; self?: string }
+interface JournalRecord { seq: number; entry: NeurowireEntry; feed?: JournalFeedMeta }
+interface ParsedJournal { header?: JournalHeader; records: JournalRecord[]; head: JournalCursor; issues: JournalIssue[] }
+interface JournalQuery extends SelectOptions { filter?: FilterSpec }
+
+function createJournalEncoder(options: JournalEncoderOptions): JournalEncoder
+function resumeJournalEncoder(text: string): JournalEncoder
+function parseJournal(text: string): ParsedJournal
+function readJournalSince(text: string, cursor?: JournalCursor | number): ParsedJournal
+function journalHead(text: string): JournalCursor
+function verifyJournal(text: string): JournalVerification
+function queryJournal(input: Iterable<JournalRecord | NeurowireEntry>, query?: JournalQuery): NeurowireEntry[]
+function journalEntryMatches(entry: NeurowireEntry, spec: FilterSpec): boolean
+function journalToFeed(parsed: ParsedJournal, options?: JournalFeedOptions): NeurowireFeed
+```
+
+| Export | Description |
+|--------|-------------|
+| `createJournalEncoder(options)` | Start a fresh segment. `startSeq` continues the numbering across a rotation; `header()`, `push(entry, feed?)`, and `checkpoint()` return the text to append. |
+| `resumeJournalEncoder(text)` | Rebuild an encoder positioned at the end of an existing segment, keeping its dictionaries, base, sequence, and chain. |
+| `parseJournal(text)` | Decode a segment into records, its head cursor, and line-numbered issues. |
+| `readJournalSince(text, cursor)` | Only the records after a cursor. A cursor `hash` is checked against the checkpoint at that sequence. |
+| `journalHead(text)` | The end cursor, read by scanning back from the last line. |
+| `verifyJournal(text)` | Recompute the chain and compare it against every checkpoint. Detects corruption, not forgery. |
+| `queryJournal(input, query)` | Run the shared filter engine, window, sort, and limit over journal records. |
+| `journalEntryMatches(entry, spec)` | Whether one entry satisfies a filter spec, via `filterEntries`. |
+| `journalToFeed(parsed, options)` | Turn records back into a `NeurowireFeed` any serializer accepts. |
+
+A journal is not an output format: it stores a feed's history rather than
+rendering it, so `FORMATS` and `serialize()` are untouched.
+
 ## Id helpers
 
 Stable, content-derived entry ids. Pure and dependency-free (no `node:crypto`).

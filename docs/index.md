@@ -31,6 +31,10 @@ features:
     details: >-
       A mesh fetches many sources in parallel and merges them; a construct bundles
       many meshes into one repo of feeds, grouped or flattened.
+  - title: Keep what scrolls away
+    details: >-
+      Journal a source to an append-only archive with resumable cursors, then
+      query it back with the same filters and windows a live feed uses.
   - title: Deliver anywhere
     details: >-
       Render a self-contained HTML news page, push new entries to Slack, Discord,

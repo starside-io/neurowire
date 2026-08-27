@@ -5,9 +5,12 @@ import {
   applyFilterSpec,
   applySelectOptions,
   buildFilterSpec,
+  buildJournalQuery,
   buildSelectOptions,
+  journalFeedMeta,
   parseFilterRule,
   parseFilterRules,
+  parseJournalCursor,
   partitionNew,
 } from './pipeline'
 
@@ -171,6 +174,82 @@ describe('applySelectOptions', () => {
     if (!opts.ok) throw new Error('opts')
     const out = applySelectOptions(feed, opts.value)
     expect(out.entries.map((e) => e.id)).toEqual(['new'])
+  })
+})
+
+describe('parseJournalCursor', () => {
+  it('reads a bare sequence number', () => {
+    expect(parseJournalCursor('42')).toEqual({ seq: 42 })
+    expect(parseJournalCursor('0')).toEqual({ seq: 0 })
+  })
+
+  it('reads a sequence number with its chain hash', () => {
+    expect(parseJournalCursor('42.9f1c0f0b8ad0f0e3')).toEqual({
+      seq: 42,
+      hash: '9f1c0f0b8ad0f0e3',
+    })
+  })
+
+  it('rejects a sequence number that is not a non-negative integer', () => {
+    for (const bad of ['', 'x', '-1', '2e3', 'abc.1', ' 42']) {
+      expect(parseJournalCursor(bad)).toBeUndefined()
+    }
+  })
+})
+
+describe('buildJournalQuery', () => {
+  const now = Date.parse('2026-06-10T00:00:00.000Z')
+
+  it('combines the filter and refine flags into one query', () => {
+    const result = buildJournalQuery({ filter: ['tag:rust'], since: '30d', limit: '5' }, now)
+    if (!result.ok) throw new Error(result.error)
+    expect(result.value.filter?.include).toEqual([{ field: 'tag', pattern: 'rust', regex: false }])
+    expect(result.value.limit).toBe(5)
+    expect(result.value.from).toBe(now - 30 * 86_400_000)
+  })
+
+  it('omits the filter when no filter flags are given', () => {
+    const result = buildJournalQuery({ limit: '3' }, now)
+    if (!result.ok) throw new Error(result.error)
+    expect(result.value.filter).toBeUndefined()
+  })
+
+  it('reports a bad filter field', () => {
+    const result = buildJournalQuery({ filter: ['nope:x'] }, now)
+    expect(result.ok).toBe(false)
+    if (result.ok) throw new Error('expected failure')
+    expect(result.error).toMatch(/bad filter "nope:x"/)
+  })
+
+  it('reports a bad window flag', () => {
+    const result = buildJournalQuery({ since: 'yesterday' }, now)
+    expect(result.ok).toBe(false)
+    if (result.ok) throw new Error('expected failure')
+    expect(result.error).toMatch(/invalid --since/)
+  })
+})
+
+describe('journalFeedMeta', () => {
+  it('carries the identity fields a journal records', () => {
+    expect(
+      journalFeedMeta({
+        id: 'feed-id',
+        title: 'Feed',
+        home: 'https://example.com/',
+        self: 'https://example.com/feed',
+        updated: '2026-06-01T00:00:00.000Z',
+        entries: [],
+      }),
+    ).toEqual({
+      id: 'feed-id',
+      title: 'Feed',
+      home: 'https://example.com/',
+      self: 'https://example.com/feed',
+    })
+  })
+
+  it('omits absent optional fields', () => {
+    expect(journalFeedMeta(feedOf([]))).toEqual({ id: 'https://example.com/feed', title: 'Feed' })
   })
 })
 

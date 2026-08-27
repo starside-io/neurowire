@@ -27,6 +27,17 @@ export {
   meshConfigDirs,
 } from './mesh-config'
 export {
+  type JournalAppendResult,
+  type JournalManifest,
+  type JournalQueryResult,
+  type JournalSegmentInfo,
+  type JournalSinceResult,
+  type JournalStore,
+  type JournalStoreOptions,
+  journalConfigDir,
+  openJournalStore,
+} from './journal-store'
+export {
   parseAtom,
   parseFeedString,
   parseJsonFeed,

@@ -2,6 +2,9 @@ import {
   type FilterField,
   type FilterRule,
   type FilterSpec,
+  type JournalCursor,
+  type JournalFeedMeta,
+  type JournalQuery,
   type NeurowireFeed,
   type SelectOptions,
   type SortKey,
@@ -152,6 +155,48 @@ export function buildSelectOptions(values: CliValues, now: number): ValidateResu
 /** Apply select options to a feed (pure passthrough to core). */
 export function applySelectOptions(feed: NeurowireFeed, opts: SelectOptions): NeurowireFeed {
   return selectEntries(feed, opts)
+}
+
+/**
+ * Parse a journal cursor: a sequence number, optionally followed by the chain
+ * hash it was taken at (`"42"` or `"42.9f1c0f0b8ad0f0e3"`). Returns undefined
+ * when the sequence number is not a non-negative integer.
+ */
+export function parseJournalCursor(value: string): JournalCursor | undefined {
+  const dot = value.indexOf('.')
+  const head = dot === -1 ? value : value.slice(0, dot)
+  if (!/^\d+$/.test(head)) return undefined
+  const cursor: JournalCursor = { seq: Number(head) }
+  if (dot !== -1) cursor.hash = value.slice(dot + 1)
+  return cursor
+}
+
+/**
+ * Build a journal query from the same --filter/--exclude and window/sort/limit
+ * flags the fetch path uses, so an archive answers what a live feed answers.
+ */
+export function buildJournalQuery(values: CliValues, now: number): ValidateResult<JournalQuery> {
+  const filter = buildFilterSpec(values)
+  if (!filter.ok) {
+    return {
+      ok: false,
+      error: `bad filter "${filter.bad}". Use field:pattern with one of: ${FILTER_FIELDS.join(', ')}`,
+    }
+  }
+  const select = buildSelectOptions(values, now)
+  if (!select.ok) return select
+  return {
+    ok: true,
+    value: filter.value ? { ...select.value, filter: filter.value } : select.value,
+  }
+}
+
+/** The identity to record in a journal for the feed being appended. */
+export function journalFeedMeta(feed: NeurowireFeed): JournalFeedMeta {
+  const meta: JournalFeedMeta = { id: feed.id, title: feed.title }
+  if (feed.home) meta.home = feed.home
+  if (feed.self) meta.self = feed.self
+  return meta
 }
 
 /**

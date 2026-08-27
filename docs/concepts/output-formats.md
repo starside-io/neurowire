@@ -59,3 +59,7 @@ HTML is intentionally **not** a feed serializer and is **not** in `FORMATS`. Ren
 ::: tip OPML is a subscription list, not a feed
 OPML describes a **list of subscriptions** (which feeds to follow), not the contents of a feed. It is therefore not one of the feed serializers dispatched by `serialize`. See its dedicated page for import and export.
 :::
+
+::: tip NWFJ is storage, not rendering
+A [journal](/concepts/journals) stores a feed's history rather than rendering its current state, so `nwfj` is not in `FORMATS` either. It has its own media type (`application/x-nwf-journal`) and extension (`nwfj`), exported as `JOURNAL_MEDIA_TYPE` and `JOURNAL_EXTENSION`. Reading a journal back yields an ordinary `NeurowireFeed` (`journalToFeed`), which every serializer above already handles. See [the NWFJ format](/formats/nwfj).
+:::
