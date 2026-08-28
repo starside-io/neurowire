@@ -1,5 +1,9 @@
 # @neurowire/web
 
+## 0.5.2
+
+- Republish so the pinned `@neurowire/ingest` and `@neurowire/taps` versions match the current release. No behavior change.
+
 ## 0.5.1
 
 - Republish so the pinned `@neurowire/core`, `@neurowire/ingest`, and `@neurowire/taps` versions match the current release. No behavior change.

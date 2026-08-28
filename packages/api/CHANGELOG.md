@@ -1,6 +1,6 @@
 # @neurowire/api
 
-## Unreleased
+## 0.5.0
 
 - Add `GET /tail`: a feed, mesh, or construct as a server-sent event stream (`format=json|nwf`, `interval=` clamped to a 60 second floor). Emits an `init` event, then one `entry` event per new entry with its cursor as the event id, plus a keep-alive comment every 25 seconds and `X-Accel-Buffering: no`.
 - One poll loop per distinct target, shared by every client following it and torn down when the last one disconnects.

@@ -1,6 +1,6 @@
 # @neurowire/tap-wizard
 
-## Unreleased
+## 0.1.0
 
 - Initial release: deterministic tap authoring and healing, with no model in the loop.
 - `suggestCandidates(html, seed?)` ranks candidate selectors per tap field from page structure alone, seeding any `proposeTemplate` result as candidate zero.

@@ -4,6 +4,46 @@ All notable changes to Neurowire are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/), and the project uses semantic
 versioning (breaking changes land as a minor bump while the project is pre-1.0).
 
+## [0.8.0] - 2026-08-28
+
+### Added
+
+- **Tap wizard** (epic 10): a new `@neurowire/tap-wizard` package that authors and
+  heals taps deterministically, with no model and no API key anywhere in the loop.
+  `suggestCandidates` ranks selectors from page structure, `previewTemplate` runs
+  the real ingest engine so a preview cannot disagree with a fetch, and
+  `verifyTemplate` is a gate no tap is written without: item count, non-empty
+  titles, unique resolvable links, date rate, and a common-ancestor probe that
+  rejects nav and footer matches. The CLI gains `tap wizard`, `tap check` (CI-safe,
+  exits 1 on breakage), and `tap heal`.
+- **Tail** (epic 11): `pollFeed` in ingest becomes the single polling loop in the
+  codebase, and `--watch` is rebased onto it with unchanged flag behavior. The CLI
+  gains `neurowire tail` (pretty output, raw NWFJ via `-f nwf`, and `--from` for a
+  remote stream), and the API gains `GET /tail`, a server-sent event stream whose
+  poll loops are shared per target so many clients cost one upstream fetch.
+  `Last-Event-ID` replays from a journal, so a reconnect misses nothing.
+- **NWF sync** (epic 12): `nwf-sync/1`, a pull-only HTTP protocol that turns NWF
+  from a format into a wire protocol. The API serves `/sync/journals`, `/sync/head`,
+  `/sync/since`, and `/sync/snapshot` over a journal store, publishing nothing until
+  a journal id is named explicitly, with an optional bearer token. Ingest gains the
+  pull client (`pullJournal`, `syncPeers`) with hash-chain verification and `410`
+  snapshot recovery, and the CLI gains `sync` and `peers`.
+
+### Documentation
+
+- New concept pages for [Tail](docs/concepts/tail.md) and [Sync](docs/concepts/sync.md),
+  a rebuilt [Taps](docs/concepts/taps.md) page, the [`nwf-sync/1` spec](docs/formats/nwf-sync.md),
+  and a [federation guide](docs/guide/federation.md). Getting started and Recipes
+  cover all three new surfaces.
+
+### Versions
+
+- root 0.7.0 to 0.8.0; `@neurowire/ingest` 0.7.0 to 0.8.0; `@neurowire/cli` 0.9.0
+  to 0.10.0; `@neurowire/api` 0.4.1 to 0.5.0; `@neurowire/tap-wizard` at 0.1.0
+  (first release). `@neurowire/taps` 0.3.1 to 0.3.2, `@neurowire/taps-pack` 0.1.1
+  to 0.1.2, and `@neurowire/web` 0.5.1 to 0.5.2 are republished so their exact
+  `ingest` pins stay aligned. `@neurowire/core` is unchanged at 0.8.0.
+
 ## [0.6.0] - 2026-06-06
 
 ### Added

@@ -1,6 +1,6 @@
 # @neurowire/cli
 
-## Unreleased
+## 0.10.0
 
 - Add `neurowire tail [url]`: follow a feed, mesh, or construct as a live stream, printing each new entry as it arrives. Honors the filter, window, sort, and limit flags per tick, plus `--interval`, `--state`, `--journal`, and `--sink`.
 - `tail -f nwf` streams raw NWFJ journal lines (header and checkpoints included), so `neurowire tail --mesh ai.json -f nwf | grep ...` is a real pipeline. Other `-f` values serialize each tick's new entries.

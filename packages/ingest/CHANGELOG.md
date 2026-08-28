@@ -1,6 +1,6 @@
 # @neurowire/ingest
 
-## Unreleased
+## 0.8.0
 
 - Add the poll engine: `pollFeed`, an async generator that loads, dedupes with `entryKey`/`newEntries`, and waits, with a 30 second interval floor, jittered waits, a resumable seen-set, per-tick error isolation, and abort support. `resolvePollInterval` and `nextPollDelay` are exported alongside it. It is the single loop behind the CLI's `tail` and `--watch` and the API's `GET /tail`.
 - Add the `nwf-sync/1` pull client: `pullJournal` and `syncPeers` fetch journal deltas from configured peers, verify each response's hash chain before merging it, and append the entries to the local journal store.
