@@ -14,12 +14,17 @@ export default defineConfig({
   head: [['meta', { name: 'theme-color', content: '#ff5c39' }]],
   themeConfig: {
     logo: '/logo.svg',
+    // Each nav entry links to one landing page but should stay highlighted across
+    // its whole section, so every one carries an activeMatch regex (VitePress
+    // otherwise only highlights on an exact match with `link`).
+    // Catalog lives inside /reference/, so API Reference excludes it explicitly,
+    // otherwise both would light up on the taps-pack page.
     nav: [
-      { text: 'Guide', link: '/guide/getting-started' },
-      { text: 'Concepts', link: '/concepts/model' },
-      { text: 'Formats', link: '/formats/nwf' },
-      { text: 'API Reference', link: '/reference/core' },
-      { text: 'Catalog', link: '/reference/taps-pack' },
+      { text: 'Guide', link: '/guide/getting-started', activeMatch: '^/guide/' },
+      { text: 'Concepts', link: '/concepts/model', activeMatch: '^/concepts/' },
+      { text: 'Formats', link: '/formats/nwf', activeMatch: '^/formats/' },
+      { text: 'API Reference', link: '/reference/core', activeMatch: '^/reference/(?!taps-pack)' },
+      { text: 'Catalog', link: '/reference/taps-pack', activeMatch: '^/reference/taps-pack' },
       {
         text: 'npm',
         items: [
