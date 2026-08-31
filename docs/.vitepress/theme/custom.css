@@ -105,3 +105,91 @@
   border-radius: 3px;
   vertical-align: middle;
 }
+
+/* ---------------------------------------------------------------------------
+   Figures: inline SVG diagrams.
+
+   The diagrams are hand-authored SVG rather than a rendering plugin, so they
+   carry no dependency and inherit the site theme through CSS variables (they
+   restyle themselves in dark mode with no second asset). Each one scales with
+   its column via viewBox, and scrolls inside its own container below the
+   min-width rather than shrinking the type to an unreadable size.
+   --------------------------------------------------------------------------- */
+.nw-fig {
+  margin: 28px 0;
+}
+.nw-fig__scroll {
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+.nw-fig svg {
+  display: block;
+  width: 100%;
+  min-width: 460px;
+  height: auto;
+}
+.nw-fig figcaption {
+  margin-top: 10px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--vp-c-text-2);
+}
+
+/* Node shapes */
+.nwd-box {
+  fill: var(--vp-c-bg-soft);
+  stroke: var(--vp-c-divider);
+  stroke-width: 1;
+}
+.nwd-box--accent {
+  fill: var(--vp-c-brand-soft);
+  stroke: var(--vp-c-brand-1);
+}
+.nwd-box--ghost {
+  fill: none;
+  stroke: var(--vp-c-divider);
+  stroke-dasharray: 4 4;
+}
+
+/* Type */
+.nwd-title {
+  fill: var(--vp-c-text-1);
+  font-family: var(--vp-font-family-base);
+  font-size: 13px;
+  font-weight: 600;
+}
+.nwd-sub {
+  fill: var(--vp-c-text-2);
+  font-family: var(--vp-font-family-mono);
+  font-size: 11px;
+}
+.nwd-cap {
+  fill: var(--vp-c-text-2);
+  font-family: var(--vp-font-family-base);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.nwd-accent {
+  fill: var(--vp-c-brand-1);
+}
+
+/* Connectors */
+.nwd-line {
+  stroke: var(--vp-c-divider);
+  stroke-width: 1.5;
+  fill: none;
+}
+.nwd-line--accent {
+  stroke: var(--vp-c-brand-1);
+}
+.nwd-line--dash {
+  stroke-dasharray: 5 4;
+}
+.nwd-head {
+  fill: var(--vp-c-divider);
+}
+.nwd-head--accent {
+  fill: var(--vp-c-brand-1);
+}

@@ -65,7 +65,7 @@ Liveness check.
 
 ```bash
 curl http://localhost:8787/healthz
-# {"status":"ok","service":"neurowire","version":"0.4.0"}
+# {"status":"ok","service":"neurowire","version":"0.5.0"}
 ```
 
 ### GET /feed

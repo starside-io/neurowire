@@ -14,24 +14,51 @@ If you run one machine following twenty feeds, just fetch them. Sync earns its k
 
 ## The topology
 
-```
-   the open web (200 sources)
-             ▲
-             │ fetches + journals
-        ┌────┴────┐
-        │ node A  │  always on, holds the taps, publishes /sync
-        └──┬───┬──┘
-     /sync │   │ /sync
-           ▼   ▼
-   ┌──────────┐  ┌──────────────┐
-   │ laptop B │  │ node C       │  republishes /sync over the LAN
-   └──────────┘  └──────┬───────┘
-                        │ /sync
-                        ▼
-                  ┌──────────┐
-                  │ node D   │  never touches the internet
-                  └──────────┘
-```
+<figure class="nw-fig">
+<div class="nw-fig__scroll">
+<svg viewBox="0 0 820 340" role="img" aria-labelledby="fed-t fed-d" preserveAspectRatio="xMidYMid meet">
+  <title id="fed-t">Three-node federation topology</title>
+  <desc id="fed-d">Node A fetches the open web and journals it. Laptop B and relay C pull deltas from A over /sync. Node D pulls from C over the LAN and never touches the internet.</desc>
+
+  <rect class="nwd-box" x="120" y="10" width="190" height="52" rx="10" />
+  <text class="nwd-title" x="215" y="33" text-anchor="middle">The open web</text>
+  <text class="nwd-sub" x="215" y="50" text-anchor="middle">200 sources</text>
+
+  <path class="nwd-line" d="M215 62 V104" />
+  <polygon class="nwd-head" points="215,112 210.5,104 219.5,104" />
+  <text class="nwd-sub" x="227" y="92">fetches + journals</text>
+
+  <rect class="nwd-box nwd-box--accent" x="120" y="112" width="190" height="76" rx="10" />
+  <text class="nwd-title" x="215" y="139" text-anchor="middle">Node A, the hub</text>
+  <text class="nwd-sub" x="215" y="158" text-anchor="middle">always on, holds the taps</text>
+  <text class="nwd-sub nwd-accent" x="215" y="175" text-anchor="middle">publishes /sync</text>
+
+  <path class="nwd-line nwd-line--accent" d="M215 188 V218 H101 V242" />
+  <polygon class="nwd-head--accent" points="101,250 96.5,242 105.5,242" />
+  <path class="nwd-line nwd-line--accent" d="M215 218 H341 V242" />
+  <polygon class="nwd-head--accent" points="341,250 336.5,242 345.5,242" />
+  <text class="nwd-sub nwd-accent" x="150" y="212" text-anchor="middle">/sync</text>
+  <text class="nwd-sub nwd-accent" x="300" y="212" text-anchor="middle">/sync</text>
+
+  <rect class="nwd-box" x="16" y="250" width="170" height="62" rx="10" />
+  <text class="nwd-title" x="101" y="276" text-anchor="middle">Node B, laptop</text>
+  <text class="nwd-sub" x="101" y="294" text-anchor="middle">pulls on wake</text>
+
+  <rect class="nwd-box" x="246" y="250" width="190" height="62" rx="10" />
+  <text class="nwd-title" x="341" y="276" text-anchor="middle">Node C, relay</text>
+  <text class="nwd-sub" x="341" y="294" text-anchor="middle">republishes /sync</text>
+
+  <path class="nwd-line nwd-line--accent" d="M436 281 H512" />
+  <polygon class="nwd-head--accent" points="520,281 512,276.5 512,285.5" />
+  <text class="nwd-sub nwd-accent" x="478" y="272" text-anchor="middle">LAN</text>
+
+  <rect class="nwd-box" x="520" y="250" width="190" height="62" rx="10" />
+  <text class="nwd-title" x="615" y="276" text-anchor="middle">Node D</text>
+  <text class="nwd-sub" x="615" y="294" text-anchor="middle">no internet at all</text>
+</svg>
+</div>
+<figcaption>Peers are configured, not discovered. Only node A needs the taps or the outbound bandwidth; everything downstream of it moves compact deltas.</figcaption>
+</figure>
 
 Peers are configured, not discovered. `A -> C -> D` is fine: D gets what C already pulled from A. Merging is idempotent by entry key, so a node peering with both A and C stores one copy, and a cycle terminates. `entry.source` travels inside the record, so provenance survives every hop.
 

@@ -8,6 +8,50 @@ Nothing about the data changes. A tail is the same canonical [model](/concepts/m
 
 The polling loop lives in one place, [`pollFeed`](/reference/ingest#poll-engine) in `@neurowire/ingest`. Everything that follows a source consumes it, so none of them can drift on cadence, dedupe, or what happens when a fetch fails.
 
+<figure class="nw-fig">
+<div class="nw-fig__scroll">
+<svg viewBox="0 0 820 316" role="img" aria-labelledby="tal-t tal-d" preserveAspectRatio="xMidYMid meet">
+  <title id="tal-t">One poll engine behind three surfaces</title>
+  <desc id="tal-d">A source is polled by a single pollFeed loop, which dedupes and emits only fresh entries. CLI tail, CLI watch, and the SSE route all consume that one loop, and the SSE route fans one upstream poll out to many connected clients.</desc>
+
+  <rect class="nwd-box" x="16" y="118" width="150" height="66" rx="10" />
+  <text class="nwd-title" x="91" y="145" text-anchor="middle">Source</text>
+  <text class="nwd-sub" x="91" y="164" text-anchor="middle">feed, mesh</text>
+
+  <path class="nwd-line" d="M166 151 H222" />
+  <polygon class="nwd-head" points="230,151 222,146.5 222,155.5" />
+  <text class="nwd-sub" x="196" y="142" text-anchor="middle">304</text>
+
+  <rect class="nwd-box nwd-box--accent" x="230" y="104" width="196" height="94" rx="10" />
+  <text class="nwd-title" x="328" y="132" text-anchor="middle">pollFeed</text>
+  <text class="nwd-sub" x="328" y="151" text-anchor="middle">wait, load, dedupe</text>
+  <text class="nwd-sub" x="328" y="168" text-anchor="middle">30s floor + jitter</text>
+  <text class="nwd-sub nwd-accent" x="328" y="187" text-anchor="middle">yields fresh only</text>
+
+  <path class="nwd-line nwd-line--accent" d="M426 151 H472 V47 H520" />
+  <polygon class="nwd-head--accent" points="528,47 520,42.5 520,51.5" />
+  <path class="nwd-line nwd-line--accent" d="M472 151 H520" />
+  <polygon class="nwd-head--accent" points="528,151 520,146.5 520,155.5" />
+  <path class="nwd-line nwd-line--accent" d="M472 151 V255 H520" />
+  <polygon class="nwd-head--accent" points="528,255 520,250.5 520,259.5" />
+
+  <rect class="nwd-box" x="528" y="18" width="276" height="58" rx="10" />
+  <text class="nwd-title" x="546" y="42">neurowire tail</text>
+  <text class="nwd-sub" x="546" y="61">one line per entry, or raw NWFJ</text>
+
+  <rect class="nwd-box" x="528" y="122" width="276" height="58" rx="10" />
+  <text class="nwd-title" x="546" y="146">neurowire --watch</text>
+  <text class="nwd-sub" x="546" y="165">one feed per tick</text>
+
+  <rect class="nwd-box" x="528" y="226" width="276" height="72" rx="10" />
+  <text class="nwd-title" x="546" y="250">GET /tail</text>
+  <text class="nwd-sub" x="546" y="269">server-sent events, one loop</text>
+  <text class="nwd-sub" x="546" y="286">shared by every subscriber</text>
+</svg>
+</div>
+<figcaption>One loop per source, whatever is watching it. On the API that sharing is literal: fifty clients following the same target cost one upstream fetch per tick, not fifty.</figcaption>
+</figure>
+
 | Surface | What it emits | Where |
 |---------|---------------|-------|
 | `neurowire tail` | one terminal line per entry as it arrives, or raw [NWFJ](/formats/nwfj) with `-f nwf` | [CLI tail mode](/guide/cli#tail-mode) |

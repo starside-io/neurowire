@@ -15,6 +15,63 @@ A tap is the one part of Neurowire shaped by someone else's HTML, so it is the o
 | **Verify** | Is this set of selectors actually good? | [the verification gate](#the-verification-gate) |
 | **Maintain** | Does it still match, and how do I fix it? | [checking and healing](#checking-and-healing-taps), [`tap check`](/guide/cli#tap-check) / [`tap heal`](/guide/cli#tap-heal) |
 
+<figure class="nw-fig">
+<div class="nw-fig__scroll">
+<svg viewBox="0 0 820 268" role="img" aria-labelledby="tap-t tap-d" preserveAspectRatio="xMidYMid meet">
+  <title id="tap-t">The life of a tap</title>
+  <desc id="tap-d">The wizard proposes candidate selectors from page structure and previews them through the real ingest engine. Every write passes through one verification gate. Later, tap check re-runs that same gate in CI, and tap heal re-authors only the fields that broke.</desc>
+
+  <rect class="nwd-box" x="16" y="60" width="164" height="76" rx="10" />
+  <text class="nwd-title" x="98" y="88" text-anchor="middle">tap wizard</text>
+  <text class="nwd-sub" x="98" y="107" text-anchor="middle">rank candidates</text>
+  <text class="nwd-sub" x="98" y="124" text-anchor="middle">preview each pick</text>
+
+  <path class="nwd-line" d="M180 98 H236" />
+  <polygon class="nwd-head" points="244,98 236,93.5 236,102.5" />
+
+  <rect class="nwd-box nwd-box--accent" x="244" y="46" width="190" height="104" rx="10" />
+  <text class="nwd-title" x="339" y="74" text-anchor="middle">verifyTemplate</text>
+  <text class="nwd-sub" x="339" y="93" text-anchor="middle">item count, titles</text>
+  <text class="nwd-sub" x="339" y="110" text-anchor="middle">unique links, dates</text>
+  <text class="nwd-sub" x="339" y="127" text-anchor="middle">ancestor probe</text>
+  <text class="nwd-cap nwd-accent" x="339" y="145" text-anchor="middle">the gate</text>
+
+  <path class="nwd-line nwd-line--accent" d="M434 76 H546" />
+  <polygon class="nwd-head--accent" points="554,76 546,71.5 546,80.5" />
+  <text class="nwd-sub nwd-accent" x="490" y="67" text-anchor="middle">passes</text>
+
+  <path class="nwd-line nwd-line--dash" d="M434 122 H546" />
+  <polygon class="nwd-head" points="554,122 546,117.5 546,126.5" />
+  <text class="nwd-sub" x="490" y="113" text-anchor="middle">fails</text>
+
+  <rect class="nwd-box" x="554" y="48" width="250" height="52" rx="10" />
+  <text class="nwd-title" x="572" y="70">Written to disk</text>
+  <text class="nwd-sub" x="572" y="88">the site reads like any feed</text>
+
+  <rect class="nwd-box nwd-box--ghost" x="554" y="106" width="250" height="52" rx="10" />
+  <text class="nwd-title" x="572" y="128">Nothing is written</text>
+  <text class="nwd-sub" x="572" y="146">the failed checks are printed</text>
+
+  <path class="nwd-line nwd-line--dash" d="M679 100 V106" />
+
+  <rect class="nwd-box" x="16" y="188" width="360" height="60" rx="10" />
+  <text class="nwd-title" x="34" y="212">tap check</text>
+  <text class="nwd-sub" x="34" y="230">the same gate, in CI. Exits 1 when a site moved.</text>
+
+  <path class="nwd-line" d="M376 218 H432" />
+  <polygon class="nwd-head" points="440,218 432,213.5 432,222.5" />
+
+  <rect class="nwd-box" x="440" y="188" width="364" height="60" rx="10" />
+  <text class="nwd-title" x="458" y="212">tap heal</text>
+  <text class="nwd-sub" x="458" y="230">re-author only the broken fields, keep the rest</text>
+
+  <path class="nwd-line nwd-line--dash" d="M804 218 H812 V166 H339 V150" />
+  <polygon class="nwd-head" points="339,150 334.5,158 343.5,158" />
+</svg>
+</div>
+<figcaption>Authoring and monitoring run the same gate, which is why <code>tap check</code> can never disagree with the wizard that wrote the tap. Healing loops back through it too: nothing reaches disk without passing.</figcaption>
+</figure>
+
 None of it involves a model, at any stage. Structure proposes, a human confirms, and a deterministic verifier decides. Agent-driven authoring, when it arrives, will drive these same primitives as tools rather than replace them.
 
 ## A tap is a `FeedTemplate`

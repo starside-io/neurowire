@@ -38,6 +38,55 @@ GET /sync/head?journal=ai   ->   { "head": 1284 }
 
 A device on a train wakes up, asks a question worth about forty bytes, sees that its recorded cursor is already 1284, and goes back to sleep. Entries move only when the cursor is actually behind. That asymmetry is what makes polling on a short interval reasonable: being up to date is nearly free, so you can check often.
 
+<figure class="nw-fig">
+<div class="nw-fig__scroll">
+<svg viewBox="0 0 820 300" role="img" aria-labelledby="syn-t syn-d" preserveAspectRatio="xMidYMid meet">
+  <title id="syn-t">The three answers a peer can give</title>
+  <desc id="syn-d">When the local cursor matches the peer head, one request ends the exchange. When it is behind, the peer returns the records after the cursor. When it predates retention, the peer answers 410 and the client re-bootstraps from a snapshot.</desc>
+
+  <text class="nwd-cap" x="16" y="20">Peer B asks</text>
+  <text class="nwd-cap" x="470" y="20">Node A answers</text>
+
+  <rect class="nwd-box" x="16" y="34" width="230" height="62" rx="10" />
+  <text class="nwd-title" x="34" y="60">Up to date</text>
+  <text class="nwd-sub" x="34" y="79">cursor 1284, head 1284</text>
+
+  <path class="nwd-line" d="M246 65 H462" />
+  <polygon class="nwd-head" points="470,65 462,60.5 462,69.5" />
+  <text class="nwd-sub" x="354" y="56" text-anchor="middle">/sync/head</text>
+
+  <rect class="nwd-box" x="470" y="34" width="334" height="62" rx="10" />
+  <text class="nwd-title" x="488" y="60">Stop. One request, no body.</text>
+  <text class="nwd-sub" x="488" y="79">about 40 bytes on the wire</text>
+
+  <rect class="nwd-box" x="16" y="120" width="230" height="62" rx="10" />
+  <text class="nwd-title" x="34" y="146">Behind</text>
+  <text class="nwd-sub" x="34" y="165">cursor 1201, head 1284</text>
+
+  <path class="nwd-line nwd-line--accent" d="M246 151 H462" />
+  <polygon class="nwd-head--accent" points="470,151 462,146.5 462,155.5" />
+  <text class="nwd-sub nwd-accent" x="354" y="142" text-anchor="middle">/sync/since</text>
+
+  <rect class="nwd-box nwd-box--accent" x="470" y="120" width="334" height="62" rx="10" />
+  <text class="nwd-title" x="488" y="146">One NWFJ segment after 1201</text>
+  <text class="nwd-sub" x="488" y="165">verify the chain, append, cursor 1284</text>
+
+  <rect class="nwd-box" x="16" y="206" width="230" height="62" rx="10" />
+  <text class="nwd-title" x="34" y="232">Older than retention</text>
+  <text class="nwd-sub" x="34" y="251">cursor 12, compacted away</text>
+
+  <path class="nwd-line nwd-line--dash" d="M246 237 H462" />
+  <polygon class="nwd-head" points="470,237 462,232.5 462,241.5" />
+  <text class="nwd-sub" x="354" y="228" text-anchor="middle">/sync/since</text>
+
+  <rect class="nwd-box nwd-box--ghost" x="470" y="206" width="334" height="62" rx="10" />
+  <text class="nwd-title" x="488" y="232">410 Gone, pointing at /sync/snapshot</text>
+  <text class="nwd-sub" x="488" y="251">bootstrap, then dedupe by entry key</text>
+</svg>
+</div>
+<figcaption>Being up to date is nearly free, so a short polling interval stays reasonable. A cursor the peer can no longer serve fails loudly rather than returning a partial answer.</figcaption>
+</figure>
+
 ### A cursor belongs to one peer
 
 A sequence number is meaningful only inside one journal on one node. When node B appends entries pulled from node A, B's store assigns **B's** numbering and computes **B's** chain. B is not a byte copy of A; it is a journal that happens to hold the same entries.

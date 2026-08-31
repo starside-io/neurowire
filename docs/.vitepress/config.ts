@@ -68,7 +68,7 @@ export default defineConfig({
           items: [
             { text: 'NWF', link: '/formats/nwf' },
             { text: 'NWFJ (journal)', link: '/formats/nwfj' },
-            { text: 'nwf-sync (protocol)', link: '/formats/nwf-sync' },
+            { text: 'NWF Sync (protocol)', link: '/formats/nwf-sync' },
             { text: 'Atom', link: '/formats/atom' },
             { text: 'JSON Feed', link: '/formats/json-feed' },
             { text: 'Markdown', link: '/formats/markdown' },

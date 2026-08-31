@@ -2,6 +2,54 @@
 
 Practical end-to-end workflows. Each one is a short sequence of commands you can copy. They assume the `neurowire` CLI (and, where noted, `neurowire-web`) are installed. See [Installation](/guide/installation).
 
+Every recipe below is the same pipeline with different pieces switched on. Shaping always runs before serializing, so a filter narrows what a format, a sink, and a journal all receive:
+
+<figure class="nw-fig">
+<div class="nw-fig__scroll">
+<svg viewBox="0 0 820 244" role="img" aria-labelledby="rec-t rec-d" preserveAspectRatio="xMidYMid meet">
+  <title id="rec-t">The shape of every recipe</title>
+  <desc id="rec-d">A source is fetched, then shaped by filters, date windows, sort and limit, and the result fans out to a terminal view, a serialized format, a sink, or a journal.</desc>
+
+  <text class="nwd-cap" x="16" y="14">Source</text>
+  <text class="nwd-cap" x="238" y="14">Shape</text>
+  <text class="nwd-cap" x="596" y="14">Out</text>
+
+  <rect class="nwd-box" x="16" y="90" width="166" height="66" rx="10" />
+  <text class="nwd-title" x="99" y="117" text-anchor="middle">url, mesh</text>
+  <text class="nwd-sub" x="99" y="136" text-anchor="middle">or construct</text>
+
+  <path class="nwd-line" d="M182 123 H230" />
+  <polygon class="nwd-head" points="238,123 230,118.5 230,127.5" />
+
+  <rect class="nwd-box nwd-box--accent" x="238" y="76" width="230" height="94" rx="10" />
+  <text class="nwd-sub" x="353" y="102" text-anchor="middle">--filter, --exclude</text>
+  <text class="nwd-sub" x="353" y="122" text-anchor="middle">--since, --between</text>
+  <text class="nwd-sub" x="353" y="142" text-anchor="middle">--sort, --limit</text>
+  <text class="nwd-cap nwd-accent" x="353" y="162" text-anchor="middle">always first</text>
+
+  <path class="nwd-line nwd-line--accent" d="M468 123 H514 V47 H588" />
+  <polygon class="nwd-head--accent" points="596,47 588,42.5 588,51.5" />
+  <path class="nwd-line nwd-line--accent" d="M514 123 H588" />
+  <polygon class="nwd-head--accent" points="596,123 588,118.5 588,127.5" />
+  <path class="nwd-line nwd-line--accent" d="M514 123 V199 H588" />
+  <polygon class="nwd-head--accent" points="596,199 588,194.5 588,203.5" />
+
+  <rect class="nwd-box" x="596" y="22" width="208" height="50" rx="10" />
+  <text class="nwd-title" x="614" y="43">Terminal, or --format</text>
+  <text class="nwd-sub" x="614" y="61">nwf, atom, rss, json, md</text>
+
+  <rect class="nwd-box" x="596" y="98" width="208" height="50" rx="10" />
+  <text class="nwd-title" x="614" y="119">--sink</text>
+  <text class="nwd-sub" x="614" y="137">Slack, Discord, webhook</text>
+
+  <rect class="nwd-box" x="596" y="174" width="208" height="50" rx="10" />
+  <text class="nwd-title" x="614" y="195">--journal</text>
+  <text class="nwd-sub" x="614" y="213">append-only archive</text>
+</svg>
+</div>
+<figcaption>Add <code>--watch</code> or use <code>tail</code> and the same pipeline runs once per tick, on only the entries that are new.</figcaption>
+</figure>
+
 ## Watch a site and push new posts to Slack
 
 Long-poll a mesh and deliver only the entries you have not seen yet to a Slack incoming webhook. The `--state` file makes restarts skip already-reported items.

@@ -1,6 +1,6 @@
 # @neurowire/api
 
-The Neurowire HTTP service (version 0.4.0): a [Hono](https://hono.dev) app that serves
+The Neurowire HTTP service (version 0.5.0): a [Hono](https://hono.dev) app that serves
 feeds, meshes, and constructs as NWF, Atom, RSS, JSON Feed, or Markdown, and streams them
 live over SSE. It registers the
 built-in [taps](/reference/taps) at startup and caches both the serialized response and the
@@ -38,6 +38,66 @@ All feed-shaped responses set `Content-Type` from the format's media type and
 of `nwf`, `atom`, `rss`, `json`, `md` (an unknown value returns 400). HTML is not a feed
 format, so `format=html` is rejected like any unknown format.
 
+<figure class="nw-fig">
+<div class="nw-fig__scroll">
+<svg viewBox="0 0 820 350" role="img" aria-labelledby="api-t api-d" preserveAspectRatio="xMidYMid meet">
+  <title id="api-t">How a request moves through the service</title>
+  <desc id="api-d">Feed routes resolve a target, check the TTL response cache, fetch upstream through a conditional cache, then serialize. The tail route holds long-lived streams on shared poll loops, and the sync routes read the journal store from disk without touching the network.</desc>
+
+  <rect class="nwd-box" x="16" y="146" width="128" height="58" rx="10" />
+  <text class="nwd-title" x="80" y="171" text-anchor="middle">Request</text>
+  <text class="nwd-sub" x="80" y="189" text-anchor="middle">Hono app</text>
+
+  <path class="nwd-line" d="M144 175 H186 V58 H228" />
+  <polygon class="nwd-head" points="236,58 228,53.5 228,62.5" />
+  <path class="nwd-line" d="M186 175 H228" />
+  <polygon class="nwd-head" points="236,175 228,170.5 228,179.5" />
+  <path class="nwd-line" d="M186 175 V292 H228" />
+  <polygon class="nwd-head" points="236,292 228,287.5 228,296.5" />
+
+  <rect class="nwd-box" x="236" y="30" width="216" height="58" rx="10" />
+  <text class="nwd-title" x="254" y="54">/feed /mesh /construct</text>
+  <text class="nwd-sub" x="254" y="72">serialized, cached 300s</text>
+
+  <rect class="nwd-box nwd-box--accent" x="236" y="146" width="216" height="58" rx="10" />
+  <text class="nwd-title" x="254" y="170">/tail</text>
+  <text class="nwd-sub" x="254" y="188">one stream, held open</text>
+
+  <rect class="nwd-box" x="236" y="264" width="216" height="58" rx="10" />
+  <text class="nwd-title" x="254" y="288">/sync/*</text>
+  <text class="nwd-sub" x="254" y="306">read only, opt-in publish</text>
+
+  <path class="nwd-line" d="M452 58 H556" />
+  <polygon class="nwd-head" points="564,58 556,53.5 556,62.5" />
+  <text class="nwd-sub" x="504" y="49" text-anchor="middle">miss</text>
+
+  <path class="nwd-line nwd-line--accent" d="M452 175 H556" />
+  <polygon class="nwd-head--accent" points="564,175 556,170.5 556,179.5" />
+  <text class="nwd-sub nwd-accent" x="504" y="166" text-anchor="middle">poll</text>
+
+  <path class="nwd-line" d="M452 292 H556" />
+  <polygon class="nwd-head" points="564,292 556,287.5 556,296.5" />
+
+  <rect class="nwd-box" x="564" y="30" width="240" height="58" rx="10" />
+  <text class="nwd-title" x="582" y="54">Upstream fetch</text>
+  <text class="nwd-sub" x="582" y="72">conditional cache, 304 on repeat</text>
+
+  <rect class="nwd-box nwd-box--accent" x="564" y="146" width="240" height="58" rx="10" />
+  <text class="nwd-title" x="582" y="170">Shared poll loop</text>
+  <text class="nwd-sub" x="582" y="188">by target, interval, journal</text>
+
+  <rect class="nwd-box" x="564" y="264" width="240" height="58" rx="10" />
+  <text class="nwd-title" x="582" y="288">Journal store on disk</text>
+  <text class="nwd-sub" x="582" y="306">NWFJ segments, no network</text>
+
+  <path class="nwd-line nwd-line--dash" d="M684 204 V264" />
+  <polygon class="nwd-head" points="684,264 679.5,256 688.5,256" />
+  <text class="nwd-sub" x="676" y="238" text-anchor="end">appends, when journaled</text>
+</svg>
+</div>
+<figcaption>Three shapes of route on one app: cached one-shot serializations, long-lived streams sharing an upstream poll, and read-only reads straight off the journal store.</figcaption>
+</figure>
+
 ### `GET /`
 
 Service descriptor. Returns JSON with `name`, `version`, the supported `formats`, the
@@ -45,7 +105,7 @@ Service descriptor. Returns JSON with `name`, `version`, the supported `formats`
 
 ### `GET /healthz`
 
-Liveness probe. Returns `{ status: 'ok', service: 'neurowire', version: '0.4.0' }`.
+Liveness probe. Returns `{ status: 'ok', service: 'neurowire', version: '0.5.0' }`.
 
 ### `GET /feed`
 

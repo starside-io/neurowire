@@ -1,4 +1,4 @@
-# nwf-sync/1 (peer delta exchange)
+# NWF Sync (peer delta exchange)
 
 `nwf-sync/1` is the protocol two Neurowire nodes speak to exchange journal deltas. One node aggregates sources into an [NWFJ journal](./nwfj); other nodes pull "everything after my cursor" instead of re-fetching every upstream site themselves.
 
