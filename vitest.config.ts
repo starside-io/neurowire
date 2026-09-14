@@ -16,6 +16,7 @@ export default defineConfig({
         'packages/api/src/index.ts',
         'packages/cli/src/index.ts',
         'packages/web/src/cli.ts',
+        'packages/mcp/src/index.ts',
       ],
       thresholds: {
         // core and taps are held at full statement / line / function coverage.
@@ -28,6 +29,7 @@ export default defineConfig({
         'packages/api/src/**': { statements: 85, functions: 85, lines: 85 },
         'packages/cli/src/**': { statements: 80, functions: 85, lines: 80 },
         'packages/web/src/**': { statements: 85, functions: 85, lines: 85 },
+        'packages/mcp/src/**': { statements: 85, functions: 85, lines: 85 },
       },
     },
   },

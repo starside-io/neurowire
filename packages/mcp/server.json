@@ -1,0 +1,37 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.starside/neurowire",
+  "title": "Neurowire",
+  "description": "Clean feeds from any blog, site, RSS, or Atom source: meshes, journals, and tap verification.",
+  "repository": {
+    "url": "https://github.com/starside-io/neurowire",
+    "source": "github",
+    "subfolder": "packages/mcp"
+  },
+  "websiteUrl": "https://neurowire.starside.io",
+  "version": "0.1.0",
+  "packages": [
+    {
+      "registryType": "npm",
+      "identifier": "@neurowire/mcp",
+      "version": "0.1.0",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "name": "NEUROWIRE_MCP_ALLOW",
+          "description": "Comma separated hosts that caller-supplied URLs may fetch. Unset allows every host.",
+          "isRequired": false,
+          "format": "string"
+        },
+        {
+          "name": "NEUROWIRE_JOURNAL",
+          "description": "Directory holding journals. Defaults to ~/.config/neurowire/journal.",
+          "isRequired": false,
+          "format": "string"
+        }
+      ]
+    }
+  ]
+}

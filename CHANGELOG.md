@@ -4,6 +4,22 @@ All notable changes to Neurowire are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/), and the project uses semantic
 versioning (breaking changes land as a minor bump while the project is pre-1.0).
 
+## [Unreleased]
+
+### Added
+
+- **MCP server** (epic 13): a new `@neurowire/mcp` package, a stdio MCP server that
+  exposes feeds, meshes, constructs, journals, and taps to LLM agents. Entry results
+  default to NWF, cap at 200, and open with a one-line summary. `whats_new` returns a
+  real journal cursor, and `propose_tap` lets an agent draft a tap that only counts once
+  the tap-wizard gate in `verify_tap` passes it. `NEUROWIRE_MCP_ALLOW` restricts
+  caller-supplied URLs to a host allowlist.
+- **Claude Code plugin**: `.claude-plugin/plugin.json` bundles the server with two
+  skills (`follow-feeds`, `author-tap`).
+- **`llms.txt`**: the docs site now emits `/llms.txt` and `/llms-full.txt`.
+- **MCP registry**: `packages/mcp/server.json` (`io.starside/neurowire`) and a
+  `release-mcp` workflow that publishes to npm and then the registry.
+
 ## [0.9.0] - 2026-09-16
 
 ### Added

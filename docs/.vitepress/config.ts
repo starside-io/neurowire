@@ -1,9 +1,15 @@
 import { defineConfig } from 'vitepress'
+import llmstxt from 'vitepress-plugin-llms'
 
 // VitePress config for the Neurowire documentation site.
 // srcDir is docs/. The roadmap plans under docs/plans/ are internal, so they are
 // excluded from the built site.
 export default defineConfig({
+  // Emit /llms.txt and /llms-full.txt: a flat, token-efficient view of the docs
+  // for agents. The MCP server's search_docs tool reads llms-full.txt.
+  vite: {
+    plugins: [llmstxt({ ignoreFiles: ['plans/**', '**/README.md'] })],
+  },
   title: 'Neurowire',
   description:
     'Turn any blog, website, RSS, or Atom feed into clean, modern feeds: NWF, Atom, JSON Feed, Markdown, RSS, OPML, and self-contained HTML pages.',
@@ -46,6 +52,7 @@ export default defineConfig({
             { text: 'Library', link: '/guide/library' },
             { text: 'HTTP API', link: '/guide/http-api' },
             { text: 'Federation', link: '/guide/federation' },
+            { text: 'Agents (MCP)', link: '/guide/agents' },
             { text: 'Recipes', link: '/guide/recipes' },
           ],
         },
@@ -94,6 +101,7 @@ export default defineConfig({
             { text: '@neurowire/taps-pack', link: '/reference/taps-pack' },
             { text: '@neurowire/web', link: '/reference/web' },
             { text: '@neurowire/api', link: '/reference/api' },
+            { text: '@neurowire/mcp', link: '/reference/mcp' },
           ],
         },
       ],

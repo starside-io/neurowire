@@ -1,0 +1,62 @@
+name: Release MCP server
+
+# Publish @neurowire/mcp to npm, then register it on the MCP registry as
+# io.starside/neurowire. Runs on an `mcp-v*` tag or on demand.
+#
+# Secrets:
+# - NPM_TOKEN: a granular npm token with publish rights on @neurowire (2FA bypass).
+# - MCP_PUBLISHER_PRIVATE_KEY: the Ed25519 private key whose public key is in the
+#   starside.io DNS TXT record, which proves ownership of the io.starside namespace.
+#
+# Bump packages/mcp/package.json and packages/mcp/server.json to the same version
+# first: npm versions are immutable and the registry rejects a mismatch.
+
+on:
+  push:
+    tags: ['mcp-v*']
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - run: pnpm test
+
+      - name: Check the npm and registry versions agree
+        working-directory: packages/mcp
+        run: |
+          pkg=$(node -p "require('./package.json').version")
+          srv=$(node -p "require('./server.json').version")
+          test "$pkg" = "$srv" || { echo "package.json $pkg != server.json $srv"; exit 1; }
+
+      - name: Publish to npm
+        run: pnpm --filter @neurowire/mcp publish --no-git-checks --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Install mcp-publisher
+        run: |
+          curl -sL "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_linux_amd64.tar.gz" \
+            | tar xz mcp-publisher
+
+      - name: Authenticate the io.starside namespace over DNS
+        run: ./mcp-publisher login dns --domain starside.io --private-key "$MCP_PUBLISHER_PRIVATE_KEY"
+        env:
+          MCP_PUBLISHER_PRIVATE_KEY: ${{ secrets.MCP_PUBLISHER_PRIVATE_KEY }}
+
+      - name: Publish to the MCP registry
+        working-directory: packages/mcp
+        run: ../../mcp-publisher publish

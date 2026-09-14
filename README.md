@@ -14,6 +14,7 @@ Turn any blog into a modern feed. Point Neurowire at a website that lists articl
 | `@neurowire/cli` | `neurowire <url>` to print a feed in the terminal or emit any format. |
 | `@neurowire/api` | Tiny HTTP service: `GET /feed?url=...&format=atom`, `GET /tail` for live SSE streams, plus the `nwf-sync/1` peer endpoints. |
 | `@neurowire/web` | Renders a feed, mesh, or construct to self-contained HTML (`neurowire-web` bin + `toHtml`/`toConstructHtml`), for scheduled static publishing. |
+| `@neurowire/mcp` | MCP server for LLM agents (`npx -y @neurowire/mcp`): feeds, meshes, journals with `whats_new` cursors, and tap verification. Also a Claude Code plugin: `/plugin install neurowire@starside`. |
 
 ## Output formats
 
