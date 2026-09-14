@@ -1,5 +1,9 @@
 # @neurowire/taps
 
+## 0.3.3
+
+- Republish so the pinned `@neurowire/ingest` version matches the current release. No behavior change.
+
 ## 0.3.2
 
 - Republish so the pinned `@neurowire/ingest` version matches the 0.8.0 release. No behavior change: `workspace:*` publishes as an exact pin, so leaving this package behind would put a second copy of `ingest` in the tree and split the module-level tap registry.

@@ -4,6 +4,13 @@ All notable changes to Neurowire are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/), and the project uses semantic
 versioning (breaking changes land as a minor bump while the project is pre-1.0).
 
+## [0.8.1] - 2026-09-14
+
+### Fixed
+
+- **Entities and markup in titles** (ingest): numeric and named HTML entities inside CDATA (`&#8217;`, `&#8230;`) are now decoded, and HTML-typed titles no longer render literal `<em>` tags. Every parser now passes entry titles through `stripHtml`.
+- **On-topic feeds** (taps-pack): the Anime theme reads `comicbook.com/category/anime/feed/` and the Music theme reads `nme.com/news/music/feed`, replacing site-wide feeds that pulled in off-topic items.
+
 ## [0.8.0] - 2026-08-28
 
 ### Added

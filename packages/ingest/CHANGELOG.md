@@ -1,5 +1,9 @@
 # @neurowire/ingest
 
+## 0.8.1
+
+- Decode HTML entities in titles and summaries. `stripHtml` now decodes numeric (`&#8217;`, `&#x2019;`) and common named entities, which the XML parser leaves raw inside CDATA, and strips markup that arrived encoded. Atom, RSS, RDF, and JSON Feed entry titles now go through `stripHtml`, so `type="html"` titles no longer carry literal tags.
+
 ## 0.8.0
 
 - Add the poll engine: `pollFeed`, an async generator that loads, dedupes with `entryKey`/`newEntries`, and waits, with a 30 second interval floor, jittered waits, a resumable seen-set, per-tick error isolation, and abort support. `resolvePollInterval` and `nextPollDelay` are exported alongside it. It is the single loop behind the CLI's `tail` and `--watch` and the API's `GET /tail`.

@@ -1,5 +1,9 @@
 # @neurowire/taps-pack
 
+## 0.1.3
+
+- Swap two catch-all feeds for on-topic ones: ComicBook Anime now reads `comicbook.com/category/anime/feed/` and NME reads `nme.com/news/music/feed`. Also republish against the current `@neurowire/ingest`.
+
 ## 0.1.2
 
 - Republish so the pinned `@neurowire/ingest` and `@neurowire/taps` versions match the current release. No behavior change.

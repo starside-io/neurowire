@@ -304,7 +304,7 @@ Each theme also has a subpath export: `@neurowire/taps-pack/<key>` (default expo
 
 ### Anime (`anime`)
 
-- ComicBook Anime: <https://comicbook.com/anime/news/feed/>
+- ComicBook Anime: <https://comicbook.com/category/anime/feed/>
 - MyAnimeList News: <https://myanimelist.net/rss/news.xml>
 - Crunchyroll Anime: <https://www.crunchyroll.com/rss/anime>
 - Otaku USA: <https://otakuusamagazine.com/feed/>
@@ -334,7 +334,7 @@ Each theme also has a subpath export: `@neurowire/taps-pack/<key>` (default expo
 - Pitchfork: <https://pitchfork.com/feed/feed-news/rss>
 - Stereogum: <https://www.stereogum.com/feed/>
 - Rolling Stone Music: <https://www.rollingstone.com/music/feed/>
-- NME: <https://www.nme.com/feed>
+- NME: <https://www.nme.com/news/music/feed>
 - Billboard: <https://www.billboard.com/feed/>
 - Brooklyn Vegan: <https://www.brooklynvegan.com/feed/>
 - Loudwire: <https://loudwire.com/feed/>

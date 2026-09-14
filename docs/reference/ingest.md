@@ -591,5 +591,5 @@ function finalizeFeed(draft: FeedDraft, ctx: ParseContext): NeurowireFeed
 | `FeedDraft` | A loose, in-progress feed that `finalizeFeed` turns into a valid `NeurowireFeed`. |
 | `resolveUrl(href, base)` | Resolve a possibly-relative href against `base`. Returns the input on failure. |
 | `normDate(value)` | Normalize any parseable date (RFC 822, RFC 3339, ...) to ISO 8601, or `undefined`. |
-| `stripHtml(value)` | Strip tags and collapse whitespace, or `undefined` when empty. |
+| `stripHtml(value)` | Strip tags, decode numeric and common named HTML entities, and collapse whitespace, or `undefined` when empty. Applied to entry titles and summaries. |
 | `finalizeFeed(draft, ctx)` | Fill in defaults, give entries stable ids, and stamp the generator to produce a valid `NeurowireFeed`. |

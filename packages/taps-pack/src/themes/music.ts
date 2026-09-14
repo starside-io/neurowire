@@ -10,7 +10,7 @@ const music: Theme = {
     { name: 'Pitchfork', url: 'https://pitchfork.com/feed/feed-news/rss' },
     { name: 'Stereogum', url: 'https://www.stereogum.com/feed/' },
     { name: 'Rolling Stone Music', url: 'https://www.rollingstone.com/music/feed/' },
-    { name: 'NME', url: 'https://www.nme.com/feed' },
+    { name: 'NME', url: 'https://www.nme.com/news/music/feed' },
     { name: 'Billboard', url: 'https://www.billboard.com/feed/' },
     { name: 'Brooklyn Vegan', url: 'https://www.brooklynvegan.com/feed/' },
     { name: 'Loudwire', url: 'https://loudwire.com/feed/' },

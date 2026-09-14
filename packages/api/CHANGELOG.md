@@ -1,5 +1,9 @@
 # @neurowire/api
 
+## 0.5.1
+
+- Republish so the pinned `@neurowire/ingest` version matches the current release. No behavior change.
+
 ## 0.5.0
 
 - Add `GET /tail`: a feed, mesh, or construct as a server-sent event stream (`format=json|nwf`, `interval=` clamped to a 60 second floor). Emits an `init` event, then one `entry` event per new entry with its cursor as the event id, plus a keep-alive comment every 25 seconds and `X-Accel-Buffering: no`.

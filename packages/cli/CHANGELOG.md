@@ -1,5 +1,9 @@
 # @neurowire/cli
 
+## 0.10.1
+
+- Republish so the pinned `@neurowire/ingest` version matches the current release. No behavior change.
+
 ## 0.10.0
 
 - Add `neurowire tail [url]`: follow a feed, mesh, or construct as a live stream, printing each new entry as it arrives. Honors the filter, window, sort, and limit flags per tick, plus `--interval`, `--state`, `--journal`, and `--sink`.

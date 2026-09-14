@@ -38,11 +38,29 @@ export function normDate(value: string | undefined): string | undefined {
   return Number.isNaN(ms) ? undefined : new Date(ms).toISOString()
 }
 
-/** Strip HTML tags and collapse whitespace, for turning rich descriptions into summaries. */
+const NAMED: Record<string, string> = {
+  amp: '&',
+  lt: '<',
+  gt: '>',
+  quot: '"',
+  apos: "'",
+  nbsp: ' ',
+  hellip: '…',
+}
+
+/** Decode numeric and common named HTML entities (the XML parser skips CDATA). */
+function decodeEntities(s: string): string {
+  return s
+    .replace(/&#x([0-9a-f]+);/gi, (_, h) => String.fromCodePoint(Number.parseInt(h, 16)))
+    .replace(/&#(\d+);/g, (_, d) => String.fromCodePoint(Number(d)))
+    .replace(/&([a-z]+);/gi, (m, n) => NAMED[n.toLowerCase()] ?? m)
+}
+
+/** Strip HTML tags, decode entities, and collapse whitespace, for plain-text titles and summaries. */
 export function stripHtml(value: string | undefined): string | undefined {
   if (!value) return undefined
-  const plain = value
-    .replace(/<[^>]*>/g, ' ')
+  const plain = decodeEntities(value.replace(/<[^>]*>/g, ' '))
+    .replace(/<[^>]*>/g, ' ') // markup that arrived encoded, e.g. &lt;em&gt;
     .replace(/\s+/g, ' ')
     .trim()
   return plain || undefined

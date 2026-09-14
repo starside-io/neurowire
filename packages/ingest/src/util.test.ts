@@ -17,6 +17,9 @@ describe('util', () => {
 
   it('stripHtml strips tags and collapses whitespace', () => {
     expect(stripHtml('<p>Hello   <b>world</b></p>')).toBe('Hello world')
+    expect(stripHtml('Tom&apos;s &quot;A&quot; &hellip; &#x2019; &bogus;')).toBe(
+      'Tom\'s "A" … ’ &bogus;',
+    )
     expect(stripHtml('   ')).toBeUndefined()
     expect(stripHtml(undefined)).toBeUndefined()
   })

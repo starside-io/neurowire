@@ -1,6 +1,6 @@
 {
   "name": "@neurowire/cli",
-  "version": "0.10.0",
+  "version": "0.10.1",
   "description": "Neurowire command-line tool: turn any blog, feed, or mesh into NWF, Atom, JSON Feed, Markdown.",
   "type": "module",
   "bin": {

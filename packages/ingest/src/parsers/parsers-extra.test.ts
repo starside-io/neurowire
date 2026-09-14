@@ -20,6 +20,20 @@ describe('parsers extras', () => {
     expect(feed.entries[0]?.title).toBe('Alphabet’s & Google’s news')
   })
 
+  it('decodes entities inside a CDATA description', () => {
+    const rss =
+      '<?xml version="1.0"?><rss version="2.0"><channel><title>T</title><link>https://b.example/</link><item><title>Wordle</title><link>https://b.example/1</link><description><![CDATA[<p>Today&#8217;s answer [&#8230;]</p>]]></description></item></channel></rss>'
+    const feed = parseFeedString(rss, ctx)
+    expect(feed.entries[0]?.summary).toBe('Today’s answer […]')
+  })
+
+  it('strips markup from an Atom type="html" title', () => {
+    const atom =
+      '<?xml version="1.0"?><feed xmlns="http://www.w3.org/2005/Atom"><id>urn:f</id><title>F</title><updated>2024-01-01T00:00:00Z</updated><entry><id>urn:e</id><title type="html">&lt;em&gt;The Atlantic&lt;/em&gt; Launches</title><link href="https://b.example/1"/><updated>2024-01-01T00:00:00Z</updated></entry></feed>'
+    const feed = parseFeedString(atom, ctx)
+    expect(feed.entries[0]?.title).toBe('The Atlantic Launches')
+  })
+
   it('throws on unrecognized content', () => {
     expect(() => parseFeedString('<html><body>not a feed</body></html>', ctx)).toThrow(
       /Unrecognized/,

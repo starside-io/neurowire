@@ -39,7 +39,7 @@ function atomEntry(node: unknown, ctx: ParseContext): NeurowireEntry {
   const link = resolveUrl(href, ctx.sourceUrl)
   const entry: NeurowireEntry = {
     id: text(get(node, 'id')) ?? '',
-    title: text(get(node, 'title')) ?? 'Untitled',
+    title: stripHtml(text(get(node, 'title'))) ?? 'Untitled',
     link,
   }
   const published = normDate(text(get(node, 'published')))
@@ -79,7 +79,7 @@ function rssItem(node: unknown, ctx: ParseContext): NeurowireEntry {
   const link = resolveUrl(text(get(node, 'link')) ?? guid ?? '', ctx.sourceUrl)
   const entry: NeurowireEntry = {
     id: guid ?? '',
-    title: text(get(node, 'title')) ?? 'Untitled',
+    title: stripHtml(text(get(node, 'title'))) ?? 'Untitled',
     link,
   }
   const published = normDate(text(get(node, 'pubDate')) ?? text(get(node, 'dc:date')))
@@ -180,7 +180,7 @@ export function parseJsonFeed(raw: unknown, ctx: ParseContext): NeurowireFeed {
     const link = resolveUrl(item.url ?? item.external_url ?? '', ctx.sourceUrl)
     const entry: NeurowireEntry = {
       id: item.id !== undefined ? String(item.id) : '',
-      title: item.title ?? 'Untitled',
+      title: stripHtml(item.title) ?? 'Untitled',
       link,
     }
     const published = normDate(item.date_published)
