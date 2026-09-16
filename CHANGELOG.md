@@ -4,7 +4,7 @@ All notable changes to Neurowire are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/), and the project uses semantic
 versioning (breaking changes land as a minor bump while the project is pre-1.0).
 
-## [Unreleased]
+## [0.10.0] - 2026-09-16
 
 ### Added
 
@@ -19,6 +19,18 @@ versioning (breaking changes land as a minor bump while the project is pre-1.0).
 - **`llms.txt`**: the docs site now emits `/llms.txt` and `/llms-full.txt`.
 - **MCP registry**: `packages/mcp/server.json` (`io.starside/neurowire`) and a
   `release-mcp` workflow that publishes to npm and then the registry.
+
+### Documentation
+
+- A [`@neurowire/mcp` reference](docs/reference/mcp.md) and an
+  [Agents (MCP) guide](docs/guide/agents.md), covering installation, the tool
+  surface, result conventions, and the allowlist.
+
+### Versions
+
+- root 0.9.0 to 0.10.0; `@neurowire/mcp` at 0.1.0 (first release). Every other
+  package is unchanged: the new package depends on them but nothing they ship
+  changed, so none needed a republish.
 
 ## [0.9.0] - 2026-09-16
 
