@@ -58,7 +58,7 @@ import {
 import { TAIL_STOP, runRemoteTail, runTail, tailIntervalMs } from './tail'
 import { type WizardIo, runTapCheck, runTapHeal, runTapWizard } from './tap-wizard'
 
-const VERSION = '0.10.1'
+const VERSION = '0.10.2'
 
 const HELP = `Neurowire ${VERSION} - turn any blog or feed into Atom and friends.
 

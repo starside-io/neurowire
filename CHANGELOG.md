@@ -4,7 +4,7 @@ All notable changes to Neurowire are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/), and the project uses semantic
 versioning (breaking changes land as a minor bump while the project is pre-1.0).
 
-## [Unreleased]
+## [0.9.0] - 2026-09-16
 
 ### Added
 
@@ -15,6 +15,20 @@ versioning (breaking changes land as a minor bump while the project is pre-1.0).
   and the HTML page generator all accept one. A malformed document fails with the
   line number `validate` would print. Previously NWF was write-only on the fetch
   path, so Neurowire could not read its own output.
+
+### Documentation
+
+- A document-detection table in [Fetching](docs/concepts/fetching.md), and a
+  "Publishing one, and reading it back" section in [the NWF format](docs/formats/nwf.md)
+  covering the CLI, mesh membership, and the failure mode.
+
+### Versions
+
+- root 0.8.1 to 0.9.0; `@neurowire/ingest` 0.8.1 to 0.9.0. `@neurowire/taps` 0.3.3
+  to 0.3.4, `@neurowire/tap-wizard` 0.1.1 to 0.1.2, `@neurowire/taps-pack` 0.1.3 to
+  0.1.4, `@neurowire/cli` 0.10.1 to 0.10.2, `@neurowire/api` 0.5.1 to 0.5.2, and
+  `@neurowire/web` 0.5.3 to 0.5.4 are republished so their exact `ingest` pins stay
+  aligned. `@neurowire/core` is unchanged at 0.8.0.
 
 ## [0.8.1] - 2026-09-14
 

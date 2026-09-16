@@ -1,5 +1,9 @@
 # @neurowire/cli
 
+## 0.10.2
+
+- Republish so the pinned `@neurowire/ingest` version matches the current release. No behavior change.
+
 ## 0.10.1
 
 - Republish so the pinned `@neurowire/ingest` version matches the current release. No behavior change.

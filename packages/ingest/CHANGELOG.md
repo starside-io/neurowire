@@ -1,5 +1,10 @@
 # @neurowire/ingest
 
+## 0.9.0
+
+- Read NWF back: `detectKind` gains an `nwf` kind (matched on `text/x-neurowire` or an `NWF1` first line) and the new `parseNwf` parses a document through `validateNwf`, so a published `.nwf` file is a source like any feed. It works everywhere `fetchFeed` is used: the terminal view, `--format`, `--watch`, `tail`, journals, and mesh and construct members.
+- A malformed NWF document now fails with the line number `validate` would print, rather than a generic parse error. A document's own `self` is preserved; one without it records the URL it was fetched from.
+
 ## 0.8.1
 
 - Decode HTML entities in titles and summaries. `stripHtml` now decodes numeric (`&#8217;`, `&#x2019;`) and common named entities, which the XML parser leaves raw inside CDATA, and strips markup that arrived encoded. Atom, RSS, RDF, and JSON Feed entry titles now go through `stripHtml`, so `type="html"` titles no longer carry literal tags.
