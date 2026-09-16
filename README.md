@@ -7,7 +7,7 @@ Turn any blog into a modern feed. Point Neurowire at a website that lists articl
 | Package | What it does |
 |---------|--------------|
 | `@neurowire/core` | Canonical model + serializers: the compact Neurowire Feed (`nwf`), Atom, RSS 2.0, JSON Feed 1.1, and Markdown, plus the append-only journal format (`nwfj`). |
-| `@neurowire/ingest` | Fetch + detect + parse: RSS / Atom / JSON Feed, plus HTML auto-detect with a per-site template fallback, and the on-disk journal store. |
+| `@neurowire/ingest` | Fetch + detect + parse: NWF / RSS / Atom / JSON Feed, plus HTML auto-detect with a per-site template fallback, and the on-disk journal store. |
 | `@neurowire/taps` | Curated "taps" (`FeedTemplate`s) for sites worth following that ship no RSS/Atom feed (e.g. `claude.com/blog`). Bring your own via `NEUROWIRE_TAPS` or `--taps`. |
 | `@neurowire/tap-wizard` | Deterministic tap authoring and healing: candidate selectors from page structure, a live preview through the real engine, and a verification gate no tap is written without. No model, no API key. |
 | `@neurowire/taps-pack` | Optional themed catalog of 270+ sources across 24 themes (tech and general-interest), with per-theme conditional imports. Register from the CLI with `--tap-pack`. |
@@ -39,7 +39,7 @@ B  https://blog.example.com/posts/                     shared link prefix
 E  id  delta  link  authorRefs  tagRefs  title  summary  sourceRef   one line per entry
 ```
 
-It stays small by interning authors, tags and sources (referenced by index), storing each link relative to `B`, and storing each entry's date as a delta in seconds before the feed's `updated`. `authorRefs` / `tagRefs` are comma-separated indices into `A` / `T`; `sourceRef` is a single index into `S` (the per-source label, set when merging a [mesh](#meshes)). Text cells escape backslash, TAB, CR and LF. It round-trips back to the model via `fromNwf`, and the `sourceRef` column is appended last so older documents without it still parse.
+It stays small by interning authors, tags and sources (referenced by index), storing each link relative to `B`, and storing each entry's date as a delta in seconds before the feed's `updated`. `authorRefs` / `tagRefs` are comma-separated indices into `A` / `T`; `sourceRef` is a single index into `S` (the per-source label, set when merging a [mesh](#meshes)). Text cells escape backslash, TAB, CR and LF. It round-trips back to the model via `fromNwf`, and the `sourceRef` column is appended last so older documents without it still parse. Ingest reads NWF as well as writes it (by `text/x-neurowire` or the `NWF1` first line), so a published `.nwf` file is a source like any feed, mesh members included.
 
 ## Journals
 

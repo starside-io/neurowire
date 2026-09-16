@@ -89,6 +89,30 @@ neurowire validate https://example.com/feed.nwf
 
 In dev: `pnpm validate <url>`.
 
+## Publishing one, and reading it back
+
+NWF is not write-only. `detectKind` recognizes it by `Content-Type` (`text/x-neurowire`) or by its `NWF1` first line, so an NWF file served at a URL is a source like any feed:
+
+```bash
+neurowire https://example.com/feed.nwf              # terminal view
+neurowire https://example.com/feed.nwf -f md        # convert to anything
+neurowire https://example.com/feed.nwf --watch      # follow it
+```
+
+That also makes it a [mesh](/concepts/meshes) member, so one machine can publish a static file and others merge it with live feeds:
+
+```json
+{
+  "name": "Mixed",
+  "sources": [
+    { "name": "Mirror", "url": "https://example.com/feed.nwf" },
+    { "name": "Live", "url": "https://blog.example.com/feed.xml" }
+  ]
+}
+```
+
+A malformed document fails with the line number `validate` would print, for example `Invalid nwf document: line 4: entry has fewer than 7 cells`. The feed's `self` is preserved when the document carries one, and otherwise set to the URL it was fetched from, so a mirrored copy still records where it came from. For archives rather than snapshots, the journal protocol is [`nwf-sync/1`](/formats/nwf-sync).
+
 ## Usage
 
 CLI:

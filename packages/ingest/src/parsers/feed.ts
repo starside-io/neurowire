@@ -1,5 +1,6 @@
 import type { NeurowireEntry, NeurowireFeed, Person } from '@neurowire/core'
 import { type ParseContext, finalizeFeed, normDate, resolveUrl, stripHtml } from '../util'
+import { parseNwf } from './nwf'
 import { attr, get, parseXml, text, toArray } from './xml'
 
 // ---------- shared helpers ----------
@@ -209,12 +210,13 @@ export function parseJsonFeed(raw: unknown, ctx: ParseContext): NeurowireFeed {
 
 // ---------- dispatch ----------
 
-/** Parse a feed document (Atom / RSS / RDF / JSON Feed) by inspecting its root. */
+/** Parse a feed document (NWF / Atom / RSS / RDF / JSON Feed) by inspecting its first line or root. */
 export function parseFeedString(body: string, ctx: ParseContext): NeurowireFeed {
+  if (body.trimStart().startsWith('NWF1')) return parseNwf(body, ctx)
   if (body.trimStart().startsWith('{')) return parseJsonFeed(JSON.parse(body), ctx)
   const doc = parseXml(body)
   if (get(doc, 'feed')) return parseAtom(doc, ctx)
   if (get(doc, 'rss')) return parseRss(doc, ctx)
   if (get(doc, 'rdf:RDF')) return parseRdf(doc, ctx)
-  throw new Error('Unrecognized feed format (expected Atom, RSS, RDF or JSON Feed)')
+  throw new Error('Unrecognized feed format (expected NWF, Atom, RSS, RDF or JSON Feed)')
 }

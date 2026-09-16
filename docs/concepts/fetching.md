@@ -14,6 +14,21 @@ const doc = await fetchDocument('https://example.com/feed.xml', {
 
 `fetchDocument` returns a `RawDocument`: the final `url` (after redirects), the `contentType`, the `body`, optional `etag` / `lastModified` validators, and a `notModified` flag set when the body came from cache via a 304.
 
+## Document detection
+
+Once a document is fetched, `detectKind(contentType, body)` classifies it before any parser runs: the `Content-Type` first, then a body sniff when the type is unhelpful (many hosts serve feeds as `text/plain` or `application/octet-stream`).
+
+| Kind | Matched by |
+|------|-----------|
+| `nwf` | `text/x-neurowire`, or an `NWF1` first line |
+| `atom` | `application/atom+xml`, or a `<feed` root |
+| `rss` | `application/rss+xml`, or an `<rss` root |
+| `rdf` | An `rdf:RDF` root |
+| `jsonfeed` | `application/feed+json`, or a JSON body naming jsonfeed.org or `items` |
+| `html` | Everything else, which then goes to a tap or auto-detect |
+
+Anything but `html` is parsed directly. `nwf` is in that list because Neurowire reads its own format back: a published `.nwf` file is a source like any feed, including as a [mesh](/concepts/meshes) member. See [the NWF format](/formats/nwf).
+
 ## `FetchOptions`
 
 | Option | Type | Default | Purpose |

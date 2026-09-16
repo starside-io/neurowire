@@ -1,3 +1,4 @@
+import { toNwf } from '@neurowire/core'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { fetchFeed, ingestDocument } from './ingest'
 
@@ -23,6 +24,45 @@ describe('ingestDocument', () => {
     })
     expect(feed.title).toBe('T')
     expect(feed.entries).toHaveLength(1)
+  })
+
+  it('parses an nwf document, by content type or by sniffing it', async () => {
+    const body = toNwf({
+      id: 'https://blog.example/',
+      title: 'Published feed',
+      updated: '2026-08-25T00:00:00.000Z',
+      entries: [{ id: 'urn:1', title: 'One', link: 'https://blog.example/1' }],
+    })
+    const typed = await ingestDocument({
+      url: 'https://raw.example/feed.nwf',
+      contentType: 'text/x-neurowire; charset=utf-8',
+      body,
+    })
+    expect(typed.title).toBe('Published feed')
+    expect(typed.entries).toHaveLength(1)
+    expect(typed.self).toBe('https://raw.example/feed.nwf')
+
+    const sniffed = await ingestDocument({
+      url: 'https://raw.example/feed.nwf',
+      contentType: 'text/plain; charset=utf-8',
+      body,
+    })
+    expect(sniffed.title).toBe('Published feed')
+  })
+
+  it('fetches a published nwf file like any other feed', async () => {
+    const body = toNwf({
+      id: 'https://blog.example/',
+      title: 'Published feed',
+      updated: '2026-08-25T00:00:00.000Z',
+      entries: [{ id: 'urn:1', title: 'One', link: 'https://blog.example/1' }],
+    })
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response(body, { headers: { 'content-type': 'text/plain' } })),
+    )
+    const feed = await fetchFeed('https://raw.example/feed.nwf')
+    expect(feed.entries[0]?.title).toBe('One')
   })
 
   it('uses an explicit template for html', async () => {

@@ -4,6 +4,18 @@ All notable changes to Neurowire are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/), and the project uses semantic
 versioning (breaking changes land as a minor bump while the project is pre-1.0).
 
+## [Unreleased]
+
+### Added
+
+- **NWF is readable over the wire** (ingest): `detectKind` recognizes NWF by
+  `text/x-neurowire` or an `NWF1` first line, and `parseNwf` reads it back through
+  `validateNwf`, so a published `.nwf` file is a source like any feed: the terminal
+  view, `--format`, `--watch`, `tail`, journals, mesh and construct members, the API,
+  and the HTML page generator all accept one. A malformed document fails with the
+  line number `validate` would print. Previously NWF was write-only on the fetch
+  path, so Neurowire could not read its own output.
+
 ## [0.8.1] - 2026-09-14
 
 ### Fixed

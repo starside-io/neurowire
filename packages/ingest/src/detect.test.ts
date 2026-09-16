@@ -9,6 +9,13 @@ describe('detectKind', () => {
     expect(detectKind('text/html; charset=utf-8', '<!doctype html><html></html>')).toBe('html')
   })
 
+  it('classifies our own format by content type or its first line', () => {
+    expect(detectKind('text/x-neurowire; charset=utf-8', '')).toBe('nwf')
+    expect(detectKind('text/plain', 'NWF1\nF\tid\tTitle')).toBe('nwf')
+    expect(detectKind('', '  NWF1\n')).toBe('nwf')
+    expect(detectKind('text/plain', 'NWF is a format')).toBe('html')
+  })
+
   it('sniffs the body when the content type is unhelpful', () => {
     expect(detectKind('', '<?xml version="1.0"?><feed xmlns="http://www.w3.org/2005/Atom">')).toBe(
       'atom',

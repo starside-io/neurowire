@@ -130,7 +130,7 @@ function createMemoryCache(): ConditionalCache
 ## Detection
 
 ```ts
-type FeedKind = 'atom' | 'rss' | 'rdf' | 'jsonfeed' | 'html'
+type FeedKind = 'nwf' | 'atom' | 'rss' | 'rdf' | 'jsonfeed' | 'html'
 
 function detectKind(contentType: string, body: string): FeedKind
 ```
@@ -146,6 +146,7 @@ Each parser produces a `NeurowireFeed` from already-parsed input plus a `ParseCo
 
 ```ts
 function parseFeedString(body: string, ctx: ParseContext): NeurowireFeed
+function parseNwf(body: string, ctx: ParseContext): NeurowireFeed
 function parseAtom(doc: Record<string, unknown>, ctx: ParseContext): NeurowireFeed
 function parseRss(doc: Record<string, unknown>, ctx: ParseContext): NeurowireFeed
 function parseRdf(doc: Record<string, unknown>, ctx: ParseContext): NeurowireFeed
@@ -154,7 +155,8 @@ function parseJsonFeed(raw: unknown, ctx: ParseContext): NeurowireFeed
 
 | Export | Description |
 |--------|-------------|
-| `parseFeedString(body, ctx)` | Sniff a raw string (JSON Feed, Atom, RSS, or RDF) and dispatch to the right parser. Throws on an unrecognized format. |
+| `parseFeedString(body, ctx)` | Sniff a raw string (NWF, JSON Feed, Atom, RSS, or RDF) and dispatch to the right parser. Throws on an unrecognized format. |
+| `parseNwf(body, ctx)` | Parse an NWF document back into the model. Throws with the offending line number when the document is malformed, and stamps `self` from the source URL when the document has none. |
 | `parseAtom(doc, ctx)` | Parse a parsed-XML Atom document. |
 | `parseRss(doc, ctx)` | Parse a parsed-XML RSS 2.0 document. |
 | `parseRdf(doc, ctx)` | Parse a parsed-XML RDF (RSS 1.0) document. |

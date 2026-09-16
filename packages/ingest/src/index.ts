@@ -63,6 +63,7 @@ export {
   parseRdf,
   parseRss,
 } from './parsers/feed'
+export { parseNwf } from './parsers/nwf'
 export { autodetect, discoverFeedLink } from './html/autodetect'
 export { applyTemplate, FeedTemplateSchema, type FeedTemplate } from './html/template'
 export { proposeTemplate, type TemplateProposal } from './html/propose'
