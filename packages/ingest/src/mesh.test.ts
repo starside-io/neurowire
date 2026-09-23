@@ -34,6 +34,30 @@ describe('fetchMesh', () => {
     expect(feed.entries.map((e) => e.source?.name)).toEqual(['Source One', 'Source Two'])
   })
 
+  it('sends per-source headers only to that source', async () => {
+    const fetchMock = vi.fn(async (input: string | URL, _init?: RequestInit) =>
+      String(input).includes('one')
+        ? xmlResponse(atom('One', 'https://one.example/a', '2024-01-02T00:00:00Z'))
+        : xmlResponse(atom('Two', 'https://two.example/b', '2024-01-01T00:00:00Z')),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+    await fetchMesh({
+      name: 'Bundle',
+      sources: [
+        { name: 'One', url: 'https://one.example/feed', headers: { authorization: 'Bearer one' } },
+        { name: 'Two', url: 'https://two.example/feed' },
+      ],
+    })
+    const byUrl = new Map(
+      fetchMock.mock.calls.map(([input, init]) => [
+        String(input),
+        init?.headers as Record<string, string>,
+      ]),
+    )
+    expect(byUrl.get('https://one.example/feed')?.authorization).toBe('Bearer one')
+    expect(byUrl.get('https://two.example/feed')?.authorization).toBeUndefined()
+  })
+
   it('takes a published nwf file as a source, merged like any other', async () => {
     const nwf = toNwf({
       id: 'https://mirror.example/',

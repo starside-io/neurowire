@@ -26,6 +26,7 @@ interface FetchFeedOptions {
   timeoutMs?: number
   retries?: number
   backoffMs?: number
+  headers?: Record<string, string>
 }
 ```
 
@@ -40,6 +41,7 @@ Fetch a URL (website, RSS, or Atom) and normalize it to a `NeurowireFeed`.
 | `timeoutMs` | `number?` | `15000` | Per-attempt fetch deadline. Set `0` to disable. |
 | `retries` | `number?` | `2` | Max additional attempts after the first. |
 | `backoffMs` | `number?` | `500` | Base delay for exponential backoff with jitter. |
+| `headers` | `Record<string, string>?` | - | Extra request headers for this source. Credential headers stay on the source's origin: a cross-origin redirect or discovered feed link is fetched without them. |
 
 ### `ingestDocument`
 
@@ -71,6 +73,7 @@ interface FetchOptions {
   retries?: number
   backoffMs?: number
   delay?: (ms: number, signal?: AbortSignal) => Promise<void>
+  headers?: Record<string, string>
 }
 
 interface RawDocument {
@@ -98,6 +101,18 @@ many redirects, or a caller abort are not retried. A 304 is a success.
 | `retries` | `number?` | `2` | Max additional attempts. |
 | `backoffMs` | `number?` | `500` | Base backoff delay. |
 | `delay` | `(ms, signal?) => Promise<void>?` | setTimeout-based | Injectable sleep between retries (for tests). |
+| `headers` | `Record<string, string>?` | - | Extra request headers. Override `user-agent` / `accept` but never the conditional headers. `authorization`, `proxy-authorization`, and `cookie` are dropped on a cross-origin redirect hop. Not part of the cache key. |
+
+```ts
+function requestHeaders(
+  headers: Record<string, string> | undefined,
+  sameOrigin: boolean,
+): Record<string, string>
+```
+
+`requestHeaders` is the per-hop normalizer `fetchDocument` uses: keys lowercased,
+conditional headers removed, credential headers removed unless `sameOrigin`. Exported so a
+caller that follows links itself can apply the same rule.
 
 `RawDocument` fields: `url` (final URL after redirects), `contentType`, `body`, `etag`,
 `lastModified`, and `notModified` (true when served from cache via a 304).
@@ -271,7 +286,9 @@ interface FetchMeshOptions {
 ```
 
 Fetch every source in a mesh (in parallel) and merge them into one feed. Sources that fail
-are skipped; throws only if none succeed.
+are skipped; throws only if none succeed. A source's own `headers` (see `MeshSource`) are
+passed to its fetch on top of the shared options; other sources never see them, and the
+default `onSourceError` warning logs the name, url, and error only.
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
@@ -348,6 +365,11 @@ interface ConfigResolverOptions {
 function meshConfigDirs(options?: ConfigResolverOptions): string[]
 function loadMeshFromConfig(name: string, options?: ConfigResolverOptions): Mesh | undefined
 function createConfigMeshResolver(options?: ConfigResolverOptions): MeshResolver
+
+function resolveMeshEnv(mesh: Mesh, env?: NodeJS.ProcessEnv): Mesh
+function resolveConstructEnv(construct: Construct, env?: NodeJS.ProcessEnv): Construct
+function parseMeshFile(text: string, env?: NodeJS.ProcessEnv): Mesh
+function parseConstructFile(text: string, env?: NodeJS.ProcessEnv): Construct
 ```
 
 | Option | Default | Description |
@@ -361,6 +383,10 @@ function createConfigMeshResolver(options?: ConfigResolverOptions): MeshResolver
 | `meshConfigDirs(options?)` | The directories searched for named mesh files: explicit `dirs`, then the env var, then `~/.config/neurowire/meshes`. |
 | `loadMeshFromConfig(name, options?)` | Read a mesh by name (tries `<name>.mesh.json` then `<name>.json`). Returns `undefined` when absent. Rejects path-like names. |
 | `createConfigMeshResolver(options?)` | A `MeshResolver` backed by the config directories. Pass to `fetchConstruct({ resolver })`. |
+| `resolveMeshEnv(mesh, env?)` | Replace `${VAR}` in every source's header values from `env` (default `process.env`). Throws, naming the mesh, source, header, and variable, when one is unset or empty. Returns a new mesh; the input is untouched. Only for meshes read from trusted local config, never for a remote caller's input. |
+| `resolveConstructEnv(construct, env?)` | `resolveMeshEnv` over a construct's inline meshes; `{ ref }` members pass through. |
+| `parseMeshFile(text, env?)` | `MeshSchema.parse(JSON.parse(text))` followed by `resolveMeshEnv`. The one entry point for reading mesh JSON from disk, used by the CLI, the API, and the MCP catalog. |
+| `parseConstructFile(text, env?)` | The construct counterpart of `parseMeshFile`. |
 
 ## Journal store
 

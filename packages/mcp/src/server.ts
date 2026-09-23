@@ -2,13 +2,13 @@ import { McpServer, ResourceTemplate } from '@modelcontextprotocol/sdk/server/mc
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js'
 import {
   type Construct,
-  ConstructSchema,
   FORMATS,
   FeedSchema,
   type JournalCursor,
   type Mesh,
-  MeshSchema,
   type NeurowireFeed,
+  PublicConstructSchema,
+  PublicMeshSchema,
   filterEntries,
   isConstructRef,
   journalToFeed,
@@ -266,7 +266,10 @@ export function createServer(deps: ServerDeps = {}): McpServer {
         'Fetch a mesh (many sources merged, tagged by source, deduped, newest first). Pass a configured mesh name (see the neurowire://mesh resources; taps-pack theme keys work too) or an inline list of sources.',
       inputSchema: {
         name: z.string().optional().describe('A named mesh, e.g. ai-news.'),
-        sources: MeshSchema.shape.sources.optional().describe('Inline sources: [{ name, url }].'),
+        // Public schema: tool inputs are untrusted, so per-source headers are dropped.
+        sources: PublicMeshSchema.shape.sources
+          .optional()
+          .describe('Inline sources: [{ name, url }].'),
         format: formatShape,
         limit: limitShape,
       },
@@ -296,7 +299,9 @@ export function createServer(deps: ServerDeps = {}): McpServer {
         'Fetch a construct (a bundle of meshes). Returns one summary line per mesh, then the flattened entries.',
       inputSchema: {
         name: z.string().optional().describe('A named construct, e.g. daily.'),
-        construct: ConstructSchema.optional().describe('An inline construct: { name, meshes }.'),
+        construct: PublicConstructSchema.optional().describe(
+          'An inline construct: { name, meshes }.',
+        ),
         format: formatShape,
         limit: limitShape,
       },

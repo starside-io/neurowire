@@ -10,6 +10,7 @@ import {
   journalFeedMeta,
   parseFilterRule,
   parseFilterRules,
+  parseHeaderFlags,
   parseJournalCursor,
   partitionNew,
 } from './pipeline'
@@ -47,6 +48,26 @@ describe('parseFilterRule', () => {
 
   it('returns undefined for an unknown field', () => {
     expect(parseFilterRule('nope:x')).toBeUndefined()
+  })
+})
+
+describe('parseHeaderFlags', () => {
+  it('returns undefined for no flags', () => {
+    expect(parseHeaderFlags(undefined)).toEqual({ ok: true, value: undefined })
+    expect(parseHeaderFlags([])).toEqual({ ok: true, value: undefined })
+  })
+
+  it('splits on the first colon and trims', () => {
+    expect(parseHeaderFlags(['Authorization: Bearer a:b:c', 'X-One:1'])).toEqual({
+      ok: true,
+      value: { Authorization: 'Bearer a:b:c', 'X-One': '1' },
+    })
+  })
+
+  it('fails on a token without a colon or with an empty name', () => {
+    expect(parseHeaderFlags(['nocolon'])).toEqual({ ok: false, bad: 'nocolon' })
+    expect(parseHeaderFlags([': value'])).toEqual({ ok: false, bad: ': value' })
+    expect(parseHeaderFlags([' : value'])).toEqual({ ok: false, bad: ' : value' })
   })
 })
 

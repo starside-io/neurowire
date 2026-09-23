@@ -1,12 +1,12 @@
 import {
   type Construct,
-  ConstructSchema,
   FORMATS,
   type Format,
   MEDIA_TYPES,
   type Mesh,
-  MeshSchema,
   type NeurowireFeed,
+  PublicConstructSchema,
+  PublicMeshSchema,
   isFormat,
   serialize,
 } from '@neurowire/core'
@@ -127,9 +127,11 @@ app.post('/mesh', async (c) => {
   if (!isFormat(format)) {
     return c.json({ error: `unknown format "${format}"`, formats: FORMATS }, 400)
   }
+  // Request bodies are untrusted: the public schema drops per-source headers, so
+  // a caller cannot make this server send credentials (or read its config's).
   let mesh: Mesh
   try {
-    mesh = MeshSchema.parse(await c.req.json())
+    mesh = PublicMeshSchema.parse(await c.req.json())
   } catch (error) {
     const detail = error instanceof Error ? error.message : String(error)
     return c.json({ error: 'invalid mesh body', detail }, 400)
@@ -188,7 +190,7 @@ app.post('/construct', async (c) => {
   }
   let construct: Construct
   try {
-    construct = ConstructSchema.parse(await c.req.json())
+    construct = PublicConstructSchema.parse(await c.req.json())
   } catch (error) {
     const detail = error instanceof Error ? error.message : String(error)
     return c.json({ error: 'invalid construct body', detail }, 400)

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { type CachedResponse, createMemoryCache, fetchDocument } from './fetch'
+import { type CachedResponse, createMemoryCache, fetchDocument, requestHeaders } from './fetch'
 
 afterEach(() => {
   vi.unstubAllGlobals()
@@ -178,6 +178,106 @@ describe('fetchDocument', () => {
       /Blocked non-public/,
     )
     expect(seen).toEqual(['https://example.com/start', 'http://169.254.169.254/'])
+  })
+
+  it('sends caller headers, lowercased, and lets them override the defaults', async () => {
+    const fetchMock = vi.fn(
+      async (_input: string | URL, _init?: RequestInit) => new Response('<feed/>', { status: 200 }),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+    await fetchDocument('https://example.com/feed', {
+      headers: { Authorization: 'Bearer secret', 'User-Agent': 'custom/1' },
+    })
+    const headers = fetchMock.mock.calls[0][1]?.headers as Record<string, string>
+    expect(headers.authorization).toBe('Bearer secret')
+    expect(headers['user-agent']).toBe('custom/1')
+    expect(headers.accept).toBeDefined()
+  })
+
+  it('never lets caller headers override the conditional cache headers', async () => {
+    const cache = createMemoryCache()
+    cache.set('https://example.com/feed', {
+      url: 'https://example.com/feed',
+      contentType: 'application/atom+xml',
+      body: '<feed/>',
+      etag: 'W/"abc"',
+      lastModified: 'Wed, 21 Oct 2025 07:28:00 GMT',
+    })
+    const fetchMock = vi.fn(
+      async (_input: string | URL, _init?: RequestInit) => new Response('<feed/>', { status: 200 }),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+    await fetchDocument('https://example.com/feed', {
+      cache,
+      headers: { 'If-None-Match': 'forged', 'if-modified-since': 'forged' },
+    })
+    const headers = fetchMock.mock.calls[0][1]?.headers as Record<string, string>
+    expect(headers['if-none-match']).toBe('W/"abc"')
+    expect(headers['if-modified-since']).toBe('Wed, 21 Oct 2025 07:28:00 GMT')
+  })
+
+  it('keeps credential headers on a same-origin redirect', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(new Response(null, { status: 302, headers: { location: '/final' } }))
+      .mockResolvedValueOnce(new Response('<feed/>', { status: 200 }))
+    vi.stubGlobal('fetch', fetchMock)
+    await fetchDocument('https://example.com/start', {
+      headers: { authorization: 'Bearer secret', cookie: 'a=b', 'x-custom': 'yes' },
+    })
+    const hop = fetchMock.mock.calls[1][1]?.headers as Record<string, string>
+    expect(hop.authorization).toBe('Bearer secret')
+    expect(hop.cookie).toBe('a=b')
+    expect(hop['x-custom']).toBe('yes')
+  })
+
+  it('strips credential headers on a cross-origin redirect, keeps the rest', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(null, { status: 302, headers: { location: 'https://evil.example/steal' } }),
+      )
+      .mockResolvedValueOnce(new Response('<feed/>', { status: 200 }))
+    vi.stubGlobal('fetch', fetchMock)
+    await fetchDocument('https://api.example.com/feed', {
+      headers: {
+        Authorization: 'Bearer secret',
+        'Proxy-Authorization': 'Basic x',
+        Cookie: 'a=b',
+        'x-custom': 'yes',
+      },
+    })
+    const first = fetchMock.mock.calls[0][1]?.headers as Record<string, string>
+    expect(first.authorization).toBe('Bearer secret')
+    const hop = fetchMock.mock.calls[1][1]?.headers as Record<string, string>
+    expect(fetchMock.mock.calls[1][0]).toBe('https://evil.example/steal')
+    expect(hop.authorization).toBeUndefined()
+    expect(hop['proxy-authorization']).toBeUndefined()
+    expect(hop.cookie).toBeUndefined()
+    expect(hop['x-custom']).toBe('yes')
+  })
+
+  it('treats a scheme or port change as cross-origin', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(null, { status: 302, headers: { location: 'http://example.com/feed' } }),
+      )
+      .mockResolvedValueOnce(new Response('<feed/>', { status: 200 }))
+    vi.stubGlobal('fetch', fetchMock)
+    await fetchDocument('https://example.com/feed', { headers: { authorization: 'Bearer s' } })
+    const hop = fetchMock.mock.calls[1][1]?.headers as Record<string, string>
+    expect(hop.authorization).toBeUndefined()
+  })
+
+  it('keeps headers out of the cache key', async () => {
+    const cache = createMemoryCache()
+    const fetchMock = vi.fn(
+      async () => new Response('<feed/>', { status: 200, headers: { etag: '"v1"' } }),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+    await fetchDocument('https://example.com/feed', { cache, headers: { authorization: 'a' } })
+    expect(cache.get('https://example.com/feed')?.etag).toBe('"v1"')
   })
 
   it('throws after too many redirects', async () => {
@@ -513,5 +613,11 @@ describe('fetchDocument retries', () => {
       'https://example.com/start',
       'https://example.com/final',
     ])
+  })
+})
+
+describe('requestHeaders', () => {
+  it('returns an empty object for no headers', () => {
+    expect(requestHeaders(undefined, true)).toEqual({})
   })
 })

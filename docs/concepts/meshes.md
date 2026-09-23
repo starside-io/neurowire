@@ -6,10 +6,14 @@ The `Mesh` type lives in [`@neurowire/core`](https://github.com/neurowire/neurow
 
 ## Shape
 
-A mesh is a `name` plus a list of `sources`, each a display `name` and a `url` (a feed URL or a website Neurowire can ingest):
+A mesh is a `name` plus a list of `sources`, each a display `name` and a `url` (a feed URL or a website Neurowire can ingest), with optional per-source request `headers`:
 
 ```ts
-export const MeshSourceSchema = z.object({ name: z.string(), url: z.string() })
+export const MeshSourceSchema = z.object({
+  name: z.string(),
+  url: z.string(),
+  headers: z.record(z.string(), z.string()).optional(),
+})
 export const MeshSchema = z.object({ name: z.string(), sources: z.array(MeshSourceSchema) })
 ```
 
@@ -55,6 +59,32 @@ const feed = await fetchMesh(mesh, {
 ```
 
 `FetchMeshOptions` also forwards the shared fetch tuning (`signal`, `cache`, `timeoutMs`, `retries`, `backoffMs`) to every source. A single `cache` is shared across all sources in the mesh. See [Fetching](/concepts/fetching) for what those do.
+
+## Private sources: per-source headers
+
+A source can carry request `headers`, sent only when fetching that source. That is how a mesh reads a private feed: a GitHub token for a private repository's releases feed, a bearer token for an internal API, a basic-auth header for a password-protected RSS endpoint.
+
+```json
+{
+  "name": "Internal",
+  "sources": [
+    {
+      "name": "Private releases",
+      "url": "https://api.github.com/repos/acme/private/releases",
+      "headers": { "authorization": "Bearer ${GITHUB_TOKEN}" }
+    },
+    { "name": "Public blog", "url": "https://acme.example/blog" }
+  ]
+}
+```
+
+Three rules keep this safe:
+
+- **Mesh files never hold a literal token.** Header values may reference `${ENV_VAR}`; every loader that reads mesh JSON from local config (the CLI, the API's named meshes, the MCP catalog) resolves those references at load time and throws if a referenced variable is unset or empty, naming the mesh, source, and header. A missing secret fails at startup, not as a confusing `401` later.
+- **Headers stay on their origin.** Credential headers (`authorization`, `proxy-authorization`, `cookie`) are sent to the source URL and its same-origin redirects only. A redirect or a discovered feed link on another origin is fetched without them, so a token meant for one host never reaches a host the page chose. See [Fetching](/concepts/fetching#caller-headers-and-redirects).
+- **Only local config can set headers.** Meshes supplied by a remote caller (`POST /mesh`, `POST /construct`, and the MCP `fetch_mesh` / `fetch_construct` inline inputs) are parsed with `PublicMeshSchema`, which drops `headers`. A caller cannot make a server send credentials, and the `${ENV_VAR}` substitution never runs on their input, so they cannot read the server's environment through a URL they control.
+
+Headers are not part of the conditional-cache key and are never written to the partial-failure warning on stderr.
 
 ## Named meshes from config
 

@@ -109,6 +109,12 @@ separated host list to restrict every caller-supplied URL (`ingest_source`, `que
 subdomains. For the tap tools the check also runs on every redirect hop. Named meshes and
 constructs are always allowed: the operator configured them.
 
+Inline meshes and constructs passed to `fetch_mesh` and `fetch_construct` are parsed with
+the public schemas from `@neurowire/core`, which drop per-source `headers`. Only the
+operator's own mesh files can attach request headers (with `${ENV_VAR}` references resolved
+from the server's environment at load), so a client cannot inject an `Authorization` header
+or read the server's environment through a URL it controls.
+
 Otherwise the server is read-only. It reads journals and never writes them, and the tap
 tools return JSON rather than installing anything. There is no auth beyond it being a
 local stdio process: the operator's shell is the trust boundary.

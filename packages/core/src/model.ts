@@ -53,10 +53,16 @@ export function parseNeurowireFeed(data: unknown): NeurowireFeed {
 /** Generator stamp written into feeds produced by Neurowire. */
 export const GENERATOR = { name: 'Neurowire', version: '0.1.0' } as const
 
-/** A single source within a {@link Mesh}: a display name and a URL (feed or website). */
+/**
+ * A single source within a {@link Mesh}: a display name and a URL (feed or
+ * website), plus optional request headers sent when fetching it (for example an
+ * Authorization header for a private feed). Headers are config-only: the public
+ * API and MCP inputs accept {@link PublicMeshSchema}, which omits them.
+ */
 export const MeshSourceSchema = z.object({
   name: z.string(),
   url: z.string(),
+  headers: z.record(z.string(), z.string()).optional(),
 })
 export type MeshSource = z.infer<typeof MeshSourceSchema>
 
@@ -71,6 +77,18 @@ export type Mesh = z.infer<typeof MeshSchema>
 export function parseMesh(data: unknown): Mesh {
   return MeshSchema.parse(data)
 }
+
+/**
+ * A mesh as accepted from untrusted callers (HTTP bodies, MCP tool inputs): the
+ * same shape as {@link MeshSchema} but sources carry no `headers`. Per-source
+ * headers can hold credentials, so they are only ever read from local config,
+ * never from a request; parsing through this schema drops the key.
+ */
+export const PublicMeshSourceSchema = MeshSourceSchema.omit({ headers: true })
+export const PublicMeshSchema = z.object({
+  name: z.string(),
+  sources: z.array(PublicMeshSourceSchema),
+})
 
 /**
  * A reference to a mesh that lives elsewhere (a published pack, a config file),
@@ -114,3 +132,18 @@ export type Construct = z.infer<typeof ConstructSchema>
 export function parseConstruct(data: unknown): Construct {
   return ConstructSchema.parse(data)
 }
+
+/**
+ * A construct as accepted from untrusted callers: inline meshes are parsed with
+ * {@link PublicMeshSchema}, so no request body can attach per-source headers.
+ */
+export const PublicConstructSchema = z.object({
+  name: z.string(),
+  meshes: z.array(
+    z.union([
+      z.string().transform((ref): ConstructRef => ({ ref })),
+      ConstructRefSchema,
+      PublicMeshSchema,
+    ]),
+  ),
+})

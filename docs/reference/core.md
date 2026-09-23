@@ -241,6 +241,7 @@ The data model for bundling sources. See [meshes](/concepts/meshes) and [constru
 interface MeshSource {
   name: string
   url: string
+  headers?: Record<string, string>
 }
 
 interface Mesh {
@@ -250,6 +251,8 @@ interface Mesh {
 
 const MeshSourceSchema: z.ZodType<MeshSource>
 const MeshSchema: z.ZodType<Mesh>
+const PublicMeshSourceSchema: z.ZodType<Omit<MeshSource, 'headers'>>
+const PublicMeshSchema: z.ZodType<Mesh>
 
 function parseMesh(data: unknown): Mesh
 ```
@@ -258,9 +261,10 @@ A `Mesh` is a named bundle of sources that fetch and merge into one feed.
 
 | Export | Description |
 |--------|-------------|
-| `MeshSource` / `MeshSourceSchema` | One source: a display `name` and a `url` (feed or website). |
+| `MeshSource` / `MeshSourceSchema` | One source: a display `name`, a `url` (feed or website), and optional request `headers` sent only when fetching that source (for a private feed). |
 | `Mesh` / `MeshSchema` | A named bundle of `sources`. |
 | `parseMesh(data)` | Validate an unknown value into a `Mesh`. Throws `ZodError`. |
+| `PublicMeshSourceSchema` / `PublicMeshSchema` | The same shapes with `headers` omitted, for meshes supplied by untrusted callers (HTTP bodies, MCP tool inputs). Parsing through them drops the key, so a request can never attach credentials. |
 
 ### Construct
 
@@ -279,6 +283,7 @@ interface Construct {
 const ConstructRefSchema: z.ZodType<ConstructRef>
 const ConstructMemberSchema: z.ZodType<ConstructMember>
 const ConstructSchema: z.ZodType<Construct>
+const PublicConstructSchema: z.ZodType<Construct>
 
 function parseConstruct(data: unknown): Construct
 function isConstructRef(member: ConstructMember): member is ConstructRef
@@ -295,6 +300,7 @@ is shorthand for `{ ref: string }`, so a published list can stay terse:
 | `ConstructMember` / `ConstructMemberSchema` | One member: an inline `Mesh`, a `ConstructRef`, or a bare string (transformed to `{ ref }`). |
 | `Construct` / `ConstructSchema` | A named bundle of `meshes`. |
 | `parseConstruct(data)` | Validate an unknown value into a `Construct`. Throws `ZodError`. |
+| `PublicConstructSchema` | `ConstructSchema` with inline meshes parsed through `PublicMeshSchema`, for constructs supplied by untrusted callers. |
 | `isConstructRef(member)` | Type guard: is a resolved member a `ConstructRef`? |
 
 ## OPML export

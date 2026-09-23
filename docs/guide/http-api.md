@@ -109,7 +109,7 @@ curl -X POST "http://localhost:8787/mesh?format=json" \
   }'
 ```
 
-An invalid body returns `400` with `{ error, detail }`.
+An invalid body returns `400` with `{ error, detail }`. A `headers` key on a posted source is dropped: per-source headers come only from the server's own mesh files, never from a request body, so a caller cannot make the server send credentials.
 
 ### GET /construct
 

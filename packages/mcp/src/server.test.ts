@@ -172,6 +172,31 @@ describe('mcp server', () => {
       expect(neither.text).toBe('error: pass exactly one of name or sources')
     })
 
+    it('fetch_mesh and fetch_construct drop per-source headers from inline input', async () => {
+      const seen: Mesh[] = []
+      const client = await connect(
+        baseDeps({
+          fetchMesh: async (mesh) => {
+            seen.push(mesh)
+            return tagged(makeFeed(1), mesh.name)
+          },
+          fetchConstruct: async (construct) => {
+            for (const member of construct.meshes) if (!('ref' in member)) seen.push(member)
+            return { name: construct.name, parts: [] }
+          },
+        }),
+      )
+      const source = { name: 'A', url: 'https://a.test/feed', headers: { authorization: 'x' } }
+      await call(client, 'fetch_mesh', { sources: [source] })
+      await call(client, 'fetch_construct', {
+        construct: { name: 'Inline', meshes: [{ name: 'M', sources: [source] }] },
+      })
+      expect(seen).toHaveLength(2)
+      for (const mesh of seen) {
+        expect(mesh.sources[0]).toEqual({ name: 'A', url: 'https://a.test/feed' })
+      }
+    })
+
     it('fetch_construct lists one summary per mesh, then the flattened entries', async () => {
       const client = await connect(baseDeps())
       const named = await call(client, 'fetch_construct', { name: 'brief' })

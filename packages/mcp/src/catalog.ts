@@ -2,6 +2,7 @@ import { existsSync, readFileSync, readdirSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 import { type Construct, ConstructSchema, type Mesh, MeshSchema } from '@neurowire/core'
+import { resolveConstructEnv, resolveMeshEnv } from '@neurowire/ingest'
 import { THEME_KEYS, type ThemeKey, loadTheme, themeMesh } from '@neurowire/taps-pack'
 
 /** Built-in meshes, so `ai-news` works with no setup. Mirrors the api package. */
@@ -124,7 +125,9 @@ export function createCatalog(options: CatalogOptions = {}): Catalog {
     },
     async mesh(name) {
       if (!SAFE_NAME.test(name) || name.includes('..')) return undefined
-      const own = readNamed(meshDirs(), name, 'mesh', (data) => MeshSchema.parse(data))
+      const own = readNamed(meshDirs(), name, 'mesh', (data) =>
+        resolveMeshEnv(MeshSchema.parse(data), env),
+      )
       if (own) return own
       if (BUNDLED_MESHES[name]) return BUNDLED_MESHES[name]
       return isThemeKey(name) ? themeMesh(await loadTheme(name)) : undefined
@@ -139,7 +142,7 @@ export function createCatalog(options: CatalogOptions = {}): Catalog {
     construct(name) {
       if (!SAFE_NAME.test(name) || name.includes('..')) return undefined
       const own = readNamed(constructDirs(), name, 'construct', (data) =>
-        ConstructSchema.parse(data),
+        resolveConstructEnv(ConstructSchema.parse(data), env),
       )
       return own ?? BUNDLED_CONSTRUCTS[name]
     },

@@ -47,6 +47,27 @@ export function parseFilterRule(value: string): FilterRule | undefined {
 /** A parse result: either a value, or the raw token that failed to parse. */
 export type ParseResult<T> = { ok: true; value: T } | { ok: false; bad: string }
 
+/**
+ * Parse repeated `--header 'Name: value'` flags into a headers object. Splits on
+ * the first colon only (values may contain colons), trims both sides, and fails
+ * on a token with no colon or an empty name. Returns undefined when no flags
+ * were given so the fetch layer sees "no headers" rather than an empty object.
+ */
+export function parseHeaderFlags(
+  raw: string[] | undefined,
+): ParseResult<Record<string, string> | undefined> {
+  if (!raw || raw.length === 0) return { ok: true, value: undefined }
+  const headers: Record<string, string> = {}
+  for (const token of raw) {
+    const colon = token.indexOf(':')
+    if (colon <= 0) return { ok: false, bad: token }
+    const name = token.slice(0, colon).trim()
+    if (!name) return { ok: false, bad: token }
+    headers[name] = token.slice(colon + 1).trim()
+  }
+  return { ok: true, value: headers }
+}
+
 /** Parse a list of `field:pattern` tokens, failing on the first bad token. */
 export function parseFilterRules(raw: string[]): ParseResult<FilterRule[]> {
   const rules: FilterRule[] = []

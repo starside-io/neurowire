@@ -127,6 +127,8 @@ A **mesh** bundles many sources into one named feed. Define it as JSON:
 }
 ```
 
+A source can also carry request `headers` for a private feed, with secrets referenced as `${ENV_VAR}` and resolved from the environment when the file loads (a missing variable fails loud). Credential headers stay on that source's origin: a cross-origin redirect drops them. Only local mesh files can set headers; the API and MCP inputs strip them.
+
 Then run `neurowire --mesh ai-news.json --format atom`. Sources are fetched in parallel, every entry is tagged with its source (preserved in all four formats, including `nwf`), and the result is de-duplicated and sorted newest first. See [examples/ai-news.mesh.json](examples/ai-news.mesh.json). The `Mesh` type and `mergeFeeds` live in `@neurowire/core`; `fetchMesh` lives in `@neurowire/ingest`.
 
 Serve a mesh from the API too: `GET /mesh?src=<name>&format=nwf` resolves named meshes from `~/.config/neurowire/meshes/` (plus a bundled `ai-news`), and `POST /mesh` takes a mesh JSON body. Because `validate` accepts a URL, you can check the running API's output directly:

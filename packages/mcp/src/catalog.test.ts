@@ -13,13 +13,31 @@ function setup() {
   const mesh = (name: string) =>
     JSON.stringify({ name, sources: [{ name: 'S', url: 'https://s.test/' }] })
   writeFileSync(join(extraMeshes, 'mine.mesh.json'), mesh('Mine'))
+  writeFileSync(
+    join(extraMeshes, 'private.json'),
+    JSON.stringify({
+      name: 'Private',
+      sources: [{ name: 'S', url: 'https://s.test/', headers: { authorization: 'Bearer ${T}' } }],
+    }),
+  )
+  writeFileSync(
+    join(root, 'neurowire', 'constructs', 'secret.construct.json'),
+    JSON.stringify({
+      name: 'Secret',
+      meshes: [
+        { name: 'M', sources: [{ name: 'S', url: 'https://s.test/', headers: { k: '${T}' } }] },
+      ],
+    }),
+  )
   writeFileSync(join(root, 'neurowire', 'meshes', 'plain.json'), mesh('Plain'))
   writeFileSync(join(root, 'neurowire', 'meshes', 'notes.txt'), 'ignored')
   writeFileSync(
     join(root, 'neurowire', 'constructs', 'weekly.construct.json'),
     JSON.stringify({ name: 'Weekly', meshes: [{ ref: 'mine' }] }),
   )
-  return createCatalog({ env: { XDG_CONFIG_HOME: root, NEUROWIRE_MESHES: `${extraMeshes},` } })
+  return createCatalog({
+    env: { XDG_CONFIG_HOME: root, NEUROWIRE_MESHES: `${extraMeshes},`, T: 'tok' },
+  })
 }
 
 describe('catalog', () => {
@@ -38,6 +56,18 @@ describe('catalog', () => {
     expect(await catalog.mesh('missing')).toBeUndefined()
   })
 
+  it('resolves header placeholders from the catalog env, for meshes and constructs', async () => {
+    const catalog = setup()
+    expect((await catalog.mesh('private'))?.sources[0]?.headers).toEqual({
+      authorization: 'Bearer tok',
+    })
+    const secret = catalog.construct('secret')
+    const inline = secret?.meshes[0]
+    expect(inline && !('ref' in inline) ? inline.sources[0]?.headers : undefined).toEqual({
+      k: 'tok',
+    })
+  })
+
   it('rejects path-like names', async () => {
     const catalog = setup()
     expect(await catalog.mesh('../etc')).toBeUndefined()
@@ -47,7 +77,7 @@ describe('catalog', () => {
 
   it('lists and resolves constructs, user dir first then the bundle', () => {
     const catalog = setup()
-    expect(catalog.constructNames()).toEqual(['daily', 'weekly'])
+    expect(catalog.constructNames()).toEqual(['daily', 'secret', 'weekly'])
     expect(catalog.construct('weekly')?.name).toBe('Weekly')
     expect(catalog.construct('daily')?.name).toBe('Daily Brief')
     expect(catalog.construct('nope')).toBeUndefined()

@@ -39,6 +39,7 @@ Anything but `html` is parsed directly. `nwf` is in that list because Neurowire 
 | `signal` | `AbortSignal` | none | Caller-driven cancellation. |
 | `cache` | `ConditionalCache` | none | Store for ETag / Last-Modified conditional requests. |
 | `validate` | `(url) => void \| Promise<void>` | none | Per-hop guard (throw to block). See SSRF below. |
+| `headers` | `Record<string, string>` | none | Extra request headers, e.g. `authorization` for a private feed. See caller headers below. |
 | `delay` | `(ms, signal) => Promise<void>` | setTimeout-based | Injectable sleep (tests drive it with fake timers). |
 
 ## Retry policy
@@ -113,6 +114,16 @@ and an `Accept` header that prefers feed formats, then JSON, then HTML:
 application/atom+xml, application/rss+xml, application/feed+json,
 application/json;q=0.9, text/html;q=0.8, */*;q=0.5
 ```
+
+## Caller headers and redirects
+
+`FetchOptions.headers` adds request headers, which is how a private feed gets its `Authorization`. Header names are lowercased. A caller header overrides the default `User-Agent` and `Accept`, but never the conditional `If-None-Match` / `If-Modified-Since` headers: those belong to the cache, and a caller value for them is ignored.
+
+Because redirects are followed manually, each hop builds its headers afresh, and credential headers get the same treatment browsers give them: `authorization`, `proxy-authorization`, and `cookie` are sent only while the hop's origin (scheme, host, and port) matches the origin of the URL you asked for. A `302` to another host, a scheme change, or a port change drops them; every other caller header still goes along. Without this, a token meant for `api.example.com` would ride along to whatever host the redirect names.
+
+`fetchFeed` applies the same rule to a discovered feed link: a page on one origin that advertises its feed on another gets that feed fetched without credentials.
+
+Headers are not part of the conditional-cache key (the key is the URL), so do not share one `ConditionalCache` between callers with different credentials for the same URL.
 
 ## Cancellation
 

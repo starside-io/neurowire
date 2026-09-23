@@ -29,7 +29,10 @@ function describeError(error: unknown): string {
   return String(error)
 }
 
-/** Default partial-failure handler: a non-fatal warning on stderr. */
+/**
+ * Default partial-failure handler: a non-fatal warning on stderr. Logs the
+ * source name, url, and error only; per-source headers never reach a log line.
+ */
 function warnSourceError(source: { name: string; url: string }, error: unknown): void {
   process.stderr.write(
     `neurowire: mesh source "${source.name}" (${source.url}) failed: ${describeError(error)}\n`,
@@ -60,7 +63,11 @@ export async function fetchMesh(
   const results = await Promise.allSettled(
     mesh.sources.map(
       async (source): Promise<MeshPart> => ({
-        feed: await fetchFeed(source.url, fetchOptions),
+        // Per-source headers (private feeds) ride on top of the shared options.
+        feed: await fetchFeed(
+          source.url,
+          source.headers ? { ...fetchOptions, headers: source.headers } : fetchOptions,
+        ),
         source: { name: source.name, url: source.url },
       }),
     ),

@@ -119,6 +119,49 @@ describe('ingestDocument', () => {
     expect(feed.title).toBe('RSS')
   })
 
+  it('keeps credential headers for a same-origin discovered feed', async () => {
+    const fetchMock = vi.fn(async (input: string | URL, _init?: RequestInit) =>
+      String(input) === 'https://b.example/feed.xml'
+        ? xmlResponse(rss, 'application/rss+xml')
+        : new Response('no', { status: 404 }),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+    await ingestDocument(
+      {
+        url: 'https://b.example/',
+        contentType: 'text/html',
+        body: html(
+          '<head><link rel="alternate" type="application/rss+xml" href="/feed.xml"/></head>',
+        ),
+      },
+      { headers: { authorization: 'Bearer secret' } },
+    )
+    const headers = fetchMock.mock.calls[0][1]?.headers as Record<string, string>
+    expect(headers.authorization).toBe('Bearer secret')
+  })
+
+  it('drops credential headers for a cross-origin discovered feed', async () => {
+    const fetchMock = vi.fn(async (input: string | URL, _init?: RequestInit) =>
+      String(input) === 'https://feeds.example/x.xml'
+        ? xmlResponse(rss, 'application/rss+xml')
+        : new Response('no', { status: 404 }),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+    await ingestDocument(
+      {
+        url: 'https://b.example/',
+        contentType: 'text/html',
+        body: html(
+          '<head><link rel="alternate" type="application/rss+xml" href="https://feeds.example/x.xml"/></head>',
+        ),
+      },
+      { headers: { authorization: 'Bearer secret', 'x-custom': 'kept' } },
+    )
+    const headers = fetchMock.mock.calls[0][1]?.headers as Record<string, string>
+    expect(headers.authorization).toBeUndefined()
+    expect(headers['x-custom']).toBe('kept')
+  })
+
   it('falls through when the discovered feed fails to load', async () => {
     vi.stubGlobal(
       'fetch',
@@ -154,5 +197,13 @@ describe('fetchFeed', () => {
     )
     const feed = await fetchFeed('https://b.example/feed')
     expect(feed.title).toBe('T')
+  })
+
+  it('forwards headers to the fetch', async () => {
+    const fetchMock = vi.fn(async (_input: string | URL, _init?: RequestInit) => xmlResponse(atom))
+    vi.stubGlobal('fetch', fetchMock)
+    await fetchFeed('https://b.example/feed', { headers: { authorization: 'Bearer s' } })
+    const headers = fetchMock.mock.calls[0][1]?.headers as Record<string, string>
+    expect(headers.authorization).toBe('Bearer s')
   })
 })

@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { isConstructRef, parseConstruct, parseMesh, parseNeurowireFeed } from './model'
+import {
+  PublicConstructSchema,
+  PublicMeshSchema,
+  isConstructRef,
+  parseConstruct,
+  parseMesh,
+  parseNeurowireFeed,
+} from './model'
 
 describe('model parsers', () => {
   it('parseNeurowireFeed accepts a valid feed and rejects junk', () => {
@@ -17,6 +24,43 @@ describe('model parsers', () => {
     const mesh = parseMesh({ name: 'M', sources: [{ name: 'a', url: 'https://a' }] })
     expect(mesh.sources).toHaveLength(1)
     expect(() => parseMesh({ name: 'M' })).toThrow()
+  })
+
+  it('parseMesh keeps per-source headers, PublicMeshSchema drops them', () => {
+    const input = {
+      name: 'M',
+      sources: [{ name: 'a', url: 'https://a', headers: { authorization: 'Bearer x' } }],
+    }
+    expect(parseMesh(input).sources[0].headers).toEqual({ authorization: 'Bearer x' })
+    expect(
+      parseMesh({ name: 'M', sources: [{ name: 'a', url: 'https://a' }] }).sources[0].headers,
+    ).toBeUndefined()
+    expect(() =>
+      parseMesh({ name: 'M', sources: [{ name: 'a', url: 'https://a', headers: { k: 1 } }] }),
+    ).toThrow()
+    const pub = PublicMeshSchema.parse(input)
+    expect(pub.sources[0]).toEqual({ name: 'a', url: 'https://a' })
+    expect('headers' in pub.sources[0]).toBe(false)
+  })
+
+  it('PublicConstructSchema drops headers on inline meshes and keeps refs', () => {
+    const construct = PublicConstructSchema.parse({
+      name: 'Daily',
+      meshes: [
+        'ai-news',
+        { ref: 'security' },
+        {
+          name: 'Custom',
+          sources: [{ name: 'a', url: 'https://a', headers: { authorization: 'Bearer x' } }],
+        },
+      ],
+    })
+    expect(construct.meshes[0]).toEqual({ ref: 'ai-news' })
+    expect(construct.meshes[1]).toEqual({ ref: 'security' })
+    expect(construct.meshes[2]).toEqual({
+      name: 'Custom',
+      sources: [{ name: 'a', url: 'https://a' }],
+    })
   })
 
   it('parseConstruct accepts inline meshes, refs, and string shorthand', () => {

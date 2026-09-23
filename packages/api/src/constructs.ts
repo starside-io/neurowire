@@ -1,7 +1,8 @@
 import { existsSync, readFileSync, readdirSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
-import { type Construct, ConstructSchema } from '@neurowire/core'
+import type { Construct } from '@neurowire/core'
+import { parseConstructFile } from '@neurowire/ingest'
 
 /** Built-in constructs, so `?src=daily` works with no setup. */
 const BUNDLED: Record<string, Construct> = {
@@ -49,7 +50,7 @@ export function resolveConstruct(name: string): Construct | undefined {
   for (const dir of constructDirs()) {
     for (const file of [`${name}.construct.json`, `${name}.json`]) {
       const path = join(dir, file)
-      if (existsSync(path)) return ConstructSchema.parse(JSON.parse(readFileSync(path, 'utf8')))
+      if (existsSync(path)) return parseConstructFile(readFileSync(path, 'utf8'))
     }
   }
   return BUNDLED[name]

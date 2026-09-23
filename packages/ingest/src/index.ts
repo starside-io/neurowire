@@ -23,6 +23,10 @@ export {
 export {
   type ConfigResolverOptions,
   createConfigMeshResolver,
+  parseConstructFile,
+  parseMeshFile,
+  resolveConstructEnv,
+  resolveMeshEnv,
   loadMeshFromConfig,
   meshConfigDirs,
 } from './mesh-config'

@@ -135,7 +135,8 @@ Responses: `200`; `400` (missing `src` or unknown `format`, body lists available
 
 Serialize an inline mesh from the request body.
 
-- Body: a JSON [`Mesh`](/reference/core#mesh) (validated with `MeshSchema`).
+- Body: a JSON [`Mesh`](/reference/core#mesh) (validated with `PublicMeshSchema`: a
+  `headers` key on a source is dropped, so a request cannot attach credentials).
 - Query: `format` (default `atom`).
 - Responses: `200`; `400` (unknown `format` or invalid mesh body, with `detail`); `502` on
   build failure.
@@ -159,7 +160,8 @@ failure.
 
 Serialize an inline construct from the request body.
 
-- Body: a JSON [`Construct`](/reference/core#construct) (validated with `ConstructSchema`).
+- Body: a JSON [`Construct`](/reference/core#construct) (validated with
+  `PublicConstructSchema`: inline meshes lose any per-source `headers`).
 - Query: `format` (default `atom`).
 - Responses: `200`; `400` (unknown `format` or invalid construct body, with `detail`);
   `502` on build failure.

@@ -67,6 +67,67 @@ describe('api', () => {
     expect(res.status).toBe(400)
   })
 
+  it('drops per-source headers from a POST /mesh body before fetching', async () => {
+    const fetchMock = vi.fn(
+      async (_input: string | URL, _init?: RequestInit) =>
+        new Response(ATOM_FEED, {
+          status: 200,
+          headers: { 'content-type': 'application/atom+xml' },
+        }),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+    const res = await app.request('/mesh', {
+      method: 'POST',
+      body: JSON.stringify({
+        name: 'Inline',
+        sources: [
+          {
+            name: 'A',
+            url: `https://example.com/post-headers-${Math.random()}`,
+            headers: { authorization: 'Bearer injected' },
+          },
+        ],
+      }),
+      headers: { 'content-type': 'application/json' },
+    })
+    expect(res.status).toBe(200)
+    const sent = fetchMock.mock.calls[0]?.[1]?.headers as Record<string, string>
+    expect(sent.authorization).toBeUndefined()
+  })
+
+  it('drops per-source headers from an inline mesh in a POST /construct body', async () => {
+    const fetchMock = vi.fn(
+      async (_input: string | URL, _init?: RequestInit) =>
+        new Response(ATOM_FEED, {
+          status: 200,
+          headers: { 'content-type': 'application/atom+xml' },
+        }),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+    const res = await app.request('/construct', {
+      method: 'POST',
+      body: JSON.stringify({
+        name: 'Inline',
+        meshes: [
+          {
+            name: 'M',
+            sources: [
+              {
+                name: 'A',
+                url: `https://example.com/post-construct-${Math.random()}`,
+                headers: { authorization: 'Bearer injected' },
+              },
+            ],
+          },
+        ],
+      }),
+      headers: { 'content-type': 'application/json' },
+    })
+    expect(res.status).toBe(200)
+    const sent = fetchMock.mock.calls[0]?.[1]?.headers as Record<string, string>
+    expect(sent.authorization).toBeUndefined()
+  })
+
   it('lists constructs at the root', async () => {
     const res = await app.request('/')
     const body = (await res.json()) as { constructs: string[] }

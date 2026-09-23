@@ -1,13 +1,15 @@
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { parseArgs } from 'node:util'
-import { ConstructSchema, MeshSchema, type NeurowireFeed } from '@neurowire/core'
+import type { NeurowireFeed } from '@neurowire/core'
 import {
   createConfigMeshResolver,
   fetchConstruct,
   fetchFeed,
   fetchMesh,
   flattenConstruct,
+  parseConstructFile,
+  parseMeshFile,
 } from '@neurowire/ingest'
 import { registerAllTaps } from '@neurowire/taps'
 import { filterByCutoff, resolveCutoff } from './cli-helpers'
@@ -81,7 +83,7 @@ async function main(): Promise<void> {
   // Construct: a bundle of meshes. Default to a multi-page repo; --combined makes
   // a single source-tagged page.
   if (values.construct) {
-    const construct = ConstructSchema.parse(JSON.parse(readFileSync(values.construct, 'utf8')))
+    const construct = parseConstructFile(readFileSync(values.construct, 'utf8'))
     const fetched = await fetchConstruct(construct, { resolver: createConfigMeshResolver() })
 
     if (values.combined) {
@@ -122,7 +124,7 @@ async function main(): Promise<void> {
 
   let feed: NeurowireFeed
   if (values.mesh) {
-    feed = await fetchMesh(MeshSchema.parse(JSON.parse(readFileSync(values.mesh, 'utf8'))))
+    feed = await fetchMesh(parseMeshFile(readFileSync(values.mesh, 'utf8')))
   } else {
     const url = positionals[0]
     if (!url) {

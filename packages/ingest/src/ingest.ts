@@ -1,7 +1,13 @@
 import type { NeurowireFeed } from '@neurowire/core'
 import { load } from 'cheerio'
 import { detectKind } from './detect'
-import { type ConditionalCache, type RawDocument, fetchDocument } from './fetch'
+import {
+  type ConditionalCache,
+  type RawDocument,
+  fetchDocument,
+  originOf,
+  requestHeaders,
+} from './fetch'
 import { autodetect, discoverFeedLink } from './html/autodetect'
 import { findTemplate } from './html/registry'
 import { type FeedTemplate, applyTemplate } from './html/template'
@@ -22,6 +28,19 @@ export interface FetchFeedOptions {
   retries?: number
   /** Base delay in milliseconds for exponential backoff with jitter. Default 500. */
   backoffMs?: number
+  /**
+   * Extra request headers for this source (see `FetchOptions.headers`). Sent to
+   * the requested URL and its same-origin redirects. A discovered feed link on
+   * another origin is fetched without credential headers, like a cross-origin
+   * redirect.
+   */
+  headers?: Record<string, string>
+}
+
+/** True when two URLs share scheme, host, and port. Unparseable input is never same-origin. */
+function sameOrigin(a: string, b: string): boolean {
+  const origin = originOf(a)
+  return origin !== undefined && origin === originOf(b)
 }
 
 /** Fetch a URL (website, RSS, or Atom) and normalize it to a NeurowireFeed. */
@@ -43,6 +62,7 @@ async function ingest(
     timeoutMs: options.timeoutMs,
     retries: options.retries,
     backoffMs: options.backoffMs,
+    headers: options.headers,
   })
   return ingestDocument(doc, options, depth)
 }
@@ -70,7 +90,10 @@ export async function ingestDocument(
     const discovered = discoverFeedLink($, doc.url)
     if (discovered && discovered !== doc.url) {
       try {
-        return await ingest(discovered, { ...options, template: undefined }, depth + 1)
+        // A discovered link is a hop the page chose, so it gets the same
+        // treatment as a redirect: credentials stay on the original origin.
+        const headers = requestHeaders(options.headers, sameOrigin(doc.url, discovered))
+        return await ingest(discovered, { ...options, template: undefined, headers }, depth + 1)
       } catch {
         // Fall through to on-page extraction.
       }

@@ -1,7 +1,8 @@
 import { existsSync, readFileSync, readdirSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
-import { type Mesh, MeshSchema } from '@neurowire/core'
+import type { Mesh } from '@neurowire/core'
+import { parseMeshFile } from '@neurowire/ingest'
 
 /** Built-in meshes, so `?src=ai-news` works with no setup. */
 const BUNDLED: Record<string, Mesh> = {
@@ -37,7 +38,7 @@ export function resolveMesh(name: string): Mesh | undefined {
   for (const dir of meshDirs()) {
     for (const file of [`${name}.mesh.json`, `${name}.json`]) {
       const path = join(dir, file)
-      if (existsSync(path)) return MeshSchema.parse(JSON.parse(readFileSync(path, 'utf8')))
+      if (existsSync(path)) return parseMeshFile(readFileSync(path, 'utf8'))
     }
   }
   return BUNDLED[name]

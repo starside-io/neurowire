@@ -3,9 +3,7 @@ import { dirname } from 'node:path'
 import { createInterface } from 'node:readline/promises'
 import { parseArgs } from 'node:util'
 import {
-  ConstructSchema,
   FORMATS,
-  MeshSchema,
   type NeurowireFeed,
   constructToOpml,
   entryKey,
@@ -28,6 +26,8 @@ import {
   flattenConstruct,
   openJournalStore,
   opmlToMesh,
+  parseConstructFile,
+  parseMeshFile,
   pollFeed,
   proposeTemplate,
   syncPeers,
@@ -42,6 +42,7 @@ import {
   buildJournalQuery,
   buildSelectOptions,
   journalFeedMeta,
+  parseHeaderFlags,
   parseJournalCursor,
 } from './pipeline'
 import { deliver } from './sinks'
@@ -72,6 +73,9 @@ Options:
   -f, --format <fmt>     Output format: ${FORMATS.join(', ')}. Omit for a terminal view.
   -o, --out <file>       Write output to a file instead of stdout.
   -t, --template <file>  Path to a JSON CSS-selector template for HTML pages.
+      --header <k: v>    Extra request header for the <url> fetch, e.g. an Authorization
+                         header for a private feed. Repeatable. Mesh files set headers
+                         per source instead (values may reference \${ENV_VAR}).
   -m, --mesh <file>      Fetch a mesh: a JSON bundle of named sources, merged into one feed.
   -c, --construct <file> Fetch a construct: a bundle of meshes. Terminal view keeps the
                          per-mesh grouping; --format flattens it into one feed.
@@ -355,10 +359,10 @@ async function runTap(sub: string | undefined, rest: string[], values: CliValues
 function runOpmlExport(values: CliValues): void {
   let opml: string
   if (typeof values.mesh === 'string') {
-    const mesh = MeshSchema.parse(JSON.parse(readFileSync(values.mesh, 'utf8')))
+    const mesh = parseMeshFile(readFileSync(values.mesh, 'utf8'))
     opml = meshToOpml(mesh)
   } else if (typeof values.construct === 'string') {
-    const construct = ConstructSchema.parse(JSON.parse(readFileSync(values.construct, 'utf8')))
+    const construct = parseConstructFile(readFileSync(values.construct, 'utf8'))
     opml = constructToOpml(construct)
   } else {
     process.stderr.write(
@@ -754,7 +758,7 @@ function renderConstructTerminal(construct: FetchedConstruct): void {
 
 /** Parse a construct file and fetch it, resolving `{ ref }` members from config. */
 async function loadConstruct(path: string): Promise<FetchedConstruct> {
-  const construct = ConstructSchema.parse(JSON.parse(readFileSync(path, 'utf8')))
+  const construct = parseConstructFile(readFileSync(path, 'utf8'))
   return fetchConstruct(construct, { resolver: createConfigMeshResolver() })
 }
 
@@ -772,7 +776,7 @@ async function loadFeed(
     return flattenConstruct(await loadConstruct(values.construct))
   }
   if (typeof values.mesh === 'string') {
-    const mesh = MeshSchema.parse(JSON.parse(readFileSync(values.mesh, 'utf8')))
+    const mesh = parseMeshFile(readFileSync(values.mesh, 'utf8'))
     return fetchMesh(mesh)
   }
   const url = positionals[0]
@@ -786,7 +790,13 @@ async function loadFeed(
   if (typeof values.template === 'string') {
     template = FeedTemplateSchema.parse(JSON.parse(readFileSync(values.template, 'utf8')))
   }
-  return fetchFeed(url, { template })
+  const headers = parseHeaderFlags(values.header as string[] | undefined)
+  if (!headers.ok) {
+    process.stderr.write(`error: bad --header "${headers.bad}", expected "Name: value"\n`)
+    process.exitCode = 1
+    return undefined
+  }
+  return fetchFeed(url, { template, headers: headers.value })
 }
 
 /**
@@ -1051,6 +1061,7 @@ async function main(): Promise<void> {
       format: { type: 'string', short: 'f' },
       out: { type: 'string', short: 'o' },
       template: { type: 'string', short: 't' },
+      header: { type: 'string', multiple: true },
       mesh: { type: 'string', short: 'm' },
       construct: { type: 'string', short: 'c' },
       taps: { type: 'string', multiple: true },

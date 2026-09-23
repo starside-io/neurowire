@@ -41,6 +41,7 @@ neurowire --mesh ai-news.json -f atom
 | `-m, --mesh <file>` | Fetch a mesh: a JSON bundle of named sources, merged into one feed. |
 | `-c, --construct <file>` | Fetch a construct: a bundle of meshes. The terminal view keeps the per-mesh grouping; `--format` flattens it into one feed. |
 | `-t, --template <file>` | Path to a JSON CSS-selector template, forcing on-page extraction instead of auto-detect (positional URL only). |
+| `--header <k: v>` | Extra request header for the positional URL fetch, e.g. `--header 'Authorization: Bearer ...'`. Repeatable. Split on the first colon. Mesh files set headers per source instead, with `${ENV_VAR}` references resolved at load; see [Meshes](/concepts/meshes#private-sources-per-source-headers). |
 
 `{ ref }` members in a construct (mesh references by name) are resolved from `~/.config/neurowire/meshes` or `NEUROWIRE_MESHES`.
 

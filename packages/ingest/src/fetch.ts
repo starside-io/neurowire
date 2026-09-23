@@ -39,6 +39,16 @@ export interface FetchOptions {
   signal?: AbortSignal
   cache?: ConditionalCache
   /**
+   * Extra request headers (for example `authorization` for a private feed).
+   * Caller headers override the default `user-agent` and `accept`, but never the
+   * conditional `if-none-match` / `if-modified-since` headers, which are owned by
+   * the cache. Credential headers (`authorization`, `proxy-authorization`,
+   * `cookie`) are sent only to the origin of the requested URL: a redirect to
+   * another origin drops them, so a token meant for one host never reaches a
+   * host the redirect chose. Headers are not part of the cache key.
+   */
+  headers?: Record<string, string>
+  /**
    * Optional per-URL guard. Called for the initial URL and for every redirect
    * hop before the request is made; throw to block the fetch. Use it to enforce
    * SSRF protection (reject private / internal addresses) on every hop, not just
@@ -182,6 +192,38 @@ export async function fetchDocument(url: string, options: FetchOptions = {}): Pr
   throw lastError
 }
 
+/** Headers that carry credentials and must not follow a redirect off-origin. */
+const CREDENTIAL_HEADERS = new Set(['authorization', 'proxy-authorization', 'cookie'])
+
+/** Origin of a URL, or undefined when it does not parse (the caller reports that). */
+export function originOf(url: string): string | undefined {
+  try {
+    return new URL(url).origin
+  } catch {
+    return undefined
+  }
+}
+
+/**
+ * Normalize caller headers for one hop: keys lowercased (so overrides and the
+ * credential check are case-insensitive), conditional headers dropped (the cache
+ * owns them), and credential headers dropped unless the hop is same-origin.
+ */
+export function requestHeaders(
+  headers: Record<string, string> | undefined,
+  sameOrigin: boolean,
+): Record<string, string> {
+  const out: Record<string, string> = {}
+  if (!headers) return out
+  for (const [key, value] of Object.entries(headers)) {
+    const name = key.toLowerCase()
+    if (name === 'if-none-match' || name === 'if-modified-since') continue
+    if (!sameOrigin && CREDENTIAL_HEADERS.has(name)) continue
+    out[name] = value
+  }
+  return out
+}
+
 /**
  * One fetch attempt: follow redirects manually (one hop at a time) so the
  * optional `validate` guard runs against every target, returning the body and
@@ -192,6 +234,7 @@ export async function fetchDocument(url: string, options: FetchOptions = {}): Pr
 async function attemptFetch(url: string, options: FetchOptions): Promise<RawDocument> {
   const cacheKey = url
   let current = url
+  const origin = originOf(url)
 
   const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS
   // Compose a per-attempt timeout signal with the caller's signal, if any. Tag
@@ -227,6 +270,9 @@ async function attemptFetch(url: string, options: FetchOptions): Promise<RawDocu
       if (options.validate) await options.validate(current)
 
       const headers: Record<string, string> = { 'user-agent': USER_AGENT, accept: ACCEPT }
+      // Caller headers ride along, minus credentials once a redirect has left the
+      // original origin (see FetchOptions.headers).
+      Object.assign(headers, requestHeaders(options.headers, parsed.origin === origin))
       // Conditional headers only apply to the originally requested URL. They are
       // re-sent on every retried attempt because this runs fresh each attempt.
       if (hop === 0) {

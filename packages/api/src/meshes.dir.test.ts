@@ -34,6 +34,24 @@ describe('resolveMesh from a directory', () => {
     expect(resolveMesh('mine')?.name).toBe('Mine')
   })
 
+  it('resolves ${VAR} header placeholders from the environment', () => {
+    writeFileSync(
+      join(dir, 'private.json'),
+      JSON.stringify({
+        name: 'Private',
+        sources: [{ name: 's', url: 'https://s', headers: { authorization: 'Bearer ${NW_T}' } }],
+      }),
+    )
+    process.env.NW_T = 'tok'
+    try {
+      expect(resolveMesh('private')?.sources[0]?.headers).toEqual({ authorization: 'Bearer tok' })
+    } finally {
+      // biome-ignore lint/performance/noDelete: restoring an unset env var
+      delete process.env.NW_T
+    }
+    expect(() => resolveMesh('private')).toThrow(/NW_T/)
+  })
+
   it('still falls back to a bundled mesh when nothing on disk matches', () => {
     expect(resolveMesh('ai-news')?.name).toBe('AI News')
   })
