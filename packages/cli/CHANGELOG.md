@@ -1,5 +1,10 @@
 # @neurowire/cli
 
+## 0.11.0
+
+- `--header 'Name: value'` adds a request header to the positional URL fetch (repeatable, split on the first colon), for private feeds.
+- Mesh and construct files read through `--mesh`, `--construct`, and the named-mesh resolver now resolve `${ENV_VAR}` references in per-source header values at load, and fail loud when one is unset.
+
 ## 0.10.2
 
 - Republish so the pinned `@neurowire/ingest` version matches the current release. No behavior change.

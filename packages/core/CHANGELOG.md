@@ -1,5 +1,10 @@
 # @neurowire/core
 
+## 0.9.0
+
+- `MeshSourceSchema` gains an optional `headers` record: per-source request headers, so a mesh can read a private feed (a bearer token, basic auth). Headers are config-only.
+- Add `PublicMeshSourceSchema`, `PublicMeshSchema`, and `PublicConstructSchema`: the same shapes with `headers` omitted, for meshes and constructs supplied by untrusted callers (HTTP bodies, MCP tool inputs). Parsing through them drops the key, so a request can never attach credentials.
+
 ## 0.8.0
 
 - Add the NWF journal (`nwfj`), an append-only sibling of `nwf`: `createJournalEncoder`, `resumeJournalEncoder`, `parseJournal`, `readJournalSince`, `journalHead`, `verifyJournal`, and `journalToFeed`, plus the `JOURNAL_VERSION` / `JOURNAL_MEDIA_TYPE` / `JOURNAL_EXTENSION` constants. Not an output format: `FORMATS` and `serialize()` are unchanged.

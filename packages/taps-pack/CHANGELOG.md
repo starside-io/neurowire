@@ -1,5 +1,9 @@
 # @neurowire/taps-pack
 
+## 0.1.5
+
+- Republish so the pinned `@neurowire/core` and `@neurowire/ingest` versions match the current release. No behavior change.
+
 ## 0.1.4
 
 - Republish so the pinned `@neurowire/ingest` version matches the current release. No behavior change.

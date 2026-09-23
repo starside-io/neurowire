@@ -4,6 +4,52 @@ All notable changes to Neurowire are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/), and the project uses semantic
 versioning (breaking changes land as a minor bump while the project is pre-1.0).
 
+## [0.11.0] - 2026-09-23
+
+### Added
+
+- **Per-source request headers** (core, ingest): a mesh source may carry `headers`,
+  sent only when fetching that source, so a mesh can read a private feed (a GitHub
+  token for a private releases feed, a bearer token for an internal API). Header
+  values in mesh and construct files reference secrets as `${ENV_VAR}`, resolved at
+  load by every loader (CLI, API, MCP catalog, `neurowire-web`); a referenced variable
+  that is unset fails loud, naming the mesh, source, header, and variable. Mesh files
+  never hold a literal token.
+- **`--header 'Name: value'`** (cli): a repeatable request header for the positional
+  URL fetch.
+- **`FetchOptions.headers`** (ingest): caller headers on `fetchDocument` and
+  `fetchFeed`. They override the default `user-agent` and `accept`, never the
+  conditional cache headers, and are not part of the cache key.
+
+### Security
+
+- **Credentials stay on their origin** (ingest): `authorization`,
+  `proxy-authorization`, and `cookie` are sent only to the origin of the requested
+  URL. A redirect to another host, scheme, or port drops them, and so does a
+  discovered feed link on another origin, so a token meant for one host never reaches
+  a host the redirect or the page chose.
+- **Only local config can set headers** (core, api, mcp): `POST /mesh`,
+  `POST /construct`, and the MCP `fetch_mesh` / `fetch_construct` inline inputs are
+  parsed with the new `PublicMeshSchema` / `PublicConstructSchema`, which drop
+  per-source `headers`. A remote caller cannot make a server send credentials, and the
+  `${ENV_VAR}` substitution never runs on request input, so it cannot read the server's
+  environment through a URL it controls.
+
+### Documentation
+
+- [Meshes](docs/concepts/meshes.md) gains a "Private sources" section and
+  [Fetching](docs/concepts/fetching.md) a "Caller headers and redirects" section; the
+  CLI, HTTP API, and MCP pages and the core / ingest / api references cover the new
+  flag, schemas, and loaders. `llms.txt` and `llms-full.txt` are regenerated from them.
+
+### Versions
+
+- root 0.10.0 to 0.11.0; `@neurowire/core` 0.9.0, `@neurowire/ingest` 0.10.0,
+  `@neurowire/cli` 0.11.0, `@neurowire/api` 0.6.0, `@neurowire/mcp` 0.2.0,
+  `@neurowire/web` 0.6.0. `@neurowire/taps` 0.3.5, `@neurowire/tap-wizard` 0.1.3, and
+  `@neurowire/taps-pack` 0.1.5 are republished so their exact `workspace:*` pins
+  match.
+
 ## [0.10.0] - 2026-09-16
 
 ### Added

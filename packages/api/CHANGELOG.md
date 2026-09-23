@@ -1,5 +1,10 @@
 # @neurowire/api
 
+## 0.6.0
+
+- Named meshes and constructs from the config directories resolve `${ENV_VAR}` references in per-source header values at load.
+- `POST /mesh` and `POST /construct` parse their bodies with `PublicMeshSchema` / `PublicConstructSchema`, which drop per-source `headers`. A request body cannot make the server send credentials, and the environment substitution never runs on request input.
+
 ## 0.5.2
 
 - Republish so the pinned `@neurowire/ingest` version matches the current release. No behavior change.

@@ -1,5 +1,12 @@
 # @neurowire/ingest
 
+## 0.10.0
+
+- `FetchOptions.headers` and `FetchFeedOptions.headers`: extra request headers for a fetch. Caller headers override the default `user-agent` and `accept`, but never the conditional `if-none-match` / `if-modified-since` headers, which the cache owns. Headers are not part of the conditional-cache key.
+- Credential headers (`authorization`, `proxy-authorization`, `cookie`) are sent only to the origin of the requested URL. A redirect to another origin (host, scheme, or port) drops them, and so does a discovered feed link on another origin, so a token meant for one host never reaches a host the page chose. `requestHeaders` is exported as the per-hop normalizer.
+- `fetchMesh` passes each source's own `headers` to its fetch; other sources never see them, and the default partial-failure warning still logs only the name, url, and error.
+- `resolveMeshEnv`, `resolveConstructEnv`, `parseMeshFile`, and `parseConstructFile`: header values in mesh files may reference `${ENV_VAR}`, resolved at load time. A referenced variable that is unset or empty throws, naming the mesh, source, header, and variable. `loadMeshFromConfig` resolves through them. These run only on trusted local config, never on a remote caller's input.
+
 ## 0.9.0
 
 - Read NWF back: `detectKind` gains an `nwf` kind (matched on `text/x-neurowire` or an `NWF1` first line) and the new `parseNwf` parses a document through `validateNwf`, so a published `.nwf` file is a source like any feed. It works everywhere `fetchFeed` is used: the terminal view, `--format`, `--watch`, `tail`, journals, and mesh and construct members.

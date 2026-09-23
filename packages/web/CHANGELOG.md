@@ -1,5 +1,9 @@
 # @neurowire/web
 
+## 0.6.0
+
+- `--mesh` and `--construct` files are read through `parseMeshFile` / `parseConstructFile`, so per-source headers with `${ENV_VAR}` references work for a private feed on a generated page.
+
 ## 0.5.4
 
 - Republish so the pinned `@neurowire/ingest` version matches the current release. No behavior change.

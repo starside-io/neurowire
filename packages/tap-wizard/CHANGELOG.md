@@ -1,5 +1,9 @@
 # @neurowire/tap-wizard
 
+## 0.1.3
+
+- Republish so the pinned `@neurowire/core` and `@neurowire/ingest` versions match the current release. No behavior change.
+
 ## 0.1.2
 
 - Republish so the pinned `@neurowire/ingest` version matches the current release. No behavior change.

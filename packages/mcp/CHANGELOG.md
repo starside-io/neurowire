@@ -1,5 +1,10 @@
 # @neurowire/mcp
 
+## 0.2.0
+
+- The catalog resolves `${ENV_VAR}` references in per-source header values of the operator's mesh and construct files, from the catalog's own `env`.
+- `fetch_mesh` and `fetch_construct` parse inline sources with the public schemas, which drop per-source `headers`. A client cannot inject an `Authorization` header or read the server's environment through a URL it controls.
+
 ## 0.1.0
 
 - Initial release: a stdio MCP server (`neurowire-mcp`) that exposes Neurowire to LLM agents.
