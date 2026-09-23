@@ -36,8 +36,19 @@ export default defineConfig({
         items: [
           { text: '@neurowire/core', link: 'https://www.npmjs.com/package/@neurowire/core' },
           { text: '@neurowire/ingest', link: 'https://www.npmjs.com/package/@neurowire/ingest' },
+          { text: '@neurowire/taps', link: 'https://www.npmjs.com/package/@neurowire/taps' },
+          {
+            text: '@neurowire/tap-wizard',
+            link: 'https://www.npmjs.com/package/@neurowire/tap-wizard',
+          },
+          {
+            text: '@neurowire/taps-pack',
+            link: 'https://www.npmjs.com/package/@neurowire/taps-pack',
+          },
           { text: '@neurowire/cli', link: 'https://www.npmjs.com/package/@neurowire/cli' },
+          { text: '@neurowire/api', link: 'https://www.npmjs.com/package/@neurowire/api' },
           { text: '@neurowire/web', link: 'https://www.npmjs.com/package/@neurowire/web' },
+          { text: '@neurowire/mcp', link: 'https://www.npmjs.com/package/@neurowire/mcp' },
         ],
       },
     ],
